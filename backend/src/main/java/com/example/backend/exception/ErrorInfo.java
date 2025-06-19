@@ -2,9 +2,11 @@ package com.example.backend.exception;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Builder;
+import lombok.Getter;
 
 import java.time.Instant;
 
+@Getter
 @Builder
 public class ErrorInfo {
 
