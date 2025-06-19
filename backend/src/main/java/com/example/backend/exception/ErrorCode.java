@@ -1,22 +1,21 @@
 package com.example.backend.exception;
 
-public enum ErrorCode {
-    ERROR_CODE(500,"서버오류"),
-    VALIDATION_FAILED(300,"Validation Failed"),;
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
 
-    private final int status;
+@Getter
+public enum ErrorCode {
+    UNKNOWN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "X1", "서버 오류입니다."),
+    VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "V1", "Validation Failed"),
+    ;
+
+    private final HttpStatus httpStatus;
+    private final String code;
     private final String message;
 
-    private ErrorCode(int status, String message) {
-        this.status = status;
+    ErrorCode(HttpStatus httpStatus, String code, String message) {
+        this.httpStatus = httpStatus;
+        this.code = code;
         this.message = message;
-    }
-
-    public int getStatus() {
-        return this.status;
-    }
-
-    public String getMessage() {
-        return this.message;
     }
 }
