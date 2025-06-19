@@ -1,4 +1,3 @@
-
 package com.example.backend.exception;
 
 
@@ -29,7 +28,8 @@ public class BaseResponse<T> {
     public static <T> BaseResponse<T> error(ErrorCode errorCode, String path) {
         ErrorInfo errorInfo = ErrorInfo.builder()
                 .timestamp(Instant.now())
-                .status(errorCode.getStatus())
+                .status(errorCode.getHttpStatus().value())
+                .code(errorCode.getCode())
                 .message(errorCode.getMessage())
                 .path(path)
                 .build();
