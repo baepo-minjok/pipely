@@ -1,16 +1,14 @@
 package com.example.backend.exception;
 
-import java.util.stream.Collectors;
-
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,39 +22,65 @@ public class GlobalExceptionHandler {
     public ResponseEntity<BaseResponse<Object>> handleValidationExceptions(
             MethodArgumentNotValidException ex, HttpServletRequest request) {
 
-        // FieldError들을 조합: 예: "name: 필수값 누락, age: 범위 벗어남"
+        ErrorCode errorCode = ErrorCode.VALIDATION_FAILED;
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+        String query = request.getQueryString(); // null일 수 있음
+
+        // FieldError 목록에서 상세 메시지 조합
         String detailMessage = ex.getBindingResult().getFieldErrors().stream()
-                .map(fieldError -> formatFieldError(fieldError))
+                .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .collect(Collectors.joining(", "));
 
-        ErrorCode errorCode = ErrorCode.VALIDATION_FAILED;
-        // path 정보
-        String path = request.getRequestURI();
-        BaseResponse<Object> body = BaseResponse.error(errorCode, path);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
-    }
-    private String formatFieldError(FieldError fieldError) {
-        // 기본 메시지: field 이름 + defaultMessage
-        return fieldError.getField() + ": " + fieldError.getDefaultMessage();
+        // 로깅: WARN 레벨로 남기되, 어느 요청에서 무슨 필드 오류가 났는지 구체적으로 기록
+        if (query != null) {
+            log.warn("Validation failed [{} {}?{}]: {}", method, path, query, detailMessage);
+        } else {
+            log.warn("Validation failed [{} {}]: {}", method, path, detailMessage);
+        }
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus().value())
+                .body(BaseResponse.error(errorCode, path));
     }
 
-    @ExceptionHandler({CustomException.class})
+    @ExceptionHandler(CustomException.class)
     public ResponseEntity<BaseResponse<String>> handleCustomException(CustomException ex, HttpServletRequest request) {
         ErrorCode errorCode = ex.getErrorCode();
-
-        // path 정보
         String path = request.getRequestURI();
-        return ResponseEntity.badRequest().body(BaseResponse.error(errorCode,path));
+        String method = request.getMethod();
+        String query = request.getQueryString();
+        String message = ex.getMessage();
+
+        // 어떤 비즈니스 로직에서 발생했는지 로그에 남김
+        if (query != null) {
+            log.warn("Business exception [{} {}?{}]: code={}, message={}", method, path, query, errorCode.name(), message);
+        } else {
+            log.warn("Business exception [{} {}]: code={}, message={}", method, path, errorCode.name(), message);
+        }
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus().value())
+                .body(BaseResponse.error(errorCode, path));
     }
 
-    @ExceptionHandler({Exception.class})
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<BaseResponse<String>> handleException(Exception ex, HttpServletRequest request) {
-        log.error(ex.getMessage());
-        ErrorCode code = ErrorCode.ERROR_CODE;
-
-        // path 정보
         String path = request.getRequestURI();
+        String method = request.getMethod();
+        String query = request.getQueryString();
 
-        return ResponseEntity.badRequest().body(BaseResponse.error(code, path));
+        // 예기치 않은 예외: 스택 트레이스를 남겨야 원인 파악 가능
+        if (query != null) {
+            log.error("Unhandled exception [{} {}?{}]: {}", method, path, query, ex.getMessage(), ex);
+        } else {
+            log.error("Unhandled exception [{} {}]: {}", method, path, ex.getMessage(), ex);
+        }
+
+        ErrorCode code = ErrorCode.UNKNOWN_ERROR;
+
+        return ResponseEntity
+                .status(code.getHttpStatus().value())
+                .body(BaseResponse.error(code, path));
     }
 }
