@@ -13,13 +13,3 @@ assignees: []
 **3. 코드 예시**
 
 **4. 권장 수정안**
-
-**5. 체크리스트**
-- [ ] 파일명 PascalCase로 작성되었는가?
-- [ ] Vue 파일 구조 `<script> → <template> → <style>` 순서인가?
-- [ ] 클래스명 snake_case, 변수/함수명 camelCase 규칙 준수했는가?
-- [ ] Prettier 포맷팅이 적용되었는가?
-- [ ] DTO 변환 시 builder 패턴을 사용했는가?
-- [ ] 테스트 코드 작성 시 컨벤션을 따랐는가?
-
-**6. 참고 자료**
