@@ -25,19 +25,26 @@ public class ErrorService {
             String jobName = (String) job.get("name");
             try {
                 Map<?, ?> lastBuild = jenkinsRestClient.get("/job/" + jobName + "/lastBuild/api/json", Map.class);
-                if ("FAILURE".equals(lastBuild.get("result"))) {
-                    failedBuilds.add(FailedBuildDto.builder()
-                            .jobName(jobName)
-                            .buildNumber((Integer) lastBuild.get("number"))
-                            .result("FAILURE")
-                            .timestamp(lastBuild.get("timestamp").toString())
-                            .duration(lastBuild.get("duration").toString())
-                            .build());
+
+                String result = (String) lastBuild.get("result");
+                if ("FAILURE".equals(result)) {
+                    int buildNumber = (Integer) lastBuild.get("number");
+                    long timestampMillis = ((Number) lastBuild.get("timestamp")).longValue();
+                    long durationMillis = ((Number) lastBuild.get("duration")).longValue();
+
+                    failedBuilds.add(FailedBuildDto.of(
+                            jobName,
+                            buildNumber,
+                            result,
+                            timestampMillis,
+                            durationMillis
+                    ));
                 }
             } catch (Exception e) {
                 // 개별 Job 오류 무시
             }
         }
+
 
         return failedBuilds;
     }
@@ -53,16 +60,17 @@ public class ErrorService {
             try {
                 Map<?, ?> lastBuild = jenkinsRestClient.get("/job/" + jobName + "/lastBuild/api/json", Map.class);
                 String result = (String) lastBuild.get("result");
-
+                long timestampMillis = ((Number) lastBuild.get("timestamp")).longValue();
+                long durationMillis = ((Number) lastBuild.get("duration")).longValue();
                 // 실패, 성공, UNSTABLE, ABORTED 등 모두 포함
                 if (result != null) {
-                    builds.add(FailedBuildDto.builder()
-                            .jobName(jobName)
-                            .buildNumber((Integer) lastBuild.get("number"))
-                            .result(result)
-                            .timestamp(lastBuild.get("timestamp").toString())
-                            .duration(lastBuild.get("duration").toString())
-                            .build());
+                    builds.add(FailedBuildDto.of(
+                            jobName,
+                            (Integer) lastBuild.get("number"),
+                            result,
+                            timestampMillis,
+                            durationMillis
+                    ));
                 }
 
             } catch (Exception e) {
