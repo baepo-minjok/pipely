@@ -1,6 +1,7 @@
 package com.example.backend.user.controller;
 
 import com.example.backend.config.jwt.JwtTokenProvider;
+import com.example.backend.exception.BaseResponse;
 import com.example.backend.user.model.dto.LoginRequest;
 import com.example.backend.user.model.dto.SignupRequest;
 import com.example.backend.user.repository.UserRepository;
@@ -51,11 +52,25 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body("ok");
     }
+
     @PostMapping("/signup")
     public ResponseEntity<Void> signup(@RequestBody SignupRequest req) {
         userService.registerUser(req);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<BaseResponse<String>> logout() {
+        ResponseCookie cookie = ResponseCookie.from("JWT", "")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(0)
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(BaseResponse.success("logout success"));
+    }
+
     @GetMapping("/verify-email")
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
         return verificationTokenService.validateToken(token)
