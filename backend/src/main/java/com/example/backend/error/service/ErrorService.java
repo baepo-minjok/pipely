@@ -54,7 +54,7 @@ public class ErrorService {
                 Map<?, ?> lastBuild = jenkinsRestClient.get("/job/" + jobName + "/lastBuild/api/json", Map.class);
                 String result = (String) lastBuild.get("result");
 
-                // ✅ 실패, 성공, UNSTABLE, ABORTED 등 모두 포함
+                // 실패, 성공, UNSTABLE, ABORTED 등 모두 포함
                 if (result != null) {
                     builds.add(FailedBuildDto.builder()
                             .jobName(jobName)
