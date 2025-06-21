@@ -1,11 +1,10 @@
 package com.example.backend.handler;
 
+import com.example.backend.auth.user.service.UserService;
 import com.example.backend.config.jwt.JwtTokenProvider;
-import com.example.backend.user.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
@@ -15,14 +14,13 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.time.Duration;
 
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
-    @Value("${jwt.access-expiration}") private long accessExpiration;
+    private final CookieHandler cookieHandler;
 
     @Override
     public void onAuthenticationSuccess(
@@ -36,15 +34,13 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         userService.registerUser(registrationId, oAuth2User);
 
         String accessToken = jwtTokenProvider.createAccessToken(authentication);
+        String refreshToken = jwtTokenProvider.createRefreshToken(authentication);
 
-        ResponseCookie cookie = ResponseCookie.from("JWT", accessToken)
-                .httpOnly(true)
-                .path("/")
-                .maxAge(Duration.ofMillis(accessExpiration))
-                .sameSite("Strict")
-                .build();
+        ResponseCookie cookie = cookieHandler.buildAccessCookie(accessToken);
+        ResponseCookie refreshCookie = cookieHandler.buildRefreshCookie(refreshToken);
 
         response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        response.setHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
         response.sendRedirect("/");
     }
 }

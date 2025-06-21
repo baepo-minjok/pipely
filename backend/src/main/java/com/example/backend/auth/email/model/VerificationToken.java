@@ -1,5 +1,6 @@
-package com.example.backend.user.model;
+package com.example.backend.auth.email.model;
 
+import com.example.backend.auth.user.model.Users;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
@@ -9,7 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -22,5 +23,5 @@ public class VerificationToken {
     private String token;                  // UUID
     @OneToOne(fetch = FetchType.LAZY)
     private Users user;
-    private Instant expiryDate;
+    private LocalDateTime expiryDate;
 }
