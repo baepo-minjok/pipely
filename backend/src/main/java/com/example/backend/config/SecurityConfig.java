@@ -1,8 +1,8 @@
 package com.example.backend.config;
 
+import com.example.backend.auth.user.service.CustomOAuth2UserService;
 import com.example.backend.config.jwt.JwtAuthenticationFilter;
 import com.example.backend.handler.OAuth2LoginSuccessHandler;
-import com.example.backend.user.service.CustomOAuth2UserService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

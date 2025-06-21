@@ -60,6 +60,8 @@ spring:
             user-name-attribute: id
 jwt:
   secret: ${JWT_SECRET_KEY}
+  access-name: ${JWT_ACCESS_NAME}
+  refresh-name: ${JWT_REFRESH_NAME}
   access-expiration: ${JWT_ACCESS_EXPIRATION}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION}
 app:
