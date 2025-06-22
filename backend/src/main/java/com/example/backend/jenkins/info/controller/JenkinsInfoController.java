@@ -4,14 +4,12 @@ import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.CreateDto;
+import com.example.backend.jenkins.info.model.dto.InfoRequestDto.UpdateDto;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/jenkins/info")
@@ -22,16 +20,19 @@ public class JenkinsInfoController {
 
     @PostMapping("/create")
     public ResponseEntity<BaseResponse<JenkinsInfo>> create(
-            @AuthenticationPrincipal Users currentUser,
+            @AuthenticationPrincipal Users user,
             @RequestBody CreateDto request) {
-        JenkinsInfo created = jenkinsInfoService.createJenkinsInfo(
-                currentUser.getId(),
-                request.getJenkinsId(),
-                request.getSecretKey(),
-                request.getUri()
-        );
+        JenkinsInfo created = jenkinsInfoService.createJenkinsInfo(user, request);
         return ResponseEntity.ok()
                 .body(BaseResponse.success(created));
+    }
+
+    @PutMapping
+    public ResponseEntity<BaseResponse<String>> update(
+            @RequestBody UpdateDto request) {
+        jenkinsInfoService.updateJenkinsInfo(request);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("Jenkins Info update Success"));
     }
 
 

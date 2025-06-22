@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "jenkins_info")
@@ -20,7 +21,7 @@ public class JenkinsInfo {
 
     @Id
     @Column(name = "id", updatable = false, nullable = false)
-    private String id;
+    private UUID id;
 
     @NotBlank
     @Column(name = "jenkins_id", nullable = false)
