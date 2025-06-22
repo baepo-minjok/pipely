@@ -5,11 +5,14 @@ import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.CreateDto;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.UpdateDto;
+import com.example.backend.jenkins.info.model.dto.InfoResponseDto.LightInfoDto;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/jenkins/info")
@@ -35,5 +38,11 @@ public class JenkinsInfoController {
                 .body(BaseResponse.success("Jenkins Info update Success"));
     }
 
-
+    @GetMapping
+    public ResponseEntity<BaseResponse<List<LightInfoDto>>> getAll(
+            @AuthenticationPrincipal Users user
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(jenkinsInfoService.getAllLightDtoByUser(user)));
+    }
 }

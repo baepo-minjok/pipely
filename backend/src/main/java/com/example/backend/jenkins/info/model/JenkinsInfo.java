@@ -24,6 +24,12 @@ public class JenkinsInfo {
     private UUID id;
 
     @NotBlank
+    private String name;
+
+    @NotBlank
+    private String description;
+
+    @NotBlank
     @Column(name = "jenkins_id", nullable = false)
     private String jenkinsId;
 
