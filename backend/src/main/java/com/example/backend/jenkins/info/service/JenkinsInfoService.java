@@ -2,7 +2,11 @@ package com.example.backend.jenkins.info.service;
 
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.auth.user.repository.UserRepository;
+import com.example.backend.exception.CustomException;
+import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
+import com.example.backend.jenkins.info.model.dto.InfoRequestDto.CreateDto;
+import com.example.backend.jenkins.info.model.dto.InfoRequestDto.UpdateDto;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,23 +26,19 @@ public class JenkinsInfoService {
      * 새로운 JenkinsInfo 생성
      */
     @Transactional
-    public JenkinsInfo createJenkinsInfo(String userId, String jenkinsId, String secretKey, String uri) {
-        Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-
+    public JenkinsInfo createJenkinsInfo(Users user, CreateDto createDto) {
 
         JenkinsInfo info = JenkinsInfo.builder()
-                // id는 UUIDGenerator가 자동 할당
-                .jenkinsId(jenkinsId)
-                .secretKey(secretKey) // 실제로는 암호화/안전 저장 고려
-                .uri(uri)
+                .id(UUID.randomUUID())
+                .jenkinsId(createDto.getJenkinsId())
+                .secretKey(createDto.getSecretKey()) // 실제로는 암호화/안전 저장 고려
+                .uri(createDto.getUri())
                 .user(user)
                 .build();
 
         JenkinsInfo saved = jenkinsInfoRepository.save(info);
 
-        // 양방향 매핑을 사용 중이라면:
-        // user.getJenkinsInfos().add(saved);
+        user.getJenkinsInfos().add(saved);
 
         return saved;
     }
@@ -57,12 +57,13 @@ public class JenkinsInfoService {
      * JenkinsInfo 수정 (예: URI나 secretKey 업데이트)
      */
     @Transactional
-    public JenkinsInfo updateJenkinsInfo(UUID infoId, String newSecretKey, String newUri) {
-        JenkinsInfo info = jenkinsInfoRepository.findById(infoId)
-                .orElseThrow(() -> new IllegalArgumentException("Jenkins 정보를 찾을 수 없습니다: " + infoId));
-        // 필요한 검증: 권한 체크(현재 사용자와 소유자 일치 등)
-        info.setSecretKey(newSecretKey);
-        info.setUri(newUri);
+    public JenkinsInfo updateJenkinsInfo(UpdateDto updateDto) {
+        JenkinsInfo info = jenkinsInfoRepository.findById(updateDto.getInfoId())
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
+
+        info.setSecretKey(updateDto.getSecretKey());
+        info.setUri(updateDto.getUri());
+        info.setJenkinsId(updateDto.getJenkinsId());
         return jenkinsInfoRepository.save(info);
     }
 

@@ -36,6 +36,12 @@ public enum ErrorCode {
     EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "EMAIL_SEND_FAILED_500", "이메일 발송 실패"),
     EMAIL_VERIFICATION_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "EMAIL_VERFICATION_TOKEN_INVALID_400", "유효하지않은 인증 코드 입니다."),
 
+    /**
+     * Jenkins/Info 도메인에서 사용하는 ErrorCode
+     */
+    JENKINS_INFO_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_INFO_NOT_FOUND_400", "젠킨스 정보가 존재하지 않습니다"),
+
+
     ;
 
     private final HttpStatus httpStatus;
