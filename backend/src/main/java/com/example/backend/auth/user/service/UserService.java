@@ -41,7 +41,6 @@ public class UserService {
         }
 
         Users user = Users.builder()
-                .id(UUID.randomUUID())
                 .email(req.getEmail())
                 .name(req.getName())
                 .password(passwordEncoder.encode(req.getPassword()))
@@ -84,7 +83,6 @@ public class UserService {
 
         String randomPwd = UUID.randomUUID().toString();
         Users user = Users.builder()
-                .id(UUID.randomUUID())
                 .email(email)
                 .name(name)
                 .phoneNumber(null)
