@@ -59,7 +59,7 @@ public class RefreshTokenService {
             // Cookie에 refresh 토큰이 없는 경우
             throw new CustomException(ErrorCode.USER_REFRESH_TOKEN_INVALID);
         }
-        Optional<RefreshToken> optionalRT = refreshTokenRepository.findByToken(token);
+        Optional<RefreshToken> optionalRT = refreshTokenRepository.findById(token);
         if (optionalRT.isEmpty()) {
             // DB에 token이 없는 경우
             throw new CustomException(ErrorCode.USER_REFRESH_TOKEN_INVALID);
