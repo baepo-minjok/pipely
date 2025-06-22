@@ -11,10 +11,4 @@ import lombok.*;
 public class BuildQueryRequestDto {
     private String jobName;
     private JobType jobType;
-
-
-
-
-
-
 }
