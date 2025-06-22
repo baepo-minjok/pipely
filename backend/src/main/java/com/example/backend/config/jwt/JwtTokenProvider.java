@@ -1,6 +1,6 @@
 package com.example.backend.config.jwt;
 
-import com.example.backend.user.service.CustomUserDetailsService;
+import com.example.backend.auth.user.service.CustomUserDetailsService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -19,16 +19,13 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class JwtTokenProvider {
 
+    private final CustomUserDetailsService customUserDetailsService;
     @Value("${jwt.secret}")
     private String secret;
-
     @Value("${jwt.access-expiration}")
     private long accessExpiration;
-
     @Value("${jwt.refresh-expiration}")
     private long refreshExpiration;
-
-    private final CustomUserDetailsService customUserDetailsService;
 
     public String createAccessToken(Authentication authentication) {
         Object principal = authentication.getPrincipal();
@@ -38,9 +35,9 @@ public class JwtTokenProvider {
             username = ((UserDetails) principal).getUsername();
         } else if (principal instanceof OAuth2User oauth2User) {
             username = oauth2User.getAttribute("email");
-        }   else if (principal instanceof String) {
+        } else if (principal instanceof String) {
             username = (String) principal;
-        }   else {
+        } else {
             throw new IllegalArgumentException("Unsupported principal type: " + principal.getClass());
         }
 
@@ -65,9 +62,9 @@ public class JwtTokenProvider {
 
         } else if (principal instanceof OAuth2User oauth2User) {
             username = oauth2User.getAttribute("email");
-        }  else if (principal instanceof String) {
+        } else if (principal instanceof String) {
             username = (String) principal;
-        }  else {
+        } else {
             throw new IllegalArgumentException("Unsupported principal type: " + principal.getClass());
         }
 

@@ -1,6 +1,8 @@
-package com.example.backend.user.service;
+package com.example.backend.auth.user.service;
 
-import com.example.backend.user.repository.UserRepository;
+import com.example.backend.auth.user.repository.UserRepository;
+import com.example.backend.exception.CustomException;
+import com.example.backend.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.User;
@@ -25,7 +27,9 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .map(users -> {
                     String[] rolesArray = users.getRoles().split(",");
                     log.info("[UserDetailsService] 사용자 정보 조회 성공: email={}, roles={}", users.getEmail(), users.getRoles());
-
+                    if (users.getDeletedAt() != null) {
+                        throw new CustomException(ErrorCode.USER_NOT_FOUND);
+                    }
                     return User.builder()
                             .username(users.getEmail())
                             .password(users.getPassword())

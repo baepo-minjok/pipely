@@ -1,4 +1,4 @@
-package com.example.backend.user.service;
+package com.example.backend.auth.user.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -32,7 +32,7 @@ public class CustomOAuth2UserService
         Map<String, Object> attributes = new HashMap<>(originalAttributes);
 
         String githubId = attributes.get("id").toString();
-        String login    = (String) attributes.get("login");
+        String login = (String) attributes.get("login");
 
         String email = fetchEmailIfNeeded(attributes, login);
         attributes.put("email", email);
@@ -63,7 +63,6 @@ public class CustomOAuth2UserService
         log.info("[OAuth2 Email Fetch] 이메일 없음 또는 비어 있음. 임시 이메일 생성: {}", fakeEmail);
         return fakeEmail;
     }
-
 
 
 }
