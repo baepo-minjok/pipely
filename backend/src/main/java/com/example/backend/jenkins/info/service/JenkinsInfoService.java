@@ -64,11 +64,13 @@ public class JenkinsInfoService {
 
     /**
      * JenkinsInfo 삭제
+     *
+     * @param infoId JenkinsInfo 엔티티의 private key
      */
     @Transactional
     public void deleteJenkinsInfo(UUID infoId) {
         JenkinsInfo info = jenkinsInfoRepository.findById(infoId)
-                .orElseThrow(() -> new IllegalArgumentException("Jenkins 정보를 찾을 수 없습니다: " + infoId));
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
         jenkinsInfoRepository.delete(info);
     }
 
