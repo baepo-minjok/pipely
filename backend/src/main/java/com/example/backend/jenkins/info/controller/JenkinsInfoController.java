@@ -55,4 +55,13 @@ public class JenkinsInfoController {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(jenkinsInfoService.getDetailInfoById(infoId)));
     }
+
+    @DeleteMapping("/{infoId}")
+    public ResponseEntity<BaseResponse<String>> delete(
+            @PathVariable UUID infoId
+    ) {
+        jenkinsInfoService.deleteJenkinsInfo(infoId);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("delete Jenkins Info Success"));
+    }
 }
