@@ -29,4 +29,29 @@ public class InfoResponseDto {
         }
 
     }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class DetailInfoDto {
+
+        private UUID id;
+        private String name;
+        private String description;
+        private String jenkinsId;
+        private String secretKey;
+        private String uri;
+
+        public static DetailInfoDto fromEntity(JenkinsInfo info) {
+            return DetailInfoDto.builder()
+                    .id(info.getId())
+                    .name(info.getName())
+                    .description(info.getDescription())
+                    .jenkinsId(info.getJenkinsId())
+                    .secretKey(info.getSecretKey())
+                    .uri(info.getUri())
+                    .build();
+        }
+    }
 }
