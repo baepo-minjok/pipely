@@ -9,6 +9,8 @@ public class InfoRequestDto {
     @Getter
     public static class CreateDto {
 
+        private String name;
+        private String description;
         private String jenkinsId;
         private String uri;
         private String secretKey;
@@ -19,6 +21,8 @@ public class InfoRequestDto {
     public static class UpdateDto {
 
         private UUID infoId;
+        private String name;
+        private String description;
         private String jenkinsId;
         private String uri;
         private String secretKey;
