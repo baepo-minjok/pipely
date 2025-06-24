@@ -1,15 +1,17 @@
 package com.example.backend.auth.user.controller;
 
+import com.example.backend.auth.email.service.EmailService;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.auth.user.model.dto.PasswordResetDto.PasswordResetRequest;
 import com.example.backend.auth.user.model.dto.PasswordResetDto.PasswordResetSubmission;
+import com.example.backend.auth.user.model.dto.ReactivateRequest;
 import com.example.backend.auth.user.model.dto.UserRequestDto.LoginRequest;
 import com.example.backend.auth.user.model.dto.UserRequestDto.SignupDto;
-import com.example.backend.auth.user.service.PasswordResetService;
-import com.example.backend.auth.user.service.RefreshTokenService;
-import com.example.backend.auth.user.service.UserService;
+import com.example.backend.auth.user.service.*;
 import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.exception.BaseResponse;
+import com.example.backend.exception.CustomException;
+import com.example.backend.exception.ErrorCode;
 import com.example.backend.handler.CookieHandler;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +34,9 @@ public class UserController {
     private final UserService userService;
     private final RefreshTokenService refreshTokenService;
     private final CookieHandler cookieHandler;
+    private final DormantTokenService dormantTokenService;
     private final PasswordResetService passwordResetService;
+    private final EmailService emailService;
 
     @Value("${jwt.access-name}")
     private String accessName;
@@ -47,9 +51,12 @@ public class UserController {
                 new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword());
         Authentication auth = authManager.authenticate(authToken);
 
-        // User 정보 가져옴
-        Users user = (Users) auth.getPrincipal();
-
+        Users user;
+        if (auth.getPrincipal() instanceof CustomUserDetails) {
+            user = ((CustomUserDetails) auth.getPrincipal()).getUserEntity();
+        } else {
+            throw new CustomException(ErrorCode.USER_NOT_FOUND);
+        }
         // 마지막 로그인 시간 갱신
         userService.setLastLogin(user);
 
@@ -144,5 +151,25 @@ public class UserController {
             @RequestBody @Valid PasswordResetSubmission req) {
         passwordResetService.resetPassword(req.getToken(), req.getNewPassword());
         return ResponseEntity.ok(BaseResponse.success("password reset success"));
+    }
+
+    @GetMapping("/send-reactive-email")
+    public ResponseEntity<BaseResponse<String>> sendReactiveEmail(
+            @RequestParam String email
+    ) {
+        emailService.sendDormantNotificationEmail(email);
+        return ResponseEntity.ok(BaseResponse.success("send reactive email success"));
+    }
+
+    @PostMapping("/reactive")
+    public ResponseEntity<BaseResponse<String>> reactive(
+            @RequestBody ReactivateRequest req
+    ) {
+        Users user = dormantTokenService.validateAndGetUserByToken(req.getToken());
+
+        dormantTokenService.deleteTokensByUser(user);
+
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("reactive success"));
     }
 }
