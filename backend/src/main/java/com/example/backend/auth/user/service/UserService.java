@@ -107,6 +107,16 @@ public class UserService {
      */
     public void setLastLogin(Users user) {
 
+        Users.UserStatus userStatus = user.getStatus();
+
+        if (userStatus.equals(Users.UserStatus.DORMANT)) {
+            throw new CustomException(ErrorCode.USER_DORMANT);
+        } else if (userStatus.equals(Users.UserStatus.UNVERIFIED)) {
+            throw new CustomException(ErrorCode.USER_UNVERIFIED);
+        } else if (userStatus.equals(Users.UserStatus.WITHDRAWN)) {
+            throw new CustomException(ErrorCode.USER_WITHDRAWN);
+        }
+
         user.setLastLogin(LocalDateTime.now());
 
         Users.UserStatus status = user.getStatus();

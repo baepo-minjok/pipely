@@ -2,7 +2,6 @@ package com.example.backend.jenkins.info.controller;
 
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
-import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.CreateDto;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.UpdateDto;
 import com.example.backend.jenkins.info.model.dto.InfoResponseDto.DetailInfoDto;
@@ -24,12 +23,12 @@ public class JenkinsInfoController {
     private final JenkinsInfoService jenkinsInfoService;
 
     @PostMapping("/create")
-    public ResponseEntity<BaseResponse<JenkinsInfo>> create(
-            @AuthenticationPrincipal Users user,
+    public ResponseEntity<BaseResponse<String>> create(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody CreateDto request) {
-        JenkinsInfo created = jenkinsInfoService.createJenkinsInfo(user, request);
+        jenkinsInfoService.createJenkinsInfo(user, request);
         return ResponseEntity.ok()
-                .body(BaseResponse.success(created));
+                .body(BaseResponse.success("create jenkins info success"));
     }
 
     @PutMapping
@@ -42,7 +41,7 @@ public class JenkinsInfoController {
 
     @GetMapping
     public ResponseEntity<BaseResponse<List<LightInfoDto>>> getAll(
-            @AuthenticationPrincipal Users user
+            @AuthenticationPrincipal(expression = "user") Users user
     ) {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(jenkinsInfoService.getAllLightDtoByUser(user)));

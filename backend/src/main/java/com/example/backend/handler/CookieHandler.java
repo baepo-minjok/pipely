@@ -1,5 +1,7 @@
 package com.example.backend.handler;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
@@ -49,5 +51,15 @@ public class CookieHandler {
                 .sameSite("Strict");
 
         return builder.build();
+    }
+
+    public String getCookieValue(HttpServletRequest request, String cookieName) {
+        if (request.getCookies() == null) return null;
+        for (Cookie cookie : request.getCookies()) {
+            if (cookie.getName().equals(cookieName)) {
+                return cookie.getValue();
+            }
+        }
+        return null;
     }
 }
