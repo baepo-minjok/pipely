@@ -1,6 +1,6 @@
 spring:
-#  profiles:
-#    active: dev
+  #  profiles:
+  #    active: dev
   datasource:
     url: ${DB_URL}
     username: ${DB_USER}
@@ -66,6 +66,13 @@ jwt:
   refresh-name: ${JWT_REFRESH_NAME}
   access-expiration: ${JWT_ACCESS_EXPIRATION}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+user:
+  dormancy:
+    period:
+      days: ${USER_DORMANCY_DAYS}
+    token:
+      expiration:
+        hours: ${USER_DORMANCY_TOKEN_EXPIRATION}
 app:
   frontend:
     url: ${VERIFY_URL}
