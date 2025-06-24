@@ -1,8 +1,10 @@
-package com.example.backend.auth.user.service;
+package com.example.backend.auth.token.service;
 
-import com.example.backend.auth.user.model.RefreshToken;
+import com.example.backend.auth.token.model.RefreshToken;
+import com.example.backend.auth.token.repository.RefreshTokenRepository;
 import com.example.backend.auth.user.model.Users;
-import com.example.backend.auth.user.repository.RefreshTokenRepository;
+import com.example.backend.auth.user.service.CustomUserDetails;
+import com.example.backend.auth.user.service.UserService;
 import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
@@ -21,6 +23,7 @@ import java.util.Optional;
 public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserService userService;
 
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenDurationMs;
@@ -33,7 +36,12 @@ public class RefreshTokenService {
     @Transactional
     public String createRefreshToken(Authentication authentication) {
 
-        Users user = (Users) authentication.getPrincipal();
+        Users user;
+        if (authentication.getPrincipal() instanceof CustomUserDetails) {
+            user = ((CustomUserDetails) authentication.getPrincipal()).getUserEntity();
+        } else {
+            throw new CustomException(ErrorCode.USER_NOT_FOUND);
+        }
         // 기존 토큰 삭제: 한 사용자당 하나의 활성 Refresh Token만 허용하는 경우
         refreshTokenRepository.deleteByUser(user);
 
@@ -76,6 +84,7 @@ public class RefreshTokenService {
     /**
      * 로그아웃 또는 재발급 시 기존 Refresh Token 삭제
      */
+    @Transactional
     public void deleteByUser(Users user) {
         refreshTokenRepository.deleteByUser(user);
     }

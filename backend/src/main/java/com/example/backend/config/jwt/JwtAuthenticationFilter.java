@@ -6,6 +6,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -17,8 +19,8 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
-    private static final String COOKIE_NAME = "JWT";
-
+    @Value("${jwt.access-name}")
+    private String accessName;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -27,7 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        if (path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) {
+        if (path.startsWith("/api/auth/reactive") || path.startsWith("/api/auth/user/signup") || path.startsWith("/api/auth/user/login") || path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -35,7 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
-                if (COOKIE_NAME.equals(cookie.getName())) {
+                if (accessName.equals(cookie.getName())) {
                     token = cookie.getValue();
                     break;
                 }
@@ -43,8 +45,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (token != null && tokenProvider.validateToken(token)) {
+
+            Authentication authentication = tokenProvider.getAuthentication(token);
             SecurityContextHolder.getContext()
-                    .setAuthentication(tokenProvider.getAuthentication(token));
+                    .setAuthentication(authentication);
+
         }
 
         filterChain.doFilter(request, response);

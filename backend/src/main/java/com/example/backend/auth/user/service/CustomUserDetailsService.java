@@ -1,6 +1,5 @@
 package com.example.backend.auth.user.service;
 
-import com.example.backend.auth.user.model.Users;
 import com.example.backend.auth.user.repository.UserRepository;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
@@ -25,21 +24,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         return userRepository.findByEmail(username)
                 .map(users -> {
-                    String[] rolesArray = users.getRoles().split(",");
+
                     log.info("[UserDetailsService] 사용자 정보 조회 성공: email={}, roles={}", users.getEmail(), users.getRoles());
-                    Users.UserStatus userStatus = users.getStatus();
-                    if (userStatus.equals(Users.UserStatus.DORMANT)) {
-                        throw new CustomException(ErrorCode.USER_DORMANT);
-                    } else if (userStatus.equals(Users.UserStatus.UNVERIFIED)) {
-                        throw new CustomException(ErrorCode.USER_UNVERIFIED);
-                    } else if (userStatus.equals(Users.UserStatus.WITHDRAWN)) {
-                        throw new CustomException(ErrorCode.USER_WITHDRAWN);
-                    }
-                    /*User.builder()
-                            .username(users.getEmail())
-                            .password(users.getPassword())
-                            .roles(rolesArray)
-                            .build();*/
+
                     return new CustomUserDetails(users);
                 })
                 .orElseThrow(() -> {
