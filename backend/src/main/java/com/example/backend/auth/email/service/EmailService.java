@@ -3,6 +3,8 @@ package com.example.backend.auth.email.service;
 import com.example.backend.auth.email.model.VerificationToken;
 import com.example.backend.auth.email.repository.VerificationTokenRepository;
 import com.example.backend.auth.user.model.Users;
+import com.example.backend.auth.user.repository.UserRepository;
+import com.example.backend.auth.user.service.DormantTokenService;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -23,14 +25,19 @@ import java.util.UUID;
 public class EmailService {
     private final JavaMailSender mailSender;
     private final VerificationTokenRepository verificationTokenRepository;
+    private final DormantTokenService dormantTokenService;
+    private final UserRepository userRepository;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
+    @Value("${user.dormancy.period.days}")
+    private long dormancyPeriodDays;
+
     public void sendVerificationEmail(Users user, String token) {
 
         log.info("[EmailService] 이메일 인증 메일 발송 시작: email={}, token={}", user.getEmail(), token);
-        String link = frontendUrl + "/api/auth/verify-email?token=" + token;
+        String link = frontendUrl + "/api/email/verify-email?token=" + token;
 
         SimpleMailMessage mail = new SimpleMailMessage();
         mail.setTo(user.getEmail());
@@ -118,5 +125,23 @@ public class EmailService {
 
         log.info("[TokenService] 토큰 유효: token={}, 사용자={}", token, vt.getUser().getEmail());
         return vt.getUser();
+    }
+
+    public void sendDormantNotificationEmail(String email) {
+
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        // 이메일에 포함할 재활성화 링크 토큰 생성 및 저장:
+        String token = dormantTokenService.createDormantReactivationToken(user);
+        String activationLink = "https://pipely.com/reactivate?token=" + token;
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(user.getEmail());
+        message.setSubject("[서비스명] 계정 휴면 안내 및 재활성화 방법");
+        message.setText("안녕하세요. 귀하의 계정이 " + dormancyPeriodDays + "일간 미사용되어 휴면 처리되었습니다.\n"
+                + "다시 서비스 이용을 원하시면 아래 링크를 통해 계정을 활성화해주세요:\n"
+                + activationLink + "\n\n감사합니다.");
+        mailSender.send(message);
     }
 }
