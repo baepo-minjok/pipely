@@ -1,5 +1,8 @@
 package com.example.backend.exception;
 
+import lombok.Getter;
+
+@Getter
 public class CustomException extends RuntimeException {
     private final ErrorCode errorCode;
 
@@ -8,7 +11,4 @@ public class CustomException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public ErrorCode getErrorCode() {
-        return this.errorCode;
-    }
 }

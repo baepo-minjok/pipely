@@ -1,5 +1,6 @@
-package com.example.backend.auth.user.model;
+package com.example.backend.auth.token.model;
 
+import com.example.backend.auth.user.model.Users;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

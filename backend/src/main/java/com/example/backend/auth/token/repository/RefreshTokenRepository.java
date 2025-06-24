@@ -1,6 +1,6 @@
-package com.example.backend.auth.user.repository;
+package com.example.backend.auth.token.repository;
 
-import com.example.backend.auth.user.model.RefreshToken;
+import com.example.backend.auth.token.model.RefreshToken;
 import com.example.backend.auth.user.model.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 

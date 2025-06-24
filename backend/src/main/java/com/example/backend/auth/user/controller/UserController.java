@@ -1,13 +1,11 @@
 package com.example.backend.auth.user.controller;
 
-import com.example.backend.auth.email.service.EmailService;
+import com.example.backend.auth.token.service.RefreshTokenService;
 import com.example.backend.auth.user.model.Users;
-import com.example.backend.auth.user.model.dto.PasswordResetDto.PasswordResetRequest;
-import com.example.backend.auth.user.model.dto.PasswordResetDto.PasswordResetSubmission;
-import com.example.backend.auth.user.model.dto.ReactivateRequest;
 import com.example.backend.auth.user.model.dto.UserRequestDto.LoginRequest;
 import com.example.backend.auth.user.model.dto.UserRequestDto.SignupDto;
-import com.example.backend.auth.user.service.*;
+import com.example.backend.auth.user.service.CustomUserDetails;
+import com.example.backend.auth.user.service.UserService;
 import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.exception.CustomException;
@@ -22,11 +20,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@RequestMapping("/api/auth/user")
 public class UserController {
 
     private final AuthenticationManager authManager;
@@ -34,9 +33,6 @@ public class UserController {
     private final UserService userService;
     private final RefreshTokenService refreshTokenService;
     private final CookieHandler cookieHandler;
-    private final DormantTokenService dormantTokenService;
-    private final PasswordResetService passwordResetService;
-    private final EmailService emailService;
 
     @Value("${jwt.access-name}")
     private String accessName;
@@ -83,13 +79,12 @@ public class UserController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<BaseResponse<String>> logout(Authentication authentication) {
-
-        Users user = (Users) authentication.getPrincipal();
+    public ResponseEntity<BaseResponse<String>> logout(
+            @AuthenticationPrincipal(expression = "userEntity") Users user
+    ) {
 
         // DB의 refreshToken 삭제
         refreshTokenService.deleteByUser(user);
-
         // Cookie 만료
         ResponseCookie deleteAccess = cookieHandler.deleteCookie(accessName);
         ResponseCookie deleteRefresh = cookieHandler.deleteCookie(refreshName);
@@ -102,10 +97,12 @@ public class UserController {
     }
 
     @DeleteMapping("/withdraw")
-    public ResponseEntity<BaseResponse<String>> withdraw(Authentication authentication) {
+    public ResponseEntity<BaseResponse<String>> withdraw(
+            @AuthenticationPrincipal(expression = "userEntity") Users user
+    ) {
 
         // 회원 탈퇴 (soft delete)
-        userService.withdrawCurrentUser((Users) authentication.getPrincipal());
+        userService.withdrawCurrentUser(user);
 
         // 쿠키 삭제
         ResponseCookie deleteAccess = cookieHandler.deleteCookie(accessName);
@@ -117,59 +114,4 @@ public class UserController {
                 .body(BaseResponse.success("withdraw success"));
     }
 
-    @PostMapping("/refresh")
-    public ResponseEntity<BaseResponse<String>> refreshAccessToken(@CookieValue(name = "REFRESH", required = false) String refreshToken) {
-
-        refreshTokenService.validateRefreshTokenAndGetUser(refreshToken);
-
-        Authentication authentication = tokenProvider.getAuthentication(refreshToken);
-
-        String newRefreshToken = refreshTokenService.createRefreshToken(authentication);
-        String newAccessToken = tokenProvider.createAccessToken(authentication);
-
-        ResponseCookie accessCookie = cookieHandler.buildAccessCookie(newAccessToken);
-        ResponseCookie refreshCookie = cookieHandler.buildRefreshCookie(newRefreshToken);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                .body(BaseResponse.success("new access token success"));
-    }
-
-    @PostMapping("/password-reset/request")
-    public ResponseEntity<BaseResponse<String>> requestPasswordReset(
-            @RequestBody @Valid PasswordResetRequest req) {
-
-        passwordResetService.createPasswordResetTokenAndSendEmail(req.getEmail());
-
-        return ResponseEntity.ok()
-                .body(BaseResponse.success("send password reset email success"));
-    }
-
-    @PostMapping("/password-reset")
-    public ResponseEntity<BaseResponse<String>> confirmPasswordReset(
-            @RequestBody @Valid PasswordResetSubmission req) {
-        passwordResetService.resetPassword(req.getToken(), req.getNewPassword());
-        return ResponseEntity.ok(BaseResponse.success("password reset success"));
-    }
-
-    @GetMapping("/send-reactive-email")
-    public ResponseEntity<BaseResponse<String>> sendReactiveEmail(
-            @RequestParam String email
-    ) {
-        emailService.sendDormantNotificationEmail(email);
-        return ResponseEntity.ok(BaseResponse.success("send reactive email success"));
-    }
-
-    @PostMapping("/reactive")
-    public ResponseEntity<BaseResponse<String>> reactive(
-            @RequestBody ReactivateRequest req
-    ) {
-        Users user = dormantTokenService.validateAndGetUserByToken(req.getToken());
-
-        dormantTokenService.deleteTokensByUser(user);
-
-        return ResponseEntity.ok()
-                .body(BaseResponse.success("reactive success"));
-    }
 }

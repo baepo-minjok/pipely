@@ -68,7 +68,7 @@ public class EmailService {
      */
     @Async
     public void sendPasswordResetEmailAsync(Users user, String token) {
-        String link = frontendUrl + "/reset-password?token=" + token;
+        String link = frontendUrl + "/password-reset?token=" + token;
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(user.getEmail());
         message.setSubject("[Pipely] 비밀번호 재설정 안내");

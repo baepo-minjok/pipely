@@ -8,6 +8,6 @@ import java.util.Optional;
 
 public interface DormantActivationTokenRepository extends JpaRepository<DormantActivationToken, Long> {
     Optional<DormantActivationToken> findByToken(String token);
-    
+
     void deleteByUser(Users user);
 }
