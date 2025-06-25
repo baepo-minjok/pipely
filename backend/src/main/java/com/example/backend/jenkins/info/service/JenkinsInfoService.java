@@ -10,16 +10,26 @@ import com.example.backend.jenkins.info.model.dto.InfoResponseDto.DetailInfoDto;
 import com.example.backend.jenkins.info.model.dto.InfoResponseDto.LightInfoDto;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class JenkinsInfoService {
 
+    private final RestTemplateBuilder restTemplateBuilder;
+    private final RestTemplate restTemplate;
     private final JenkinsInfoRepository jenkinsInfoRepository;
 
     /**
@@ -92,5 +102,58 @@ public class JenkinsInfoService {
     public DetailInfoDto getDetailInfoById(UUID infoId) {
         return jenkinsInfoRepository.findById(infoId).map(DetailInfoDto::fromEntity)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
+    }
+
+    public String verificationJenkinsInfo(UUID infoId) {
+        JenkinsInfo jenkinsInfo = jenkinsInfoRepository.findById(infoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
+
+        String baseUri = jenkinsInfo.getUri();
+        String username = jenkinsInfo.getJenkinsId();
+        String apiToken = jenkinsInfo.getSecretKey();
+
+        String auth = username + ":" + apiToken;
+        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(new MediaType("application", "xml", StandardCharsets.UTF_8));
+        headers.set("Authorization", "Basic " + encodedAuth);
+
+        HttpEntity<String> requestEntity = new HttpEntity<>(headers);
+
+        // 검사할 엔드포인트: /api/json
+        String endpoint = baseUri;
+        // URI 끝에 슬래시 유무 확인 후 "/api/json"을 붙임
+        if (baseUri.endsWith("/")) {
+            endpoint = baseUri + "api/json";
+        } else {
+            endpoint = baseUri + "/api/json";
+        }
+        ResponseEntity<String> response = null;
+        try {
+            response = restTemplate.exchange(
+                    endpoint,
+                    HttpMethod.GET,
+                    requestEntity,
+                    String.class
+            );
+        } catch (CancellationException ex) {
+            log.warn(ex.getMessage());
+            throw new CustomException(ErrorCode.JENKINS_URI_NOT_FOUND);
+        }
+        HttpStatusCode httpStatusCode = response.getStatusCode();
+        log.info(httpStatusCode.toString());
+        if (httpStatusCode == HttpStatus.OK) {
+            return response.getBody();
+        } else if (httpStatusCode == HttpStatus.NOT_FOUND) {
+            throw new CustomException(ErrorCode.JENKINS_ENDPOINT_NOT_FOUND);
+        } else if (httpStatusCode == HttpStatus.UNAUTHORIZED) {
+            throw new CustomException(ErrorCode.JENKINS_AUTHENTICATION_FAILED);
+        } else if (httpStatusCode == HttpStatus.GATEWAY_TIMEOUT || httpStatusCode == HttpStatus.REQUEST_TIMEOUT) {
+            throw new CustomException(ErrorCode.JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR);
+        } else if (httpStatusCode.is5xxServerError()) {
+            throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
+        } else {
+            throw new CustomException(ErrorCode.JENKINS_CONNECTION_FAILED);
+        }
     }
 }

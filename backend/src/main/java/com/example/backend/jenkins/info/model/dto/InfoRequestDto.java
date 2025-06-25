@@ -27,4 +27,9 @@ public class InfoRequestDto {
         private String uri;
         private String secretKey;
     }
+
+    @Getter
+    public static class InfoDto {
+        private UUID infoId;
+    }
 }
