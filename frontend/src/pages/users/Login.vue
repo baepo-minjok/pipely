@@ -19,7 +19,7 @@
         <p>또는</p>
         <input type="text" class="input_box" placeholder="이메일 주소를 입력해주세요." />
         <input type="password" class="input_box" placeholder="비밀번호를 입력해주세요." />
-        <button class="login_btn">로그인</button>
+        <button class="btn login_btn">로그인</button>
 
         <div class="bottom_box">
           <router-link to='signup'>회원가입</router-link>
@@ -142,16 +142,6 @@ pipeline {
 
 .login_btn {
   width: 100%;
-  border-radius: 10px;
-  background-color: var(--main-color);
-  color: white;
-  padding: 10px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.login_btn:hover {
-  background-color: #4852a8;
 }
 
 .bottom_box {
