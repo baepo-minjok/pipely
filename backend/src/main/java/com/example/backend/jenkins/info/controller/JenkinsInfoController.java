@@ -3,10 +3,12 @@ package com.example.backend.jenkins.info.controller;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.CreateDto;
+import com.example.backend.jenkins.info.model.dto.InfoRequestDto.InfoDto;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.UpdateDto;
 import com.example.backend.jenkins.info.model.dto.InfoResponseDto.DetailInfoDto;
 import com.example.backend.jenkins.info.model.dto.InfoResponseDto.LightInfoDto;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +23,7 @@ import java.util.UUID;
 public class JenkinsInfoController {
 
     private final JenkinsInfoService jenkinsInfoService;
+
 
     @PostMapping("/create")
     public ResponseEntity<BaseResponse<String>> create(
@@ -47,12 +50,12 @@ public class JenkinsInfoController {
                 .body(BaseResponse.success(jenkinsInfoService.getAllLightDtoByUser(user)));
     }
 
-    @GetMapping("/{infoId}")
+    @PostMapping
     public ResponseEntity<BaseResponse<DetailInfoDto>> getById(
-            @PathVariable UUID infoId
+            @RequestBody @Valid InfoDto dto
     ) {
         return ResponseEntity.ok()
-                .body(BaseResponse.success(jenkinsInfoService.getDetailInfoById(infoId)));
+                .body(BaseResponse.success(jenkinsInfoService.getDetailInfoById(dto.getInfoId())));
     }
 
     @DeleteMapping("/{infoId}")
@@ -62,5 +65,14 @@ public class JenkinsInfoController {
         jenkinsInfoService.deleteJenkinsInfo(infoId);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("delete Jenkins Info Success"));
+    }
+
+    @PostMapping("/verification")
+    public ResponseEntity<BaseResponse<String>> getVerification(
+            @RequestBody @Valid InfoDto dto
+    ) {
+        String result = jenkinsInfoService.verificationJenkinsInfo(dto.getInfoId());
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("verify success"));
     }
 }
