@@ -1,4 +1,7 @@
-<script setup></script>
+<script setup>
+
+
+</script>
 
 <template>
   <div class="container">
@@ -19,15 +22,46 @@
         <button class="login_btn">로그인</button>
 
         <div class="bottom_box">
-          <router-link>회원가입</router-link>
+          <router-link to='signup'>회원가입</router-link>
           <div class="col_line"></div>
-          <router-link>아이디 찾기</router-link>
-          <div class="col_line"></div>
-          <router-link>비밀번호 찾기</router-link>
+          <router-link to="find/password">비밀번호 찾기</router-link>
         </div>
       </div>
     </div>
-    <div class="right_wrapper"></div>
+    <div class="right_wrapper">
+      <img src="/src/assets/images/logo.png" alt="logo" />
+      <p class="text">
+        이제 복잡한 배포는 그만! <br />
+        AI가 함께 하는 간편한 CI/CD를 경험해보세요.
+      </p>
+
+      <div class="chat_box">
+        <div class="send_box">빌드 스크립트 작성해주세요.</div>
+        <div class="rec_box">요청하신 빌드 스크립트입니다.</div>
+        <div class="rec_box">
+          <pre>
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/your-repo/project.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh './gradlew build'
+            }
+        }
+    }
+    ...
+}
+    </pre>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -45,11 +79,11 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 46px;
+  gap: 40px;
 }
 
-.left_wrapper > h1 {
-  font-size: 40px;
+.left_wrapper>h1 {
+  font-size: 35px;
 }
 
 .login_box {
@@ -58,13 +92,13 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 44px 42px;
+  padding: 35px;
   border-radius: 10px;
   border: 1px solid var(--gray300);
   gap: 10px;
 }
 
-.login_box > p {
+.login_box>p {
   font-size: 14px;
   margin: 6px 0;
 }
@@ -88,7 +122,7 @@
   background-color: var(--main-color-bg);
 }
 
-.oauth_btn > img {
+.oauth_btn>img {
   width: 16px;
   height: 16px;
 }
@@ -132,7 +166,7 @@
   background-color: var(--gray300);
 }
 
-.bottom_box > a {
+.bottom_box>a {
   font-size: 12px;
   text-decoration: none;
   color: var(--gray600);
@@ -143,8 +177,43 @@
 .right_wrapper {
   width: 50%;
   display: flex;
-  background-color: var(--main-color-bg);
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  background-color: var(--main-color-bg);
+}
+
+.right_wrapper>img {
+  width: 200px;
+  margin: 20px 0;
+}
+
+.right_wrapper>.text {
+  text-align: center;
+  line-height: 160%;
+  margin-bottom: 40px;
+}
+
+.chat_box div {
+  border-radius: 10px;
+  padding: 11px 16px;
+  width: fit-content;
+  font-size: 14px;
+  margin-bottom: 15px;
+  max-width: 400px;
+}
+
+.chat_box pre {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 11px;
+}
+
+.send_box {
+  background-color: var(--chat-send);
+  justify-self: right;
+}
+
+.rec_box {
+  background-color: white;
 }
 </style>
