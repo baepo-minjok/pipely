@@ -3,9 +3,21 @@ import { ref, watch } from 'vue';
 
 const phoneValue = ref('');
 
-const handleInput = (e) => {
-  phoneValue.value = e.target.value.replace(/\D/g, '');
-}
+const handlePress = (e) => {
+  let numbersOnly = e.target.value.replace(/\D/g, '');
+
+  numbersOnly = numbersOnly.slice(0, 11);
+
+  if (numbersOnly.length <= 3) {
+    phoneValue.value = numbersOnly;
+  } else if (numbersOnly.length <= 7) {
+    phoneValue.value = numbersOnly.replace(/(\d{3})(\d+)/, '$1-$2');
+  } else {
+    phoneValue.value = numbersOnly.replace(/(\d{3})(\d{4})(\d+)/, '$1-$2-$3');
+  }
+
+  e.target.value = phoneValue.value;
+};
 
 watch(phoneValue, (newVal, _oldVal) => {
   if (newVal.length === 10) {
@@ -36,8 +48,8 @@ watch(phoneValue, (newVal, _oldVal) => {
         <input type="password" id="password" name="password" class="input_box" placeholder="비밀번호를 입력해주세요." />
         <input type="password" id="password_check" name="password_check" class="input_box"
           placeholder="비밀번호를 확인해주세요." />
-        <input type="tel" id="phone" name="phone" class="input_box" placeholder="010-1234-5678" :value="phoneValue"
-          @input="handleInput" required>
+        <input type="tel" id="phone" name="phone" class="input_box" maxlength="13" placeholder="010-1234-5678" :value="phoneValue"
+          @input="handlePress" required>
         <button class="btn signup_btn">회원가입</button>
         <p>또는</p>
         <button class="oauth_btn">
