@@ -11,7 +11,6 @@ import com.example.backend.jenkins.info.model.dto.InfoResponseDto.LightInfoDto;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +27,6 @@ import java.util.concurrent.CancellationException;
 @RequiredArgsConstructor
 public class JenkinsInfoService {
 
-    private final RestTemplateBuilder restTemplateBuilder;
     private final RestTemplate restTemplate;
     private final JenkinsInfoRepository jenkinsInfoRepository;
 
