@@ -10,7 +10,7 @@ import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
-import com.example.backend.handler.CookieHandler;
+import com.example.backend.service.CookieService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,7 +32,7 @@ public class UserController {
     private final JwtTokenProvider tokenProvider;
     private final UserService userService;
     private final RefreshTokenService refreshTokenService;
-    private final CookieHandler cookieHandler;
+    private final CookieService cookieService;
 
     @Value("${jwt.access-name}")
     private String accessName;
@@ -61,8 +61,8 @@ public class UserController {
         String refreshToken = refreshTokenService.createRefreshToken(auth);
 
         // Cookie 생성
-        ResponseCookie accessCookie = cookieHandler.buildAccessCookie(accessToken);
-        ResponseCookie refreshCookie = cookieHandler.buildRefreshCookie(refreshToken);
+        ResponseCookie accessCookie = cookieService.buildAccessCookie(accessToken);
+        ResponseCookie refreshCookie = cookieService.buildRefreshCookie(refreshToken);
 
         // 쿠키와 응답 반환
         return ResponseEntity.ok()
@@ -86,8 +86,8 @@ public class UserController {
         // DB의 refreshToken 삭제
         refreshTokenService.deleteByUser(user);
         // Cookie 만료
-        ResponseCookie deleteAccess = cookieHandler.deleteCookie(accessName);
-        ResponseCookie deleteRefresh = cookieHandler.deleteCookie(refreshName);
+        ResponseCookie deleteAccess = cookieService.deleteCookie(accessName);
+        ResponseCookie deleteRefresh = cookieService.deleteCookie(refreshName);
 
         return ResponseEntity
                 .ok()
@@ -105,8 +105,8 @@ public class UserController {
         userService.withdrawCurrentUser(user);
 
         // 쿠키 삭제
-        ResponseCookie deleteAccess = cookieHandler.deleteCookie(accessName);
-        ResponseCookie deleteRefresh = cookieHandler.deleteCookie(refreshName);
+        ResponseCookie deleteAccess = cookieService.deleteCookie(accessName);
+        ResponseCookie deleteRefresh = cookieService.deleteCookie(refreshName);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, deleteAccess.toString())
