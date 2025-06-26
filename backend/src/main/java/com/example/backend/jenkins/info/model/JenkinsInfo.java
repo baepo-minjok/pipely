@@ -1,6 +1,7 @@
 package com.example.backend.jenkins.info.model;
 
 import com.example.backend.auth.user.model.Users;
+import com.example.backend.converter.CryptoConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -35,6 +36,7 @@ public class JenkinsInfo {
 
     @NotBlank
     @Column(name = "secret_key", nullable = false)
+    @Convert(converter = CryptoConverter.class)
     private String secretKey;
 
     @NotBlank
