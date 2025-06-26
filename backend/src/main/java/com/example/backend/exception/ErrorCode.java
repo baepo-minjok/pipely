@@ -51,6 +51,14 @@ public enum ErrorCode {
     JENKINS_SECRET_ENCRYPTION_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_SECRET_ENCRYPTION_FAIL_500", "암호화 실패 오류"),
     JENKINS_SECRET_DECRYPTION_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_SECRET_DECRYPTION_FAIL_500", "복호화 실패 오류"),
 
+    /**
+     * Jenkins/error 도메인에서 사용하는 ErrorCode
+     */
+    JENKINS_API_CALL_FAILED(HttpStatus.BAD_GATEWAY, "JENKINS_API_CALL_FAILED_502", "젠킨스 API 호출에 실패했습니다."),
+    JENKINS_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_JOB_NOT_FOUND_404", "해당 Job을 찾을 수 없습니다."),
+    JENKINS_BUILD_INFO_MISSING(HttpStatus.BAD_REQUEST, "JENKINS_BUILD_INFO_MISSING_400", "빌드 정보가 존재하지 않습니다."),
+    JENKINS_INFO_UNAUTHORIZED(HttpStatus.FORBIDDEN, "JENKINS_INFO_UNAUTHORIZED_403", "접근 권한이 없는 Jenkins 설정입니다."),
+
     ;
 
     private final HttpStatus httpStatus;
