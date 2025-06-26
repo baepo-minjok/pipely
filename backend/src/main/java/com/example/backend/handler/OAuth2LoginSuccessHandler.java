@@ -2,6 +2,7 @@ package com.example.backend.handler;
 
 import com.example.backend.auth.user.service.UserService;
 import com.example.backend.config.jwt.JwtTokenProvider;
+import com.example.backend.service.CookieService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ import java.io.IOException;
 public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final UserService userService;
     private final JwtTokenProvider jwtTokenProvider;
-    private final CookieHandler cookieHandler;
+    private final CookieService cookieService;
 
     @Override
     public void onAuthenticationSuccess(
@@ -36,8 +37,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String accessToken = jwtTokenProvider.createAccessToken(authentication);
         String refreshToken = jwtTokenProvider.createRefreshToken(authentication);
 
-        ResponseCookie cookie = cookieHandler.buildAccessCookie(accessToken);
-        ResponseCookie refreshCookie = cookieHandler.buildRefreshCookie(refreshToken);
+        ResponseCookie cookie = cookieService.buildAccessCookie(accessToken);
+        ResponseCookie refreshCookie = cookieService.buildRefreshCookie(refreshToken);
 
         response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         response.setHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());

@@ -71,7 +71,7 @@ public class JenkinsInfoController {
     public ResponseEntity<BaseResponse<String>> getVerification(
             @RequestBody @Valid InfoDto dto
     ) {
-        String result = jenkinsInfoService.verificationJenkinsInfo(dto.getInfoId());
+        jenkinsInfoService.verificationJenkinsInfo(dto.getInfoId());
         return ResponseEntity.ok()
                 .body(BaseResponse.success("verify success"));
     }

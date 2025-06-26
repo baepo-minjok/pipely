@@ -3,7 +3,7 @@ package com.example.backend.auth.token.controller;
 import com.example.backend.auth.token.service.RefreshTokenService;
 import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.exception.BaseResponse;
-import com.example.backend.handler.CookieHandler;
+import com.example.backend.service.CookieService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +22,7 @@ public class RefreshTokenController {
 
     private final JwtTokenProvider tokenProvider;
     private final RefreshTokenService refreshTokenService;
-    private final CookieHandler cookieHandler;
+    private final CookieService cookieService;
 
     @Value("${jwt.refresh-name}")
     private String refreshName;
@@ -30,7 +30,7 @@ public class RefreshTokenController {
     @PostMapping("/refresh")
     public ResponseEntity<BaseResponse<String>> refreshAccessToken(HttpServletRequest request) {
 
-        String refreshToken = cookieHandler.getCookieValue(request, refreshName);
+        String refreshToken = cookieService.getCookieValue(request, refreshName);
 
         refreshTokenService.validateRefreshTokenAndGetUser(refreshToken);
 
@@ -39,8 +39,8 @@ public class RefreshTokenController {
         String newRefreshToken = refreshTokenService.createRefreshToken(authentication);
         String newAccessToken = tokenProvider.createAccessToken(authentication);
 
-        ResponseCookie accessCookie = cookieHandler.buildAccessCookie(newAccessToken);
-        ResponseCookie refreshCookie = cookieHandler.buildRefreshCookie(newRefreshToken);
+        ResponseCookie accessCookie = cookieService.buildAccessCookie(newAccessToken);
+        ResponseCookie refreshCookie = cookieService.buildRefreshCookie(newRefreshToken);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())

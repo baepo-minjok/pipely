@@ -1,4 +1,4 @@
-package com.example.backend.handler;
+package com.example.backend.service;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 
 @Component
-public class CookieHandler {
+public class CookieService {
 
     @Value("${jwt.access-name}")
     private String accessName;
