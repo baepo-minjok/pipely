@@ -269,18 +269,26 @@ public class BuildService {
     }
 
 
-    public String setSchedule(String jobName,String cron) {
-
+    public String setSchedule(String jobName, String cron) {
         String username = "admin";
 
         try {
             // 1. 기존 config.xml 가져오기
             String originalXml = getSchedule(jobName);
 
-            // 2. 수정된 config.xml 생성
-            String updatedXml = XmlConfigParser.updateCronSpecInXml(originalXml, cron);
+            // 2. 사전 정리: 비어 있는 <script/> 태그 제거 (Jenkins 500 에러 회피용)
+            String cleanedXml = originalXml.replaceAll("<script\\s*/>", "");
 
-            // 3. POST 요청으로 설정 반영
+            log.debug(cleanedXml+"@@@@@@@@@@@@@@@@@@");
+            // 3. 수정된 config.xml 생성
+            String updatedXml = XmlConfigParser.updateCronSpecInXml(cleanedXml, cron);
+
+
+
+            log.debug("📝 최종 업로드 config.xml:\n{}", updatedXml);
+
+
+            // 4. POST 요청으로 설정 반영
             HttpHeaders headers = new HttpHeaders();
             headers.setBasicAuth(username, apiToken1);
             headers.setContentType(MediaType.APPLICATION_XML);
@@ -294,11 +302,11 @@ public class BuildService {
             );
 
             if (!updateResponse.getStatusCode().is2xxSuccessful()) {
-                log.warn("❌ Jenkins config 업데이트 실패 - jobName: {}, status: {}", jobName, updateResponse.getStatusCode());
+                log.warn("❌ Jenkins config 업데이트 실패 - jobName: {}, status: {}", jobName, updateResponse.getStatusCode() , updateResponse.getBody());
                 return "업데이트 실패";
             }
 
-            // 4. 반영된 config.xml 다시 조회해서 확인
+            // 5. 반영된 config.xml 다시 조회해서 확인
             String newConfigXml = getSchedule(jobName);
             String resultSpec = XmlConfigParser.getCronSpecFromConfig(newConfigXml);
 
@@ -310,4 +318,5 @@ public class BuildService {
             return "예외 발생";
         }
     }
+
 }
