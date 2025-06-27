@@ -64,6 +64,9 @@ public enum ErrorCode {
     JENKINS_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_JOB_NOT_FOUND_404", "해당 Job을 찾을 수 없습니다."),
     JENKINS_BUILD_INFO_MISSING(HttpStatus.BAD_REQUEST, "JENKINS_BUILD_INFO_MISSING_400", "빌드 정보가 존재하지 않습니다."),
     JENKINS_INFO_UNAUTHORIZED(HttpStatus.FORBIDDEN, "JENKINS_INFO_UNAUTHORIZED_403", "접근 권한이 없는 Jenkins 설정입니다."),
+    JENKINS_NO_JOBS_FOUND(HttpStatus.NOT_FOUND, "JENKINS_NO_JOBS_FOUND_404", "등록된 Jenkins Job이 존재하지 않습니다."),
+    JENKINS_ALL_JOBS_FAILED(HttpStatus.BAD_GATEWAY, "JENKINS_ALL_JOBS_FAILED_502", "전체 Job의 빌드 조회에 실패했습니다."),
+
 
 
     /**
