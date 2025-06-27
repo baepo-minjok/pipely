@@ -78,5 +78,5 @@ app:
     url: ${VERIFY_URL}
 
 encryption:
-  key: ${ENCRYPTION_KEY}보
+  key: ${ENCRYPTION_KEY}
 
