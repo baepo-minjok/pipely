@@ -24,4 +24,4 @@ jobs:
                -d "{
                  \"content\": \"$MESSAGE\"
                }" \
-               ${{ secrets.DISCORD_WEBHOOK_URL }}
+               ${{ secrets.ISSUE_WEBHOOK_URL }}
