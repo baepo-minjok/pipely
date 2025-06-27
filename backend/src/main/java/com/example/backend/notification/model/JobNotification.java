@@ -1,9 +1,8 @@
 package com.example.backend.notification.model;
 
-import com.example.backend.job.model.Job;
+import com.example.backend.jenkins.job.model.Job;
 import jakarta.persistence.*;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
@@ -32,8 +31,8 @@ public class JobNotification {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-            @JoinColumn(name = "name", referencedColumnName = "name", insertable=false, updatable=false),
-            @JoinColumn(name = "job_created_at", referencedColumnName = "job_created_at", insertable=false, updatable=false)
+            @JoinColumn(name = "name", referencedColumnName = "name", insertable = false, updatable = false),
+            @JoinColumn(name = "job_created_at", referencedColumnName = "job_created_at", insertable = false, updatable = false)
     })
     private Job job;
 }
