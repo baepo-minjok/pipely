@@ -12,7 +12,7 @@ jobs:
         run: |
           if [ "${{ github.event.action }}" = "opened" ]; then
             MESSAGE="🐛 새 이슈가 등록되었습니다!\n제목: ${{ github.event.issue.title }}\n작성자: ${{ github.actor }}\n링크: ${{ github.event.issue.html_url }}"
-          elif [ "${{ github.event.action }}" = "labeled" ] && [ "${{ github.event.label.name }}" = "done" ]; then
+          elif [ "${{ github.event.action }}" = "labeled" ] && [ "${{ github.event.label.name }}" = "Done" ]; then
             MESSAGE="✅ 이슈가 완료되었습니다!\n제목: ${{ github.event.issue.title }}\n처리자: ${{ github.actor }}\n링크: ${{ github.event.issue.html_url }}"
           else
             echo "Not an event we're interested in"
