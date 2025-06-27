@@ -1,5 +1,8 @@
-package com.example.backend.exception;
+package com.example.backend.handler;
 
+import com.example.backend.exception.BaseResponse;
+import com.example.backend.exception.CustomException;
+import com.example.backend.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
