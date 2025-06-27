@@ -1,7 +1,7 @@
 package com.example.backend;
 
 import com.example.backend.exception.ErrorCode;
-import com.example.backend.exception.GlobalExceptionHandler;
+import com.example.backend.handler.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

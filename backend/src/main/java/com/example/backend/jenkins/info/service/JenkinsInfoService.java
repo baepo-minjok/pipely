@@ -41,7 +41,6 @@ public class JenkinsInfoService {
     public JenkinsInfo createJenkinsInfo(Users user, CreateDto createDto) {
 
         JenkinsInfo info = JenkinsInfo.builder()
-                .id(UUID.randomUUID())
                 .name(createDto.getName())
                 .description(createDto.getDescription())
                 .jenkinsId(createDto.getJenkinsId())
@@ -52,7 +51,7 @@ public class JenkinsInfoService {
 
         JenkinsInfo saved = jenkinsInfoRepository.save(info);
 
-        user.getJenkinsInfos().add(saved);
+        user.getJenkinsInfoList().add(saved);
 
         return saved;
     }
@@ -141,5 +140,10 @@ public class JenkinsInfoService {
                 requestEntity,
                 String.class
         );
+    }
+
+    public JenkinsInfo getJenkinsInfo(UUID infoId) {
+        return jenkinsInfoRepository.findById(infoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
     }
 }

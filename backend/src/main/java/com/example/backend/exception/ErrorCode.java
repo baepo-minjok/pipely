@@ -17,6 +17,11 @@ public enum ErrorCode {
     UNKNOWN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "UNKNOWN_ERROR_500", "서버 오류입니다."),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED_400", "올바른 값이 아닙니다."),
 
+    /**
+     * Mustache에서 사용하는 ErrorCode
+     */
+    MUSTACHE_FILE_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "MUSTACHE_FILE_NOT_FOUND_500", "해당 경로에 파일이 존재하지 않습니다."),
+    MUSTACHE_EXECUTE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "MUSTACHE_EXECUTE_FAILED_500", "파일 생성에 실패했습니다."),
 
     /**
      * Auth/User 도메인에서 사용하는 ErrorCode
@@ -58,6 +63,7 @@ public enum ErrorCode {
     JENKINS_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_JOB_NOT_FOUND_404", "해당 Job을 찾을 수 없습니다."),
     JENKINS_BUILD_INFO_MISSING(HttpStatus.BAD_REQUEST, "JENKINS_BUILD_INFO_MISSING_400", "빌드 정보가 존재하지 않습니다."),
     JENKINS_INFO_UNAUTHORIZED(HttpStatus.FORBIDDEN, "JENKINS_INFO_UNAUTHORIZED_403", "접근 권한이 없는 Jenkins 설정입니다."),
+
 
     ;
 
