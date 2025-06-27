@@ -1,6 +1,7 @@
 package com.example.backend.build.service;
 
 
+import com.example.backend.build.config.XmlConfigParser;
 import com.example.backend.build.model.dto.*;
 import com.example.backend.build.model.JobType;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -8,13 +9,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.beans.factory.annotation.Value;
 
 
 import org.jsoup.Jsoup;
@@ -25,12 +25,18 @@ import org.jsoup.nodes.Element;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BuildService {
+
+    @Value("${JENKINS_URL}")
+    private String jenkinsUrl1;
+
+    @Value("${JENKINS_API_TOKEN}")
+    private String apiToken1;
+
 
     private final RestTemplate restTemplate;
 
@@ -60,10 +66,10 @@ public class BuildService {
 
     // job 빌드 트리거
     public void triggerJenkinsBuild(BuildTriggerRequestDto requestDto) {
-        String jenkinsUrl = "http://15.164.104.2:8080";
+        String jenkinsUrl = jenkinsUrl1;
+        String apiToken = apiToken1;
         String jobName = requestDto.getJobName();
         String username = "admin";
-        String apiToken = "114cf329b1dbcc4e92dfca3c0d46f3c980";
 
 
 
@@ -129,9 +135,9 @@ public class BuildService {
     public BuildLogResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber) {
 
 
-        String jenkinsUrl = "http://15.164.104.2:8080";
+        String jenkinsUrl = jenkinsUrl1;
+        String apiToken = apiToken1;
         String username = "admin";
-        String apiToken = "114cf329b1dbcc4e92dfca3c0d46f3c980";
 
         String triggerUrl = jenkinsUrl + "/job/" + jobName + "/" + buildNumber + "/console";
 
@@ -171,9 +177,9 @@ public class BuildService {
 
     public BuildStreamLogResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber) {
 
-        String jenkinsUrl = "http://15.164.104.2:8080";
+        String jenkinsUrl = jenkinsUrl1;
+        String apiToken = apiToken1;
         String username = "admin";
-        String apiToken = "114cf329b1dbcc4e92dfca3c0d46f3c980";
 
 
         URI uri = UriComponentsBuilder
@@ -187,6 +193,8 @@ public class BuildService {
 
         ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
 
+
+        System.out.println(response);
 
 
 
@@ -203,10 +211,10 @@ public class BuildService {
 
     // 젠킨스 빌드 내역 조회 url get
     public ResponseEntity<String> JenkinsGetResponse(String job) {
-        String jenkinsUrl = "http://15.164.104.2:8080";
+        String jenkinsUrl = jenkinsUrl1;
+        String apiToken = apiToken1;
         String jobName = job;
         String username = "admin";
-        String apiToken = "114cf329b1dbcc4e92dfca3c0d46f3c980";
 
         String triggerUrl = jenkinsUrl + "/job/" + jobName + "/api/json"
                 + "?tree=builds[number,result,timestamp,duration,building,id,url,actions[causes[userId,userName]]]";
@@ -220,6 +228,8 @@ public class BuildService {
         try {
             ResponseEntity<String> response = restTemplate.exchange(triggerUrl, HttpMethod.GET, entity, String.class);
             log.info("Jenkins API 응답 수신 완료 - Status: {}", response.getStatusCode());
+            log.info(" @@@@@@@@@@@@@@@@@@@@" + response);
+
             return response;
         } catch (Exception e) {
             log.error("Jenkins API 호출 실패 - jobName: {}", job, e);
@@ -227,4 +237,77 @@ public class BuildService {
         }
     }
 
+    public String getSchedule(String jobName) {
+
+
+        String username = "admin";
+
+
+
+        String triggerUrl = jenkinsUrl1 + "/job/" + jobName + "/config.xml";
+
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(username, apiToken1);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(triggerUrl, HttpMethod.GET, entity, String.class);
+
+
+
+
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Jenkins API 호출 실패 - jobName: {}", jobName, e);
+            throw new RuntimeException("Jenkins API 호출 실패", e);
+        }
+
+
+
+    }
+
+
+    public String setSchedule(String jobName,String cron) {
+
+        String username = "admin";
+
+        try {
+            // 1. 기존 config.xml 가져오기
+            String originalXml = getSchedule(jobName);
+
+            // 2. 수정된 config.xml 생성
+            String updatedXml = XmlConfigParser.updateCronSpecInXml(originalXml, cron);
+
+            // 3. POST 요청으로 설정 반영
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBasicAuth(username, apiToken1);
+            headers.setContentType(MediaType.APPLICATION_XML);
+            HttpEntity<String> entity = new HttpEntity<>(updatedXml, headers);
+
+            ResponseEntity<String> updateResponse = restTemplate.exchange(
+                    jenkinsUrl1 + "/job/" + jobName + "/config.xml",
+                    HttpMethod.POST,
+                    entity,
+                    String.class
+            );
+
+            if (!updateResponse.getStatusCode().is2xxSuccessful()) {
+                log.warn("❌ Jenkins config 업데이트 실패 - jobName: {}, status: {}", jobName, updateResponse.getStatusCode());
+                return "업데이트 실패";
+            }
+
+            // 4. 반영된 config.xml 다시 조회해서 확인
+            String newConfigXml = getSchedule(jobName);
+            String resultSpec = XmlConfigParser.getCronSpecFromConfig(newConfigXml);
+
+            log.info("✅ Jenkins 스케줄 설정 완료 - jobName: {}, cron: {}", jobName, resultSpec);
+            return resultSpec;
+
+        } catch (Exception e) {
+            log.error("❌ Jenkins 스케줄 설정 중 예외 발생 - jobName: {}", jobName, e);
+            return "예외 발생";
+        }
+    }
 }
