@@ -1,29 +1,35 @@
 package com.example.backend.jenkins.job.controller;
 
 import com.example.backend.exception.BaseResponse;
-import com.example.backend.jenkins.job.model.dto.JobRequestDto.CreateFreestyleDto;
-import com.example.backend.jenkins.job.service.FreestyleJobService;
+import com.example.backend.jenkins.job.model.dto.JobRequestDto.CreateFreeStyleDto;
+import com.example.backend.jenkins.job.model.dto.JobRequestDto.UpdateFreeStyleDto;
+import com.example.backend.jenkins.job.service.FreeStyleJobService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/jenkins/job")
 public class JobController {
 
-    private final FreestyleJobService freestyleJobService;
+    private final FreeStyleJobService freeStyleJobService;
 
-    @PostMapping("/create/freestyle")
-    public ResponseEntity<BaseResponse<String>> createFreestyle(@RequestBody CreateFreestyleDto dto) {
+    @PostMapping("/create/freeStyle")
+    public ResponseEntity<BaseResponse<String>> createFreeStyle(@RequestBody CreateFreeStyleDto dto) {
 
-
-        freestyleJobService.createFreestyleJob(dto);
+        freeStyleJobService.createFreestyleJob(dto);
 
         return ResponseEntity.ok()
                 .body(BaseResponse.success("create freestyle success"));
+    }
+
+    @PutMapping("/freeStyle")
+    public ResponseEntity<BaseResponse<String>> updateFreeStyle(@RequestBody UpdateFreeStyleDto dto) {
+
+        freeStyleJobService.updateFreestyleJob(dto);
+
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("update freestyle success"));
     }
 }

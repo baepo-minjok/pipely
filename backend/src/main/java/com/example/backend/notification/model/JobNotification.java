@@ -31,8 +31,8 @@ public class JobNotification {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-            @JoinColumn(name = "name", referencedColumnName = "name", insertable = false, updatable = false),
-            @JoinColumn(name = "job_created_at", referencedColumnName = "job_created_at", insertable = false, updatable = false)
+            @JoinColumn(name = "id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "created_at", referencedColumnName = "created_at", insertable = false, updatable = false)
     })
     private Job job;
 }

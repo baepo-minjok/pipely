@@ -23,6 +23,7 @@ public class Job {
 
     private LocalDateTime deletedAt;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     private Integer latestVersion;

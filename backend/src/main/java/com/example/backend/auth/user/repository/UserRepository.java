@@ -14,7 +14,7 @@ public interface UserRepository extends JpaRepository<Users, UUID> {
 
     Page<Users> findByStatusAndLastLoginBefore(Users.UserStatus status, LocalDateTime before, Pageable pageable);
 
-    @Query("SELECT u FROM user u LEFT JOIN FETCH u.jenkinsInfos WHERE u.email = :email")
+    @Query("SELECT u FROM user u LEFT JOIN FETCH u.jenkinsInfoList WHERE u.email = :email")
     Optional<Users> findByEmail(String email);
 
     boolean existsByEmail(String email);

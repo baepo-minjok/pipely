@@ -4,15 +4,19 @@ import com.example.backend.jenkins.info.model.JenkinsInfo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.util.UUID;
 
 @Entity
+@Table(
+        name = "free_style",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"jenkins_info_id", "job_name"})
+)
 @Builder
-@Getter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class FreeStyle {
