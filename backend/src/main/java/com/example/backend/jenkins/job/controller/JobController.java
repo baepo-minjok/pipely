@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/jenkins/job")
@@ -31,5 +33,13 @@ public class JobController {
 
         return ResponseEntity.ok()
                 .body(BaseResponse.success("update freestyle success"));
+    }
+
+    @DeleteMapping("/freeStyle")
+    public ResponseEntity<BaseResponse<String>> deleteFreeStyle(@RequestParam UUID id) {
+        freeStyleJobService.deleteById(id);
+
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("delete freestyle success"));
     }
 }
