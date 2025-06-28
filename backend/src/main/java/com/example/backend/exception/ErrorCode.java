@@ -22,6 +22,7 @@ public enum ErrorCode {
      */
     MUSTACHE_FILE_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "MUSTACHE_FILE_NOT_FOUND_500", "해당 경로에 파일이 존재하지 않습니다."),
     MUSTACHE_EXECUTE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "MUSTACHE_EXECUTE_FAILED_500", "파일 생성에 실패했습니다."),
+    XML_PARSING_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "XML_PARSING_ERROR_500", "xml 파일 생성에 실패했습니다."),
 
     /**
      * Auth/User 도메인에서 사용하는 ErrorCode
@@ -64,6 +65,11 @@ public enum ErrorCode {
     JENKINS_BUILD_INFO_MISSING(HttpStatus.BAD_REQUEST, "JENKINS_BUILD_INFO_MISSING_400", "빌드 정보가 존재하지 않습니다."),
     JENKINS_INFO_UNAUTHORIZED(HttpStatus.FORBIDDEN, "JENKINS_INFO_UNAUTHORIZED_403", "접근 권한이 없는 Jenkins 설정입니다."),
 
+
+    /**
+     * Jenkins/Job/FreeStyle 도메인에서 사용하는 ErrorCode
+     */
+    JENKINS_FREESTYLE_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_FREESTYLE_NOT_FOUND_400", "해당 freestyle job이 존재하지 않습니다."),
 
     ;
 

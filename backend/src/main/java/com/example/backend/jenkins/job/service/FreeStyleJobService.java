@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -219,7 +220,7 @@ public class FreeStyleJobService {
             tf.transform(new DOMSource(origDoc), new StreamResult(sw));
             return sw.toString();
         } catch (Exception e) {
-            throw new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND);
+            throw new CustomException(ErrorCode.XML_PARSING_ERROR);
         }
     }
 
@@ -232,5 +233,12 @@ public class FreeStyleJobService {
         return headers;
     }
 
+    @Transactional
+    public void deleteById(UUID id) {
+        if (freeStyleRepository.existsById(id)) {
+            throw new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND);
+        }
+        freeStyleRepository.deleteById(id);
+    }
 
 }
