@@ -8,7 +8,9 @@
   /* variable */
   --main-color: #2d336b;
   --main-color-bg: #e9ebf3;
+  --main-color-hover: #4852a8;
   --chat-send: #bfc4d9;
+  --background: #fafafa;
 
   --green-font: #065f46;
   --green-bg: #d1fae5;
@@ -36,6 +38,7 @@ body,
   width: 100%;
   height: 100%;
   overflow-x: auto;
+  background-color: var(--background);
 }
 
 p,
@@ -43,4 +46,18 @@ span,
 input,
 textarea {
   font-family: 'Pretendard', sans-serif;
+}
+
+.btn {
+  border-radius: 10px;
+  border: none;
+  background-color: var(--main-color);
+  color: white;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn:hover {
+  background-color: var(--main-color-hover);
 }
