@@ -69,16 +69,17 @@ Pipely는 "파이프라인(Pipeline)"과 "심플(Simple)"을 합친 이름처럼
 
 ## 🏗️ 프로젝트 산출물
 
-- [WBS](docs/planning/WBS.md)
-- [프로젝트 기획서](docs/planning/Project_Plan.md)
-- [ERD](docs/design/ERD.png)
-- [시스템 아키텍처](docs/architecture/system-architecture.png)
+- [프로젝트 기획서](https://docs.google.com/document/d/1k67gqPe3trgWKEwNCG3rgeZHXsozqcXqJuEBqYkPhXc/edit?tab=t.0)
+- [요구사항 정의서](https://docs.google.com/document/d/1k67gqPe3trgWKEwNCG3rgeZHXsozqcXqJuEBqYkPhXc/edit?tab=t.0)
+- [WBS](https://docs.google.com/spreadsheets/d/1iceBM2KVSLNEKkg-Gaetar4pg-WtLEhwqcESs2ilzfQ/edit?gid=0#gid=0)
+- [ERD](https://www.erdcloud.com/d/TTcoWmJC4Q64MauFX)
 
 ---
 
 ## 📚 문서
 
-- [WIKI](docs/api/README.md)
+- [코딩 컨벤션](https://github.com/baepo-minjok/pipely/wiki#pipely-wiki)
+- [예외처리 가이드](https://github.com/baepo-minjok/pipely/wiki/%EC%98%88%EC%99%B8-%EC%B2%98%EB%A6%AC-%EA%B0%80%EC%9D%B4%EB%93%9C)
 
 ---
 
