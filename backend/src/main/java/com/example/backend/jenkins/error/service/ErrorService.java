@@ -102,7 +102,8 @@ public class ErrorService {
         List<Map<String, Object>> jobs = (List<Map<String, Object>>) jobsResponse.get("jobs");
 
         if (jobs == null || jobs.isEmpty()) {
-            throw new CustomException(ErrorCode.JENKINS_NO_JOBS_FOUND);
+            log.warn("Jenkins 서버에 등록된 Job이 없습니다.");
+            return builds;
         }
 
         for (Map<String, Object> job : jobs) {
@@ -129,10 +130,6 @@ public class ErrorService {
                 log.warn("Job [{}] 처리 중 예외 발생 → {}: {}", jobName, e.getErrorCode().name(), e.getMessage());
                 continue;
             }
-        }
-
-        if (builds.isEmpty()) {
-            throw new CustomException(ErrorCode.JENKINS_ALL_JOBS_FAILED);
         }
 
         return builds;
