@@ -101,6 +101,10 @@ public class ErrorService {
         Map<?, ?> jobsResponse = client.get("/api/json?tree=jobs[name,url]", Map.class);
         List<Map<String, Object>> jobs = (List<Map<String, Object>>) jobsResponse.get("jobs");
 
+        if (jobs == null || jobs.isEmpty()) {
+            throw new CustomException(ErrorCode.JENKINS_NO_JOBS_FOUND);
+        }
+
         for (Map<String, Object> job : jobs) {
             String jobName = (String) job.get("name");
 
@@ -127,6 +131,10 @@ public class ErrorService {
             }
         }
 
+        if (builds.isEmpty()) {
+            throw new CustomException(ErrorCode.JENKINS_ALL_JOBS_FAILED);
+        }
+
         return builds;
     }
 
@@ -136,6 +144,10 @@ public class ErrorService {
 
         Map<?, ?> jobsResponse = client.get("/api/json?tree=jobs[name]", Map.class);
         List<Map<String, Object>> jobs = (List<Map<String, Object>>) jobsResponse.get("jobs");
+
+        if (jobs == null || jobs.isEmpty()) {
+            throw new CustomException(ErrorCode.JENKINS_NO_JOBS_FOUND);
+        }
 
         for (Map<String, Object> job : jobs) {
             String jobName = (String) job.get("name");
@@ -167,6 +179,10 @@ public class ErrorService {
                 log.warn("Job [{}] 처리 중 예외 발생 → {}: {}", jobName, e.getErrorCode().name(), e.getMessage());
                 continue;
             }
+        }
+
+        if (builds.isEmpty()) {
+            throw new CustomException(ErrorCode.JENKINS_ALL_JOBS_FAILED);
         }
 
         return builds;
