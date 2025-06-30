@@ -69,4 +69,19 @@ public class FreeStyleHistory {
                 .config(config)
                 .build();
     }
+
+    public static FreeStyle toFreeStyle(FreeStyleHistory history, FreeStyle freeStyle) {
+        return FreeStyle.builder()
+                .id(freeStyle.getId())
+                .jobName(history.getJobName())
+                .description(history.getDescription())
+                .projectUrl(history.getProjectUrl())
+                .projectDisplayName(history.getProjectDisplayName())
+                .githubTrigger(history.getGithubTrigger())
+                .repositoryUrl(history.getRepositoryUrl())
+                .branch(history.getBranch())
+                .script(history.getScript())
+                .jenkinsInfo(freeStyle.getJenkinsInfo())
+                .build();
+    }
 }

@@ -73,6 +73,7 @@ public enum ErrorCode {
      * Jenkins/Job/FreeStyle 도메인에서 사용하는 ErrorCode
      */
     JENKINS_FREESTYLE_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_FREESTYLE_NOT_FOUND_400", "해당 freestyle job이 존재하지 않습니다."),
+    JENKINS_FREESTYLE_HISTORY_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_FREESTYLE_HISTORY_NOT_FOUND_400", "해당 freestyle history가 존재하지 않습니다."),
 
     ;
 
