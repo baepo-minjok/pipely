@@ -7,6 +7,8 @@ import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.FreeStyle;
 import com.example.backend.jenkins.job.model.FreeStyleHistory;
 import com.example.backend.jenkins.job.model.dto.JobRequestDto.CreateFreeStyleDto;
+import com.example.backend.jenkins.job.model.dto.JobRequestDto.DetailHistoryDto;
+import com.example.backend.jenkins.job.model.dto.JobRequestDto.LightHistoryDto;
 import com.example.backend.jenkins.job.model.dto.JobRequestDto.UpdateFreeStyleDto;
 import com.example.backend.jenkins.job.repository.FreeStyleHistoryRepository;
 import com.example.backend.jenkins.job.repository.FreeStyleRepository;
@@ -37,10 +39,8 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -125,7 +125,7 @@ public class FreeStyleJobService {
     @Transactional
     public void updateFreestyleJob(UpdateFreeStyleDto dto) {
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
-        FreeStyle existing = freeStyleRepository.getReferenceById(dto.getFreeStyleId());
+        FreeStyle existing = getFreeStyleById(dto.getFreeStyleId());
 
         // 1. Fetch original config.xml
         String configUrl = info.getUri() + "/job/" + dto.getJobName() + "/config.xml";
@@ -246,15 +246,40 @@ public class FreeStyleJobService {
 
     @Transactional
     public void deleteById(UUID id) {
-        if (freeStyleRepository.existsById(id)) {
-            throw new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND);
-        }
-        FreeStyle freeStyle = freeStyleRepository.getReferenceById(id);
+
+        FreeStyle freeStyle = getFreeStyleById(id);
 
         freeStyle.setIsDeleted(true);
         freeStyle.setDeletedAt(LocalDateTime.now());
 
         freeStyleRepository.save(freeStyle);
+    }
+
+    public DetailHistoryDto getFreeStyleHistoryById(UUID id) {
+
+        FreeStyleHistory freeStyleHistory = historyRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.XML_PARSING_ERROR));
+
+        return DetailHistoryDto.toDetailHistoryDto(freeStyleHistory);
+    }
+
+    public List<LightHistoryDto> getLightHistory(UUID id) {
+
+        FreeStyle freeStyle = getFreeStyleById(id);
+
+        return freeStyle.getHistoryList().stream()
+                .map(history ->
+                        LightHistoryDto.builder()
+                                .id(history.getId())
+                                .version(history.getVersion())
+                                .build()
+                )
+                .collect(Collectors.toList());
+    }
+
+    public FreeStyle getFreeStyleById(UUID id) {
+        return freeStyleRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND));
     }
 
 }
