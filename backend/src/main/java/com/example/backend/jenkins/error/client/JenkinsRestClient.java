@@ -50,4 +50,10 @@ public class JenkinsRestClient {
     private String removeTrailingSlash(String url) {
         return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
+
+    // 실패한 빌드 로그 조회 (Jenkins API)
+    public String getConsoleLog(String jobName, int buildNumber) {
+        String endpoint = String.format("/job/%s/%d/consoleText", jobName, buildNumber);
+        return get(endpoint, String.class);
+    }
 }
