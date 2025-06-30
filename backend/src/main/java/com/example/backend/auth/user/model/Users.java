@@ -48,7 +48,7 @@ public class Users {
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY,
             cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JenkinsInfo> jenkinsInfos = new ArrayList<>();
+    private List<JenkinsInfo> jenkinsInfoList = new ArrayList<>();
 
     public enum UserStatus {
         ACTIVE,

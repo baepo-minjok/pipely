@@ -1,8 +1,9 @@
-package com.example.backend.job.model;
+package com.example.backend.jenkins.job.model;
 
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+
 @Entity
 @IdClass(JobErrorLogId.class)
 @Table(name = "job_error_log")
@@ -32,8 +33,8 @@ public class JobErrorLog {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-            @JoinColumn(name = "version", referencedColumnName = "version", insertable=false, updatable=false),
-            @JoinColumn(name = "version_created_at", referencedColumnName = "version_created_at", insertable=false, updatable=false),
+            @JoinColumn(name = "version", referencedColumnName = "version", insertable = false, updatable = false),
+            @JoinColumn(name = "version_created_at", referencedColumnName = "version_created_at", insertable = false, updatable = false),
     })
     private JobVersion jobVersion;
 }

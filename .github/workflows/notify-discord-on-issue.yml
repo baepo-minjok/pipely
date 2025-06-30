@@ -1,0 +1,27 @@
+name: Notify Discord on Issue Events
+
+on:
+  issues:
+    types: [ opened, closed ]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Issue Event to Discord
+        run: |
+          if [ "${{ github.event.action }}" = "opened" ]; then
+            MESSAGE="🐛 새 이슈가 등록되었습니다!\n제목: ${{ github.event.issue.title }}\n작성자: ${{ github.actor }}\n링크: ${{ github.event.issue.html_url }}"
+          elif [ "${{ github.event.action }}" = "closed" ]; then
+            MESSAGE="✅ 이슈가 완료되었습니다!\n제목: ${{ github.event.issue.title }}\n종료자: ${{ github.actor }}\n링크: ${{ github.event.issue.html_url }}"
+          else
+            echo "처리 대상 이벤트가 아닙니다."
+            exit 0
+          fi
+
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "{
+                 \"content\": \"$MESSAGE\"
+               }" \
+               ${{ secrets.ISSUE_WEBHOOK_URL }}

@@ -1,10 +1,11 @@
-package com.example.backend.job.model;
+package com.example.backend.jenkins.job.model;
 
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 @Entity
 @IdClass(JobVersionId.class)
 @Table(name = "job_version")
@@ -32,8 +33,8 @@ public class JobVersion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-            @JoinColumn(name = "name", referencedColumnName = "name", insertable=false, updatable=false),
-            @JoinColumn(name = "job_created_at", referencedColumnName = "job_created_at", insertable=false, updatable=false)
+            @JoinColumn(name = "id", referencedColumnName = "id", insertable = false, updatable = false),
+            @JoinColumn(name = "created_at", referencedColumnName = "created_at", insertable = false, updatable = false)
     })
     private Job job;
 
