@@ -72,8 +72,6 @@ public class BuildService {
         String username = "admin";
 
 
-
-
         String triggerUrl = jenkinsUrl + "/job/" + jobName + "/buildWithParameters";
 
         HttpHeaders headers = new HttpHeaders();
@@ -91,9 +89,9 @@ public class BuildService {
                     entity,
                     String.class
             );
-            log.info("✅ 빌드 트리거 성공 - 상태: {}", response.getStatusCode());
+            log.info("빌드 트리거 성공 - 상태: {}", response.getStatusCode());
         } catch (Exception e) {
-            log.error("❌ 빌드 트리거 실패 - jobName: {}", jobName, e);
+            log.error("빌드 트리거 실패 - jobName: {}", jobName, e);
         }
     }
 
@@ -174,7 +172,6 @@ public class BuildService {
     }
 
 
-
     public BuildStreamLogResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber) {
 
         String jenkinsUrl = jenkinsUrl1;
@@ -197,16 +194,9 @@ public class BuildService {
         System.out.println(response);
 
 
-
-
-
         return BuildStreamLogResponseDto.BuildStreamLogDto.getStreamLog(response.getBody());
 
     }
-
-
-
-
 
 
     // 젠킨스 빌드 내역 조회 url get
@@ -243,7 +233,6 @@ public class BuildService {
         String username = "admin";
 
 
-
         String triggerUrl = jenkinsUrl1 + "/job/" + jobName + "/config.xml";
 
 
@@ -256,14 +245,11 @@ public class BuildService {
             ResponseEntity<String> response = restTemplate.exchange(triggerUrl, HttpMethod.GET, entity, String.class);
 
 
-
-
             return response.getBody();
         } catch (Exception e) {
             log.error("Jenkins API 호출 실패 - jobName: {}", jobName, e);
             throw new RuntimeException("Jenkins API 호출 실패", e);
         }
-
 
 
     }
@@ -273,22 +259,10 @@ public class BuildService {
         String username = "admin";
 
         try {
-            // 1. 기존 config.xml 가져오기
             String originalXml = getSchedule(jobName);
-
-            // 2. 사전 정리: 비어 있는 <script/> 태그 제거 (Jenkins 500 에러 회피용)
-            String cleanedXml = originalXml.replaceAll("<script\\s*/>", "");
-
-            log.debug(cleanedXml+"@@@@@@@@@@@@@@@@@@");
-            // 3. 수정된 config.xml 생성
-            String updatedXml = XmlConfigParser.updateCronSpecInXml(cleanedXml, cron);
+            String updatedXml = XmlConfigParser.updateCronSpecInXml(originalXml, cron);
 
 
-
-            log.debug("📝 최종 업로드 config.xml:\n{}", updatedXml);
-
-
-            // 4. POST 요청으로 설정 반영
             HttpHeaders headers = new HttpHeaders();
             headers.setBasicAuth(username, apiToken1);
             headers.setContentType(MediaType.APPLICATION_XML);
@@ -302,19 +276,19 @@ public class BuildService {
             );
 
             if (!updateResponse.getStatusCode().is2xxSuccessful()) {
-                log.warn("❌ Jenkins config 업데이트 실패 - jobName: {}, status: {}", jobName, updateResponse.getStatusCode() , updateResponse.getBody());
+                log.warn("Jenkins config 업데이트 실패 - jobName: {}, status: {}", jobName, updateResponse.getStatusCode(), updateResponse.getBody());
                 return "업데이트 실패";
             }
 
-            // 5. 반영된 config.xml 다시 조회해서 확인
+            // 5. 반영된 config.xml 다시 조회.해서 확인
             String newConfigXml = getSchedule(jobName);
             String resultSpec = XmlConfigParser.getCronSpecFromConfig(newConfigXml);
 
-            log.info("✅ Jenkins 스케줄 설정 완료 - jobName: {}, cron: {}", jobName, resultSpec);
+            log.info("Jenkins 스케줄 설정 완료 - jobName: {}, cron: {}", jobName, resultSpec);
             return resultSpec;
 
         } catch (Exception e) {
-            log.error("❌ Jenkins 스케줄 설정 중 예외 발생 - jobName: {}", jobName, e);
+            log.error("Jenkins 스케줄 설정 중 예외 발생 - jobName: {}", jobName, e);
             return "예외 발생";
         }
     }
