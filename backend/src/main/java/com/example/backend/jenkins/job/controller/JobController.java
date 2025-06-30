@@ -2,12 +2,15 @@ package com.example.backend.jenkins.job.controller;
 
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.job.model.dto.JobRequestDto.CreateFreeStyleDto;
+import com.example.backend.jenkins.job.model.dto.JobRequestDto.DetailHistoryDto;
+import com.example.backend.jenkins.job.model.dto.JobRequestDto.LightHistoryDto;
 import com.example.backend.jenkins.job.model.dto.JobRequestDto.UpdateFreeStyleDto;
 import com.example.backend.jenkins.job.service.FreeStyleJobService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -41,6 +44,19 @@ public class JobController {
 
         return ResponseEntity.ok()
                 .body(BaseResponse.success("delete freestyle success"));
+    }
+
+    @GetMapping("/freeStyle/history")
+    public ResponseEntity<BaseResponse<List<LightHistoryDto>>> getFreeStyleHistory(@RequestParam UUID id) {
+
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(freeStyleJobService.getLightHistory(id)));
+    }
+
+    @GetMapping("/freeStyle/history/{id}")
+    public ResponseEntity<BaseResponse<DetailHistoryDto>> getFreeStyleHistoryById(@PathVariable UUID id) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(freeStyleJobService.getFreeStyleHistoryById(id)));
     }
 
 }
