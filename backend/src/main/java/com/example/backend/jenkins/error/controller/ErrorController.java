@@ -10,6 +10,7 @@ import com.example.backend.jenkins.info.model.dto.InfoResponseDto.DetailInfoDto;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.error.client.JenkinsRestClient;
 import com.example.backend.jenkins.error.service.ErrorService;
+import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +25,15 @@ import java.util.List;
 public class ErrorController {
 
     private final ErrorService errorService;
+    private final HttpClientService httpClientService;
+    private JenkinsRestClient buildClient(DetailInfoDto info) {
+        return new JenkinsRestClient(
+                info.getUri(),
+                info.getJenkinsId(),
+                info.getSecretKey(),
+                httpClientService
+        );
+    }
     // 특정 Job의 최근 빌드 1건 조회 API
     @PostMapping("/recent")
     public ResponseEntity<BaseResponse<FailedBuildResDto>> getRecentBuild(
@@ -31,11 +41,7 @@ public class ErrorController {
             @RequestBody JenkinsReqDto request
     ) {
         DetailInfoDto jenkinsInfo = errorService.getDetailInfoByIdAndUser(request.getInfoId(), user.getId());
-        JenkinsRestClient client = new JenkinsRestClient(
-                jenkinsInfo.getUri(),
-                jenkinsInfo.getJenkinsId(),
-                jenkinsInfo.getSecretKey()
-        );
+        JenkinsRestClient client = buildClient(jenkinsInfo);
         FailedBuildResDto build = errorService.getRecentBuild(client, request.getJobName());
         return ResponseEntity.ok(BaseResponse.success(build));
     }
@@ -47,11 +53,7 @@ public class ErrorController {
             @RequestBody JenkinsReqDto request
     ) {
         DetailInfoDto jenkinsInfo = errorService.getDetailInfoByIdAndUser(request.getInfoId(), user.getId());
-        JenkinsRestClient client = new JenkinsRestClient(
-                jenkinsInfo.getUri(),
-                jenkinsInfo.getJenkinsId(),
-                jenkinsInfo.getSecretKey()
-        );
+        JenkinsRestClient client = buildClient(jenkinsInfo);
         List<FailedBuildResDto> builds = errorService.getBuildsForJob(client, request.getJobName());
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
@@ -63,11 +65,7 @@ public class ErrorController {
             @RequestBody JenkinsReqDto request
     ) {
         DetailInfoDto jenkinsInfo = errorService.getDetailInfoByIdAndUser(request.getInfoId(), user.getId());
-        JenkinsRestClient client = new JenkinsRestClient(
-                jenkinsInfo.getUri(),
-                jenkinsInfo.getJenkinsId(),
-                jenkinsInfo.getSecretKey()
-        );
+        JenkinsRestClient client = buildClient(jenkinsInfo);
         List<FailedBuildResDto> builds = errorService.getFailedBuildsForJob(client, request.getJobName());
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
@@ -79,13 +77,7 @@ public class ErrorController {
             @RequestBody JenkinsReqDto request
     ) {
         DetailInfoDto jenkinsInfo = errorService.getDetailInfoByIdAndUser(request.getInfoId(), user.getId());
-
-        JenkinsRestClient client = new JenkinsRestClient(
-                jenkinsInfo.getUri(),
-                jenkinsInfo.getJenkinsId(),
-                jenkinsInfo.getSecretKey()
-        );
-
+        JenkinsRestClient client = buildClient(jenkinsInfo);
         List<FailedBuildResDto> builds = errorService.getRecentBuilds(client);
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
@@ -98,11 +90,7 @@ public class ErrorController {
             @RequestBody JenkinsReqDto request
     ) {
         DetailInfoDto jenkinsInfo = errorService.getDetailInfoByIdAndUser(request.getInfoId(), user.getId());
-        JenkinsRestClient client = new JenkinsRestClient(
-                jenkinsInfo.getUri(),
-                jenkinsInfo.getJenkinsId(),
-                jenkinsInfo.getSecretKey()
-        );
+        JenkinsRestClient client = buildClient(jenkinsInfo);
         List<FailedBuildResDto> builds = errorService.getFailedBuilds(client);
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
@@ -114,11 +102,7 @@ public class ErrorController {
             @RequestBody JenkinsSummaryReqDto request
     ) {
         DetailInfoDto jenkinsInfo = errorService.getDetailInfoByIdAndUser(request.getInfoId(), user.getId());
-        JenkinsRestClient client = new JenkinsRestClient(
-                jenkinsInfo.getUri(),
-                jenkinsInfo.getJenkinsId(),
-                jenkinsInfo.getSecretKey()
-        );
+        JenkinsRestClient client = buildClient(jenkinsInfo);
         FailedBuildSummaryResDto result = errorService.summarizeBuild(client, request.getJobName(), request.getBuildNumber());
         return ResponseEntity.ok(BaseResponse.success(result));
     }
