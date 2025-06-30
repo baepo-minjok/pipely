@@ -42,4 +42,5 @@ public class JobController {
         return ResponseEntity.ok()
                 .body(BaseResponse.success("delete freestyle success"));
     }
+
 }
