@@ -181,6 +181,7 @@ public class BuildService {
             return XmlConfigParser.getCronSpecFromConfig(newConfigXml);
 
         } catch (CustomException ce) {
+
             throw ce;
         } catch (Exception e) {
             log.error("스케줄 설정 실패 - jobName: {}", jobName, e);
