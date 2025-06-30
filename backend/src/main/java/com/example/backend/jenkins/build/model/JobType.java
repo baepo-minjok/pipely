@@ -1,4 +1,4 @@
-package com.example.backend.build.model;
+package com.example.backend.jenkins.build.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 public enum JobType {

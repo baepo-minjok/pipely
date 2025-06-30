@@ -1,10 +1,9 @@
-package com.example.backend.build.model.dto;
+package com.example.backend.jenkins.build.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.jsoup.nodes.Element;
 
 import java.util.Arrays;
 import java.util.List;
