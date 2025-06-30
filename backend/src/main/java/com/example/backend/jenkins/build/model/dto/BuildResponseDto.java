@@ -1,4 +1,4 @@
-package com.example.backend.build.model.dto;
+package com.example.backend.jenkins.build.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

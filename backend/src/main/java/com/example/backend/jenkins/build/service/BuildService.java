@@ -1,10 +1,14 @@
-package com.example.backend.build.service;
+package com.example.backend.jenkins.build.service;
 
-import com.example.backend.build.config.XmlConfigParser;
-import com.example.backend.build.model.JobType;
+import com.example.backend.jenkins.build.config.XmlConfigParser;
+import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.build.model.dto.*;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.build.model.dto.BuildLogResponseDto;
+import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
+import com.example.backend.jenkins.build.model.dto.BuildStreamLogResponseDto;
+import com.example.backend.jenkins.build.model.dto.BuildTriggerRequestDto;
 import com.example.backend.jenkins.info.model.dto.InfoResponseDto;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -14,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -75,7 +78,7 @@ public class BuildService {
         }
     }
 
-    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job,UUID freeStyle) {
+    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, UUID freeStyle) {
         ResponseEntity<String> response = JenkinsGetResponse(job,freeStyle);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response.getBody(), Map.class);
@@ -97,7 +100,7 @@ public class BuildService {
         }
     }
 
-    public BuildLogResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber,UUID freeStyle) {
+    public BuildLogResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, UUID freeStyle) {
 
         InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
 
@@ -117,7 +120,7 @@ public class BuildService {
         }
     }
 
-    public BuildStreamLogResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber,UUID freeStyle) {
+    public BuildStreamLogResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, UUID freeStyle) {
         InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
 
         URI uri = UriComponentsBuilder

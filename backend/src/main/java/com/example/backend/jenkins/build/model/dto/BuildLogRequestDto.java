@@ -1,4 +1,4 @@
-package com.example.backend.build.model.dto;
+package com.example.backend.jenkins.build.model.dto;
 
 
 import lombok.AllArgsConstructor;
@@ -11,15 +11,18 @@ import lombok.NoArgsConstructor;
 @Builder
 @Getter
 
+public class BuildLogRequestDto {
 
-
-public class BuildTriggerRequestDto {
 
 
 
     private String jobName;
+    private String buildNumber;
 
-    private String buildTriggerType;
+
+
+
+
 
 
 }

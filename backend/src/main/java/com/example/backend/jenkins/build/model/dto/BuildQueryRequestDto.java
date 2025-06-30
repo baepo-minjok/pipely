@@ -1,6 +1,6 @@
-package com.example.backend.build.model.dto;
+package com.example.backend.jenkins.build.model.dto;
 
-import com.example.backend.build.model.JobType;
+import com.example.backend.jenkins.build.model.JobType;
 import lombok.*;
 
 @AllArgsConstructor
