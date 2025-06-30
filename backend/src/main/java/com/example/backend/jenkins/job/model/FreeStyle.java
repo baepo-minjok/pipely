@@ -8,6 +8,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -43,7 +46,19 @@ public class FreeStyle {
 
     private String script;
 
+    private Boolean isDeleted;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
+
+    private LocalDateTime deletedAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "jenkins_info_id", nullable = false)
     private JenkinsInfo jenkinsInfo;
+
+    @OneToMany(mappedBy = "freeStyle", fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FreeStyleHistory> historyList = new ArrayList<>();
 }

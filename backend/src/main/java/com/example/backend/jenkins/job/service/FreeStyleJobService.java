@@ -5,8 +5,10 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.FreeStyle;
+import com.example.backend.jenkins.job.model.FreeStyleHistory;
 import com.example.backend.jenkins.job.model.dto.JobRequestDto.CreateFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.JobRequestDto.UpdateFreeStyleDto;
+import com.example.backend.jenkins.job.repository.FreeStyleHistoryRepository;
 import com.example.backend.jenkins.job.repository.FreeStyleRepository;
 import com.example.backend.service.HttpClientService;
 import com.github.mustachejava.Mustache;
@@ -34,6 +36,7 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,29 +51,25 @@ public class FreeStyleJobService {
     private final JenkinsInfoService jenkinsInfoService;
     private final HttpClientService httpClientService;
     private final FreeStyleRepository freeStyleRepository;
+    private final FreeStyleHistoryRepository historyRepository;
 
     @Transactional
     public void createFreestyleJob(CreateFreeStyleDto dto) {
 
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
 
-        String jenkinsUrl = info.getUri() + "/createItem?name=" + dto.getJobName();
-        String username = info.getJenkinsId();
-        String apiToken = info.getSecretKey();
+        buildHeaders(info);
 
-        String auth = username + ":" + apiToken;
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(new MediaType("application", "xml", StandardCharsets.UTF_8));
-        headers.set("Authorization", "Basic " + encodedAuth);
+        String jenkinsUrl = info.getUri() + "/createItem?name=" + dto.getJobName();
 
         String config = createFreestyleConfig(dto);
 
-        HttpEntity<String> requestEntity = new HttpEntity<>(config, headers);
+        HttpEntity<String> requestEntity = new HttpEntity<>(config, buildHeaders(info));
 
         httpClientService.exchange(jenkinsUrl, HttpMethod.POST, requestEntity, String.class);
 
-        registerFreeStyleJob(info, dto);
+        registerFreeStyleJob(info, dto, config);
+
     }
 
     private String createFreestyleConfig(CreateFreeStyleDto dto) {
@@ -101,7 +100,7 @@ public class FreeStyleJobService {
         return writer.toString();
     }
 
-    private void registerFreeStyleJob(JenkinsInfo info, CreateFreeStyleDto dto) {
+    private void registerFreeStyleJob(JenkinsInfo info, CreateFreeStyleDto dto, String config) {
 
         FreeStyle job = FreeStyle.builder()
                 .jenkinsInfo(info)
@@ -116,6 +115,11 @@ public class FreeStyleJobService {
                 .build();
         freeStyleRepository.save(job);
         info.getFreeStyleList().add(job);
+
+        Integer maxVersion = historyRepository.findMaxVersionByFreeStyle(job);
+        int nextVersion = (maxVersion == null ? 1 : maxVersion + 1);
+
+        FreeStyleHistory history = FreeStyleHistory.toHistory(job, nextVersion, config);
     }
 
     @Transactional
@@ -127,7 +131,6 @@ public class FreeStyleJobService {
         String configUrl = info.getUri() + "/job/" + dto.getJobName() + "/config.xml";
         HttpEntity<Void> getReq = new HttpEntity<>(buildHeaders(info));
         String originalXml = httpClientService.exchange(configUrl, HttpMethod.GET, getReq, String.class);
-        log.info("Original XML:\n{}", originalXml);
 
         // 2. Generate patch fragment via Mustache
         String patchXml = createPatchFragment(dto);
@@ -150,6 +153,14 @@ public class FreeStyleJobService {
         existing.setBranch(dto.getBranch());
         existing.setScript(dto.getScript());
         freeStyleRepository.save(existing);
+
+        //6. 버전 관리
+        Integer maxVersion = historyRepository.findMaxVersionByFreeStyle(existing);
+        int nextVersion = (maxVersion == null ? 1 : maxVersion + 1);
+
+        FreeStyleHistory history = FreeStyleHistory.toHistory(existing, nextVersion, mergedXml);
+
+        historyRepository.save(history);
     }
 
     private String createPatchFragment(UpdateFreeStyleDto dto) {
@@ -238,7 +249,12 @@ public class FreeStyleJobService {
         if (freeStyleRepository.existsById(id)) {
             throw new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND);
         }
-        freeStyleRepository.deleteById(id);
+        FreeStyle freeStyle = freeStyleRepository.getReferenceById(id);
+
+        freeStyle.setIsDeleted(true);
+        freeStyle.setDeletedAt(LocalDateTime.now());
+
+        freeStyleRepository.save(freeStyle);
     }
 
 }
