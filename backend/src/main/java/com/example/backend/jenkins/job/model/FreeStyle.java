@@ -43,7 +43,7 @@ public class FreeStyle {
     private String repositoryUrl;
 
     private String branch;
-
+    @Lob
     private String script;
 
     private Boolean isDeleted;

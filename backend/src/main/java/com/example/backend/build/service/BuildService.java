@@ -5,6 +5,8 @@ import com.example.backend.build.model.JobType;
 import com.example.backend.build.model.dto.*;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.info.model.dto.InfoResponseDto;
+import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -23,26 +25,24 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BuildService {
 
-    @Value("${JENKINS_URL}")
-    private String jenkinsUrl1;
+    private final JenkinsInfoService jenkinsInfoService;
 
-    @Value("${JENKINS_API_TOKEN}")
-    private String apiToken1;
 
     private final RestTemplate restTemplate;
 
-    public ResponseEntity<?> getBuildInfo(String jobName , JobType jobType) {
+    public ResponseEntity<?> getBuildInfo(String jobName , JobType jobType,UUID freeStyle) {
         log.info("빌드 정보 요청 - jobName: {}, jobType: {}", jobName, jobType);
         try {
             return switch (jobType) {
-                case LATEST -> ResponseEntity.ok(getLastBuildStatus(jobName));
-                case HISTORY -> ResponseEntity.ok(getBuildHistory(jobName));
+                case LATEST -> ResponseEntity.ok(getLastBuildStatus(jobName,freeStyle));
+                case HISTORY -> ResponseEntity.ok(getBuildHistory(jobName,freeStyle));
             };
         } catch (CustomException e) {
             throw e;
@@ -52,11 +52,15 @@ public class BuildService {
         }
     }
 
-    public void triggerJenkinsBuild(BuildTriggerRequestDto requestDto) {
-        String triggerUrl = jenkinsUrl1 + "/job/" + requestDto.getJobName() + "/buildWithParameters";
+    public void triggerJenkinsBuild(BuildTriggerRequestDto requestDto, UUID freeStyle) {
+
+
+
+        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+        String triggerUrl = info.getUri() + "/job/" + requestDto.getJobName() + "/buildWithParameters";
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth("admin", apiToken1);
+        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
@@ -71,8 +75,8 @@ public class BuildService {
         }
     }
 
-    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job) {
-        ResponseEntity<String> response = JenkinsGetResponse(job);
+    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job,UUID freeStyle) {
+        ResponseEntity<String> response = JenkinsGetResponse(job,freeStyle);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response.getBody(), Map.class);
             return BuildResponseDto.BuildInfo.listFrom(body);
@@ -82,8 +86,8 @@ public class BuildService {
         }
     }
 
-    public BuildResponseDto.BuildInfo getLastBuildStatus(String job) {
-        ResponseEntity<String> response = JenkinsGetResponse(job);
+    public BuildResponseDto.BuildInfo getLastBuildStatus(String job,UUID freeStyle) {
+        ResponseEntity<String> response = JenkinsGetResponse(job,freeStyle);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response.getBody(), Map.class);
             return BuildResponseDto.BuildInfo.latestFrom(body);
@@ -93,11 +97,14 @@ public class BuildService {
         }
     }
 
-    public BuildLogResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber) {
-        String url = jenkinsUrl1 + "/job/" + jobName + "/" + buildNumber + "/console";
+    public BuildLogResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber,UUID freeStyle) {
+
+        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+
+        String url = info.getUri() + "/job/" + jobName + "/" + buildNumber + "/console";
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth("admin", apiToken1);
+        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
         try {
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
@@ -110,14 +117,16 @@ public class BuildService {
         }
     }
 
-    public BuildStreamLogResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber) {
+    public BuildStreamLogResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber,UUID freeStyle) {
+        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+
         URI uri = UriComponentsBuilder
-                .fromHttpUrl(jenkinsUrl1 + "/job/" + jobName + "/" + buildNumber + "/logText/progressiveText")
+                .fromHttpUrl(info.getUri() + "/job/" + jobName + "/" + buildNumber + "/logText/progressiveText")
                 .build()
                 .toUri();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth("admin", apiToken1);
+        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
         try {
             ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, new HttpEntity<>(headers), String.class);
@@ -128,12 +137,14 @@ public class BuildService {
         }
     }
 
-    public ResponseEntity<String> JenkinsGetResponse(String job) {
-        String url = jenkinsUrl1 + "/job/" + job + "/api/json"
+    public ResponseEntity<String> JenkinsGetResponse(String job,UUID freeStyle) {
+        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+
+        String url = info.getUri() + "/job/" + job + "/api/json"
                 + "?tree=builds[number,result,timestamp,duration,building,id,url,actions[causes[userId,userName]]]";
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth("admin", apiToken1);
+        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
         try {
             return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
@@ -143,10 +154,12 @@ public class BuildService {
         }
     }
 
-    public String getSchedule(String jobName) {
-        String url = jenkinsUrl1 + "/job/" + jobName + "/config.xml";
+    public String getSchedule(String jobName,UUID freeStyle) {
+        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+
+        String url = info.getUri() + "/job/" + jobName + "/config.xml";
         HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth("admin", apiToken1);
+        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
         try {
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
@@ -157,17 +170,19 @@ public class BuildService {
         }
     }
 
-    public String setSchedule(String jobName, String cron) {
+    public String setSchedule(String jobName, String cron,UUID freeStyle) {
+        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+
         try {
-            String originalXml = getSchedule(jobName);
+            String originalXml = getSchedule(jobName,freeStyle);
             String updatedXml = XmlConfigParser.updateCronSpecInXml(originalXml, cron);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setBasicAuth("admin", apiToken1);
+            headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
             headers.setContentType(MediaType.APPLICATION_XML);
 
             ResponseEntity<String> response = restTemplate.exchange(
-                    jenkinsUrl1 + "/job/" + jobName + "/config.xml",
+                    info.getUri() + "/job/" + jobName + "/config.xml",
                     HttpMethod.POST,
                     new HttpEntity<>(updatedXml, headers),
                     String.class
@@ -177,7 +192,7 @@ public class BuildService {
                 throw new CustomException(ErrorCode.JENKINS_CONFIG_XML_UPDATE_FAILED);
             }
 
-            String newConfigXml = getSchedule(jobName);
+            String newConfigXml = getSchedule(jobName,freeStyle);
             return XmlConfigParser.getCronSpecFromConfig(newConfigXml);
 
         } catch (CustomException ce) {
@@ -188,4 +203,6 @@ public class BuildService {
             throw new CustomException(ErrorCode.JENKINS_XML_CRON_PARSE_ERROR);
         }
     }
-}
+
+
+ }
