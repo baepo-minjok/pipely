@@ -59,4 +59,13 @@ public class JobController {
                 .body(BaseResponse.success(freeStyleJobService.getFreeStyleHistoryById(id)));
     }
 
+    @GetMapping("/freeStyle/rollBack")
+    public ResponseEntity<BaseResponse<String>> rollBack(@RequestParam UUID id) {
+
+        freeStyleJobService.rollBack(id);
+
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("roll back success"));
+
+    }
 }

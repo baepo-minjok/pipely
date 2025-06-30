@@ -258,7 +258,7 @@ public class FreeStyleJobService {
     public DetailHistoryDto getFreeStyleHistoryById(UUID id) {
 
         FreeStyleHistory freeStyleHistory = historyRepository.findById(id)
-                .orElseThrow(() -> new CustomException(ErrorCode.XML_PARSING_ERROR));
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_FREESTYLE_HISTORY_NOT_FOUND));
 
         return DetailHistoryDto.toDetailHistoryDto(freeStyleHistory);
     }
@@ -275,6 +275,28 @@ public class FreeStyleJobService {
                                 .build()
                 )
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void rollBack(UUID id) {
+
+        FreeStyleHistory freeStyleHistory = historyRepository.findAllWithFreeStyleAndJenkinsInfoByFreeStyleHistoryId(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_FREESTYLE_HISTORY_NOT_FOUND));
+
+        FreeStyle freeStyle = freeStyleHistory.getFreeStyle();
+
+        JenkinsInfo jenkinsInfo = freeStyle.getJenkinsInfo();
+
+        String configUrl = jenkinsInfo.getUri() + "/job/" + freeStyleHistory.getJobName() + "/config.xml";
+
+
+        HttpEntity<String> postReq = new HttpEntity<>(freeStyleHistory.getConfig(), buildHeaders(jenkinsInfo));
+        httpClientService.exchange(configUrl, HttpMethod.POST, postReq, String.class);
+
+        FreeStyle rollBack = FreeStyleHistory.toFreeStyle(freeStyleHistory, freeStyle);
+
+        freeStyleRepository.save(rollBack);
+
     }
 
     public FreeStyle getFreeStyleById(UUID id) {
