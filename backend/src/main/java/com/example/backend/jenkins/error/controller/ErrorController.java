@@ -3,7 +3,9 @@ package com.example.backend.jenkins.error.controller;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.error.model.dto.FailedBuildResDto;
+import com.example.backend.jenkins.error.model.dto.FailedBuildSummaryResDto;
 import com.example.backend.jenkins.error.model.dto.JenkinsReqDto;
+import com.example.backend.jenkins.error.model.dto.JenkinsSummaryReqDto;
 import com.example.backend.jenkins.info.model.dto.InfoResponseDto.DetailInfoDto;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.error.client.JenkinsRestClient;
@@ -104,5 +106,22 @@ public class ErrorController {
         List<FailedBuildResDto> builds = errorService.getFailedBuilds(client);
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
+
+    // 즉정 Job의 실패한 빌드 1건데 대해 LLM(GPT)으로 자연어 응답 제공
+    @PostMapping("/summary")
+    public ResponseEntity<BaseResponse<FailedBuildSummaryResDto>> getBuildSummaryWithSolution(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestBody JenkinsSummaryReqDto request
+    ) {
+        DetailInfoDto jenkinsInfo = errorService.getDetailInfoByIdAndUser(request.getInfoId(), user.getId());
+        JenkinsRestClient client = new JenkinsRestClient(
+                jenkinsInfo.getUri(),
+                jenkinsInfo.getJenkinsId(),
+                jenkinsInfo.getSecretKey()
+        );
+        FailedBuildSummaryResDto result = errorService.summarizeBuild(client, request.getJobName(), request.getBuildNumber());
+        return ResponseEntity.ok(BaseResponse.success(result));
+    }
+
 
 }
