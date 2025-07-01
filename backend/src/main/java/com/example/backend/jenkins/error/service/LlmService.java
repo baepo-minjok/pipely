@@ -37,7 +37,6 @@ public class LlmService {
      * OpenAI Chat Completions API를 호출하여 요약 응답을 받는 메서드
      */
     private String callOpenAi(String prompt) {
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey); // API 키
