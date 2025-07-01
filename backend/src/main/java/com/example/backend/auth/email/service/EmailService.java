@@ -34,7 +34,7 @@ public class EmailService {
     @Value("${user.dormancy.period.days}")
     private long dormancyPeriodDays;
 
-    public void sendVerificationEmail(Users user, String token) {
+    public void sendVerificationEmail(Users user, UUID token) {
 
         log.info("[EmailService] 이메일 인증 메일 발송 시작: email={}, token={}", user.getEmail(), token);
         String link = frontendUrl + "/api/email/verify-email?token=" + token;
@@ -90,13 +90,8 @@ public class EmailService {
      * 이메일 인증 토큰 생성
      */
     public VerificationToken createToken(Users user) {
-        String token = UUID.randomUUID().toString();
-
-        log.info("[TokenService] 인증 토큰 생성: email={}, token={}",
-                user.getEmail(), token);
 
         VerificationToken vt = VerificationToken.builder()
-                .token(token)
                 .user(user)
                 .expiryDate(LocalDateTime.now().plusDays(1L))
                 .build();
@@ -107,7 +102,7 @@ public class EmailService {
     /**
      * 이메일 인증 토큰 검증
      */
-    public Users validateToken(String token) {
+    public Users validateToken(UUID token) {
         log.info("[TokenService] 인증 토큰 검증 요청: token={}", token);
 
         Optional<VerificationToken> vtOpt = verificationTokenRepository.findById(token);
