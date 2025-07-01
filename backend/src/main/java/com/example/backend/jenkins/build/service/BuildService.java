@@ -36,7 +36,6 @@ public class BuildService {
 
     private final JenkinsInfoService jenkinsInfoService;
 
-
     private final RestTemplate restTemplate;
 
     public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, UUID freeStyle) {
