@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)  
 ![Service Status](https://img.shields.io/badge/status-online-brightgreen)
 
-Want to read this in English? [Click here](./README.ko)
+Want to read this in English? [Click here](./README.md)
 
 ## 🔦 개요
 

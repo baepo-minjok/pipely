@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)  
 ![Service Status](https://img.shields.io/badge/status-online-brightgreen)
 
-Looking for the Korean version? [Click here](./README)
+Looking for the Korean version? [Click here](./README.ko.md)
 
 ## 🔦 Overview
 
