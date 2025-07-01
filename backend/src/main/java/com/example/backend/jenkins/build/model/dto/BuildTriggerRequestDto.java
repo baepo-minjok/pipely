@@ -1,10 +1,9 @@
 package com.example.backend.jenkins.build.model.dto;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
+
+import java.util.Map;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -15,11 +14,6 @@ import lombok.NoArgsConstructor;
 
 public class BuildTriggerRequestDto {
 
-
-
-    private String jobName;
-
-    private String buildTriggerType;
-
-
+        private String jobName;
+        private Map<String, Boolean> stepToggles;
 }
