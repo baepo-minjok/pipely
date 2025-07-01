@@ -1,10 +1,9 @@
 package com.example.backend.jenkins.build.service;
 
-import com.example.backend.jenkins.build.config.XmlConfigParser;
-import com.example.backend.jenkins.build.model.JobType;
-import com.example.backend.build.model.dto.*;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.build.config.XmlConfigParser;
+import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.BuildLogResponseDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
 import com.example.backend.jenkins.build.model.dto.BuildStreamLogResponseDto;
@@ -40,12 +39,12 @@ public class BuildService {
 
     private final RestTemplate restTemplate;
 
-    public ResponseEntity<?> getBuildInfo(String jobName , JobType jobType,UUID freeStyle) {
+    public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, UUID freeStyle) {
         log.info("빌드 정보 요청 - jobName: {}, jobType: {}", jobName, jobType);
         try {
             return switch (jobType) {
-                case LATEST -> ResponseEntity.ok(getLastBuildStatus(jobName,freeStyle));
-                case HISTORY -> ResponseEntity.ok(getBuildHistory(jobName,freeStyle));
+                case LATEST -> ResponseEntity.ok(getLastBuildStatus(jobName, freeStyle));
+                case HISTORY -> ResponseEntity.ok(getBuildHistory(jobName, freeStyle));
             };
         } catch (CustomException e) {
             throw e;
@@ -58,8 +57,7 @@ public class BuildService {
     public void triggerJenkinsBuild(BuildTriggerRequestDto requestDto, UUID freeStyle) {
 
 
-
-        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
         String triggerUrl = info.getUri() + "/job/" + requestDto.getJobName() + "/buildWithParameters";
 
         HttpHeaders headers = new HttpHeaders();
@@ -79,7 +77,7 @@ public class BuildService {
     }
 
     public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, UUID freeStyle) {
-        ResponseEntity<String> response = JenkinsGetResponse(job,freeStyle);
+        ResponseEntity<String> response = JenkinsGetResponse(job, freeStyle);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response.getBody(), Map.class);
             return BuildResponseDto.BuildInfo.listFrom(body);
@@ -89,8 +87,8 @@ public class BuildService {
         }
     }
 
-    public BuildResponseDto.BuildInfo getLastBuildStatus(String job,UUID freeStyle) {
-        ResponseEntity<String> response = JenkinsGetResponse(job,freeStyle);
+    public BuildResponseDto.BuildInfo getLastBuildStatus(String job, UUID freeStyle) {
+        ResponseEntity<String> response = JenkinsGetResponse(job, freeStyle);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response.getBody(), Map.class);
             return BuildResponseDto.BuildInfo.latestFrom(body);
@@ -102,7 +100,7 @@ public class BuildService {
 
     public BuildLogResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, UUID freeStyle) {
 
-        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
 
         String url = info.getUri() + "/job/" + jobName + "/" + buildNumber + "/console";
 
@@ -121,7 +119,7 @@ public class BuildService {
     }
 
     public BuildStreamLogResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
 
         URI uri = UriComponentsBuilder
                 .fromHttpUrl(info.getUri() + "/job/" + jobName + "/" + buildNumber + "/logText/progressiveText")
@@ -140,8 +138,8 @@ public class BuildService {
         }
     }
 
-    public ResponseEntity<String> JenkinsGetResponse(String job,UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+    public ResponseEntity<String> JenkinsGetResponse(String job, UUID freeStyle) {
+        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
 
         String url = info.getUri() + "/job/" + job + "/api/json"
                 + "?tree=builds[number,result,timestamp,duration,building,id,url,actions[causes[userId,userName]]]";
@@ -157,8 +155,8 @@ public class BuildService {
         }
     }
 
-    public String getSchedule(String jobName,UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+    public String getSchedule(String jobName, UUID freeStyle) {
+        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
 
         String url = info.getUri() + "/job/" + jobName + "/config.xml";
         HttpHeaders headers = new HttpHeaders();
@@ -173,11 +171,11 @@ public class BuildService {
         }
     }
 
-    public String setSchedule(String jobName, String cron,UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info =  jenkinsInfoService.getDetailInfoById(freeStyle);
+    public String setSchedule(String jobName, String cron, UUID freeStyle) {
+        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
 
         try {
-            String originalXml = getSchedule(jobName,freeStyle);
+            String originalXml = getSchedule(jobName, freeStyle);
             String updatedXml = XmlConfigParser.updateCronSpecInXml(originalXml, cron);
 
             HttpHeaders headers = new HttpHeaders();
@@ -195,7 +193,7 @@ public class BuildService {
                 throw new CustomException(ErrorCode.JENKINS_CONFIG_XML_UPDATE_FAILED);
             }
 
-            String newConfigXml = getSchedule(jobName,freeStyle);
+            String newConfigXml = getSchedule(jobName, freeStyle);
             return XmlConfigParser.getCronSpecFromConfig(newConfigXml);
 
         } catch (CustomException ce) {
@@ -208,4 +206,4 @@ public class BuildService {
     }
 
 
- }
+}
