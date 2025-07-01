@@ -110,5 +110,23 @@ public class ErrorController {
         return ResponseEntity.ok(BaseResponse.success(result));
     }
 
+    @PostMapping("/retry")
+    public ResponseEntity<BaseResponse<String>> retryBuildManually(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestBody JenkinsSummaryReqDto request
+    ) {
+        DetailInfoDto jenkinsInfo = errorService.getDetailInfoByIdAndUser(request.getInfoId(), user.getId());
+
+        JenkinsRestClient client = new JenkinsRestClient(
+                jenkinsInfo.getUri(),
+                jenkinsInfo.getJenkinsId(),
+                jenkinsInfo.getSecretKey(),
+                httpClientService
+        );
+
+        errorService.retryBuildIfFailed(client, request.getJobName(), request.getBuildNumber(), 0);
+
+        return ResponseEntity.ok(BaseResponse.success("재시도 로직 실행 완료"));
+    }
 
 }
