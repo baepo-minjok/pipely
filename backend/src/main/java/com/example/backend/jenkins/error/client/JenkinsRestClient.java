@@ -9,6 +9,10 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
 
+import java.util.Map;
+
+import static org.springframework.http.RequestEntity.post;
+
 public class JenkinsRestClient {
 
     private final HttpClientService httpClientService;
@@ -41,5 +45,18 @@ public class JenkinsRestClient {
     public String getConsoleLog(String jobName, int buildNumber) {
         String endpoint = String.format("/job/%s/%d/consoleText", jobName, buildNumber);
         return get(endpoint, String.class);
+    }
+
+    // 빌드 결과 조회
+    public String getBuildResult(String jobName, int buildNumber) {
+        String endpoint = String.format("/job/%s/%d/api/json", jobName, buildNumber);
+        Map<?, ?> response = get(endpoint, Map.class);
+        return (String) response.get("result"); // "SUCCESS", "FAILURE", null
+    }
+
+    // 빌드 실행 트리거
+    public void triggerBuild(String jobName) {
+        String endpoint = String.format("/job/%s/build", jobName);
+        post(endpoint);
     }
 }
