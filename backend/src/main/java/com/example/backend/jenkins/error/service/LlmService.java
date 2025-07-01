@@ -37,13 +37,12 @@ public class LlmService {
      * OpenAI Chat Completions API를 호출하여 요약 응답을 받는 메서드
      */
     private String callOpenAi(String prompt) {
-        // 예시: 실제 OpenAI API 호출
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey); // API 키
 
         Map<String, Object> body = Map.of(
-                "model", "gpt-4", // 사용할 모델
+                "model", "gpt-4o-mini", // 사용할 모델
                 "messages", List.of(
                         Map.of("role", "user", "content", prompt)
                 )
