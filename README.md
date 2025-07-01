@@ -5,58 +5,68 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)  
 ![Service Status](https://img.shields.io/badge/status-online-brightgreen)
 
-Want to read this in English? [Click here](./README.md)
+Looking for the Korean version? [Click here](./README.ko.md)
 
-## 🔦 개요
+## 🔦 Overview
 
-Pipely는 “Pipeline”과 “Simply”를 합친 이름으로, 복잡한 CI/CD 과정을 자연어 한 줄로 손쉽게 관리할 수 있는 ChatOps 플랫폼입니다.
-웹 브라우저에 접속해 “백엔드 재배포해줘” 또는 “새로운 브랜치로 테스트를 실행해줘” 같은 일상적인 문장을 입력하면,
-Agentica 엔진이 즉시 의도를 파악해 Jenkins, GitHub Webhook 등 다양한 자동화 도구를 호출하고, 실행 결과를 화면에 출력합니다.
+**Pipely** is a ChatOps platform that combines “Pipeline” and “Simply” — enabling effortless management of complex CI/CD
+workflows with just a single line of natural language.
 
-Pipely를 도입하면 개발자는 더 이상 스크립트 파일을 일일이 수정하거나 CLI 명령어를 외울 필요가 없습니다.
-그 대신 자연어 대화창에 간단히 명령만 입력하면, Pipely가 자동으로 배포 워크플로우를 구성·실행하고,
-성공·실패 로그와 상세 실행 이력을 대화형 인터페이스로 제공해 **빠른 문제 해결**을 돕습니다. 비개발자는 업무 중에도 슬랙이나 메신저로 익숙한 표현을 그대로 사용해 파이프라인을 제어할 수 있어, 팀
-전원이 **손쉽게 배포 과정에 참여**할 수 있습니다.
-이 플랫폼을 통해 조직은 배포·테스트 업무에서 사용되는 리소스를 줄이고, 본연의 개발과 비즈니스 가치 창출에 집중할 수 있습니다.
+Simply access the web interface and type phrases like
+“Redeploy the backend” or “Run tests on a new branch,”
+and the **Agentica engine** instantly interprets your intent, calling automation tools such as Jenkins, GitHub Webhooks,
+and
+more. The results are displayed in a user-friendly interface.
 
-**결과적으로 Pipely는 소프트웨어 딜리버리 속도를 획기적으로 높이는 동시에 품질과 안정성을 동시에 확보하도록 돕는 미래형 CI/CD 솔루션입니다.**
+With Pipely, developers no longer need to modify scripts or memorize CLI commands.
+Instead, they can simply type their intent in natural language, and Pipely will automatically compose and execute the
+deployment workflow, providing interactive logs, execution history, and success/failure summaries — enabling **faster
+issue resolution**.
+Non-developers can also use familiar expressions through Slack or messaging apps to control pipelines, allowing **the
+entire team to participate** in the deployment process with ease.
 
----
+By introducing Pipely, organizations can reduce time and resources spent on deployment and testing tasks — focusing more
+on development and creating business value.
 
-## 🚀 주요 기능
-
-- **자연어 명령 처리 & UI 제어**  
-  자연어 대화창과 직관적 UI를 통해 누구나 손쉽게 CI/CD 파이프라인을 호출·모니터링
-- **Jenkins Job 관리**  
-  생성·수정·삭제·복구, 템플릿 생성, 파라미터 설정
-- **알림 통합**  
-  Slack·Discord·Notion 알림, 이력 조회
-- **오류 분석 & 권한 관리**  
-  실패 원인 요약, 자동 재시도, 사용자·Job별 권한 제어
-- **실시간 모니터링 UI**  
-  웹 대시보드와 채팅 인터페이스에서 배포 현황·이력 확인 및 롤백
+**Ultimately, Pipely is a next-generation CI/CD solution that dramatically boosts software delivery speed while ensuring
+high quality and reliability**.
 
 ---
 
-## 🏗️ 프로젝트 산출물
+## 🚀 Key Features
 
-- [프로젝트 기획서](https://docs.google.com/document/d/1k67gqPe3trgWKEwNCG3rgeZHXsozqcXqJuEBqYkPhXc/edit?tab=t.0)
-- [요구사항 정의서](https://docs.google.com/spreadsheets/d/1apwYQch5wEJAdfZa1ZlTZmPqGK5NtT89TuzFT1B8dys/edit?gid=0#gid=0)
-- [화면설계서](https://www.figma.com/design/d22K0lpjOcG7vH8kbQ4DzE/Pipely?node-id=2-2&t=8GOfcsjIorznJyGb-1)
+- **Natural Language Command Execution & UI Integration**  
+  Easily invoke and monitor CI/CD pipelines via natural language chat and intuitive UI.
+- **Jenkins Job Management**  
+  Create, edit, delete, recover jobs, configure templates and parameters.
+- **Notification Integration**  
+  Send build/deployment notifications via Slack, Discord, and Notion, view job history.
+- **Error Analysis & Permission Control**  
+  Summarize failure reasons, auto-retry failed jobs, and manage user/job-level permissions.
+- **Real-Time Monitoring UI**  
+  Track deployment status and history through web dashboard or chat interface, with rollback support.
+
+---
+
+## 🏗️ Project Deliverables
+
+- [Project Proposal](https://docs.google.com/document/d/1k67gqPe3trgWKEwNCG3rgeZHXsozqcXqJuEBqYkPhXc/edit?tab=t.0)
+- [Requirements Specification](https://docs.google.com/spreadsheets/d/1apwYQch5wEJAdfZa1ZlTZmPqGK5NtT89TuzFT1B8dys/edit?gid=0#gid=0)
+- [UI Design (Figma)](https://www.figma.com/design/d22K0lpjOcG7vH8kbQ4DzE/Pipely?node-id=2-2&t=8GOfcsjIorznJyGb-1)
 - [WBS](https://docs.google.com/spreadsheets/d/1iceBM2KVSLNEKkg-Gaetar4pg-WtLEhwqcESs2ilzfQ/edit?gid=0#gid=0)
 - [ERD](https://www.erdcloud.com/d/TTcoWmJC4Q64MauFX)
 - [System Architecture](https://github.com/baepo-minjok/pipely/wiki/System-Architecture)
 
 ---
 
-## 📚 문서
+## 📚 Documentation
 
-- [코딩 컨벤션](https://github.com/baepo-minjok/pipely/wiki#pipely-wiki)
-- [예외처리 가이드](https://github.com/baepo-minjok/pipely/wiki/%EC%98%88%EC%99%B8-%EC%B2%98%EB%A6%AC-%EA%B0%80%EC%9D%B4%EB%93%9C)
+- [Coding Convention](https://github.com/baepo-minjok/pipely/wiki#pipely-wiki)
+- [Exception Handling Guide](https://github.com/baepo-minjok/pipely/wiki/%EC%98%88%EC%99%B8-%EC%B2%98%EB%A6%AC-%EA%B0%80%EC%9D%B4%EB%93%9C)
 
 ---
 
-## 🧰 사용 기술 스택
+## 🧰 Technical stack
 
 ### Frontend
 
@@ -91,7 +101,7 @@ Pipely를 도입하면 개발자는 더 이상 스크립트 파일을 일일이 
   <img src="https://img.shields.io/badge/Discord_Webhook-5865F2?logo=discord&logoColor=white&style=flat"> 
 </p>
 
-### 협업 툴
+### Collaborative Tools
 
 <p> 
   <img src="https://img.shields.io/badge/Notion-000000?logo=notion&logoColor=white&style=flat">&nbsp;
@@ -101,16 +111,16 @@ Pipely를 도입하면 개발자는 더 이상 스크립트 파일을 일일이 
 
 ---
 
-## 🤝 기여
+## 🤝 Contribution Guide
 
-1. 저장소를 Fork 합니다.
-2. Issue를 발행합니다.
-2. `feat/IssueNumber_YourFeature` 형태의 브랜치를 생성합니다.
-3. 코드 변경 및 커밋합니다.
-4. 원격에 푸시 후 Pull Request를 생성합니다.
+1. Fork this repository.
+2. Open an issue to discuss your changes.
+2. Create a branch named feat/IssueNumber_YourFeature.
+3. Make your changes and commit them.
+4. Push to your fork and open a Pull Request.
 
 ---
 
-## 📄 라이선스
+## 📄 License
 
-본 프로젝트는 [MIT 라이선스](./LICENSE) 하에 배포됩니다.
+This project is licensed under the [MIT](./LICENSE).
