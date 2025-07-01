@@ -123,4 +123,4 @@ high quality and reliability**.
 
 ## 📄 License
 
-This project is licensed under the [MIT 라이선스](./LICENSE).
+This project is licensed under the [MIT](./LICENSE).
