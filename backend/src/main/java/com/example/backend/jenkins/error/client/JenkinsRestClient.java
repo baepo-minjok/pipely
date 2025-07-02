@@ -4,17 +4,18 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.service.HttpClientService;
 import org.springframework.http.HttpEntity;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.springframework.http.RequestEntity.post;
 
 public class JenkinsRestClient {
 
+    private final Logger log = LoggerFactory.getLogger(JenkinsRestClient.class);
     private final HttpClientService httpClientService;
     private final String baseUrl;
     private final String username;
@@ -30,11 +31,28 @@ public class JenkinsRestClient {
     public <T> T get(String endpoint, Class<T> responseType) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBasicAuth(username, token);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
         HttpEntity<?> entity = new HttpEntity<>(headers);
 
         String fullUrl = baseUrl + (endpoint.startsWith("/") ? endpoint : "/" + endpoint);
 
         return httpClientService.exchange(fullUrl, HttpMethod.GET, entity, responseType);
+    }
+
+    public void post(String endpoint) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(username, token);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        // Jenkins CSRF Token 헤더 필요 여부 체크
+        HttpEntity<?> entity = new HttpEntity<>(headers);
+        String fullUrl = baseUrl + (endpoint.startsWith("/") ? endpoint : "/" + endpoint);
+
+        try {
+            httpClientService.exchange(fullUrl, HttpMethod.POST, entity, String.class);
+        } catch (Exception e) {
+            log.error("[Jenkins POST] 요청 실패: URL={}, 이유={}", fullUrl, e.getMessage(), e);
+            throw new CustomException(ErrorCode.JENKINS_CONNECTION_FAILED);
+        }
     }
 
 
