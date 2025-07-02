@@ -18,6 +18,11 @@ public enum ErrorCode {
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED_400", "올바른 값이 아닙니다."),
 
     /**
+     * Cookie 관련 ErrorCode
+     */
+    COOKIE_NOT_FOUND(HttpStatus.BAD_REQUEST, "COOKIE_NOT_FOUND_400", "쿠키가 존재하지 않습니다."),
+
+    /**
      * Mustache에서 사용하는 ErrorCode
      */
     MUSTACHE_FILE_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "MUSTACHE_FILE_NOT_FOUND_500", "해당 경로에 파일이 존재하지 않습니다."),
@@ -88,10 +93,6 @@ public enum ErrorCode {
     JENKINS_XML_CRON_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_XML_CRON_PARSE_ERROR_500", "cron 설정 XML 파싱에 실패했습니다."),
     JENKINS_TRIGGER_SETTING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,"JENKINS_TRIGGER_SETTING_FAILED_500","Jenkins 트리거 셋팅 중 오류가 발생했습니다."),
     JENKINS_JOB_TYPE_FAILED(HttpStatus.BAD_REQUEST,"JENKINS_JOB_TYPE_FAILED_400","freestyle 또는 pipeline 파라미터가 필요합니다")
-
-
-
-
 
 
 

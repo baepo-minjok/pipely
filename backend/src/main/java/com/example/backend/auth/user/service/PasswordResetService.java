@@ -42,7 +42,7 @@ public class PasswordResetService {
         if (userOpt.isEmpty()) {
             // 이메일 존재하지 않더라도, 응답 메시지는 동일하게 처리함 (보안상 존재 여부 노출 방지)
             log.warn("[Password Reset] 존재하지 않는 이메일로 요청: {}", email);
-            throw new CustomException(ErrorCode.USER_NOT_FOUND);
+            return;
         }
         Users user = userOpt.get();
 
