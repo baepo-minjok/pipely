@@ -33,7 +33,6 @@ import java.util.regex.Matcher;
 public class BuildService {
 
     private final JenkinsInfoService jenkinsInfoService;
-
     private final HttpClientService httpClientService;
 
     public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, UUID freeStyle) {
@@ -51,27 +50,22 @@ public class BuildService {
         }
     }
 
-    public void setTrigger(TriggerSettingRequestDto req, Map<String, String> allParams) {
+    public void setTrigger(BuildRequestDto.TriggerSettingRequestDto req, Map<String, String> allParams) {
+        UUID id = allParams.containsKey("freeStyle") ? UUID.fromString(allParams.get("freeStyle"))
+                : allParams.containsKey("pipeLine") ? UUID.fromString(allParams.get("pipeLine"))
+                : null;
 
+        if (id == null) throw new CustomException(ErrorCode.JENKINS_JOB_TYPE_FAILED);
 
         if (allParams.containsKey("freeStyle")) {
-            UUID id = UUID.fromString(allParams.get("freeStyle"));
             setupFreestyleTrigger(req, id);
-        } else if (allParams.containsKey("pipeLine")) {
-            UUID id = UUID.fromString(allParams.get("pipeLine"));
-            triggerPipeline(req, id);
         } else {
-//            throw new IllegalArgumentException("");
-            throw new CustomException(ErrorCode.JENKINS_JOB_TOPY_FAILED);
+            triggerPipeline(req, id);
         }
-
-
     }
 
-
-    public void triggerJenkinsBuild(BuildTriggerRequestDto requestDto, UUID freeStyle) {
+    public void triggerJenkinsBuild(BuildRequestDto.BuildTriggerRequestDto requestDto, UUID freeStyle) {
         InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-
         String triggerUrl = info.getUri() + "/job/" + requestDto.getJobName() + "/buildWithParameters";
 
         HttpHeaders headers = new HttpHeaders();
@@ -79,19 +73,10 @@ public class BuildService {
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        requestDto.getStepToggles().forEach((key, value) ->
+                body.add("DO_" + key.toUpperCase(), String.valueOf(value)));
 
-        for (Map.Entry<String, Boolean> entry : requestDto.getStepToggles().entrySet()) {
-            String paramName = "DO_" + entry.getKey().toUpperCase();
-            String paramValue = String.valueOf(entry.getValue());  // "true" or "false"
-
-            body.add(paramName, paramValue);
-        }
-
-        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
-
-
-        httpClientService.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
-
+        httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
     }
 
     public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, UUID freeStyle) {
@@ -116,10 +101,8 @@ public class BuildService {
         }
     }
 
-    public BuildLogResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, UUID freeStyle) {
-
+    public BuildResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, UUID freeStyle) {
         InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-
         String url = info.getUri() + "/job/" + jobName + "/" + buildNumber + "/console";
 
         HttpHeaders headers = new HttpHeaders();
@@ -129,32 +112,28 @@ public class BuildService {
             String response = httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
             Document doc = Jsoup.parse(response);
             Element pre = doc.selectFirst("pre.console-output");
-            return BuildLogResponseDto.BuildLogDto.getLog(pre);
+            return BuildResponseDto.BuildLogDto.getLog(pre);
         } catch (Exception e) {
             log.error("콘솔 로그 조회 실패 - jobName: {}", jobName, e);
             throw new CustomException(ErrorCode.JENKINS_CONSOLE_LOG_PARSE_ERROR);
         }
     }
 
-    public BuildStreamLogResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, UUID freeStyle) {
+    public BuildResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, UUID freeStyle) {
         InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-
         URI uri = UriComponentsBuilder
                 .fromHttpUrl(info.getUri() + "/job/" + jobName + "/" + buildNumber + "/logText/progressiveText")
-                .build()
-                .toUri();
+                .build().toUri();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
         String response = httpClientService.exchange(uri.toString(), HttpMethod.GET, new HttpEntity<>(headers), String.class);
-
-        return BuildStreamLogResponseDto.BuildStreamLogDto.getStreamLog(response);
+        return BuildResponseDto.BuildStreamLogDto.getStreamLog(response);
     }
 
     public String JenkinsGetResponse(String job, UUID freeStyle) {
         InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-
         String url = info.getUri() + "/job/" + job + "/api/json"
                 + "?tree=builds[number,result,timestamp,duration,building,id,url,actions[causes[userId,userName]]]";
 
@@ -166,8 +145,8 @@ public class BuildService {
 
     public String getSchedule(String jobName, UUID freeStyle) {
         InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-
         String url = info.getUri() + "/job/" + jobName + "/config.xml";
+
         HttpHeaders headers = new HttpHeaders();
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
@@ -176,9 +155,7 @@ public class BuildService {
 
     public String setSchedule(String jobName, String cron, UUID freeStyle) {
         InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-
-        String originalXml = getSchedule(jobName, freeStyle);
-        String updatedXml = XmlConfigParser.updateCronSpecInXml(originalXml, cron);
+        String updatedXml = XmlConfigParser.updateCronSpecInXml(getSchedule(jobName, freeStyle), cron);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
@@ -191,139 +168,80 @@ public class BuildService {
                 String.class
         );
 
-        String newConfigXml = getSchedule(jobName, freeStyle);
-        return XmlConfigParser.getCronSpecFromConfig(newConfigXml);
-
-
+        return XmlConfigParser.getCronSpecFromConfig(getSchedule(jobName, freeStyle));
     }
 
-
-    /*
-     * FreeStyle Job이라면
-     * buildwithParameters 실행
-     *
-     * */
-    public void setupFreestyleTrigger(TriggerSettingRequestDto req, UUID jenkinsId) {
-
-
+    public void setupFreestyleTrigger(BuildRequestDto.TriggerSettingRequestDto req, UUID jenkinsId) {
         InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(jenkinsId);
-        String jenkinsUrl = info.getUri();
-        String jobName = req.getJobName();
-        List<String> steps = req.getSteps(); // ["BUILD", "DEPLOY"]
-
-        String configUrl = jenkinsUrl + "/job/" + jobName + "/config.xml";
+        String configUrl = info.getUri() + "/job/" + req.getJobName() + "/config.xml";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
         headers.setAccept(List.of(MediaType.APPLICATION_XML));
 
-        // 1. config.xml 불러오기
-        String response = httpClientService.exchange(
-                configUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-        String xml = response;
-        // 기존 파라미터 삭제
-        xml = removeOldParametersBlock(xml);
-        // 기존 빌더 삭제
-        xml = resetBuilderBlock(xml);
+        String xml = httpClientService.exchange(configUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        xml = injectShellScriptBlock(injectParameterBlock(resetBuilderBlock(removeOldParametersBlock(xml)), req.getSteps()), req.getSteps());
 
-        //  파라미터 삽입
-        xml = injectParameterBlock(xml, steps);
-
-        //   실행 스크립트 삽입
-        xml = injectShellScriptBlock(xml, steps);
-
-        //  config.xml 다시 업로드
         headers.setContentType(MediaType.APPLICATION_XML);
-        HttpEntity<String> entity = new HttpEntity<>(xml, headers);
-        httpClientService.exchange(configUrl, HttpMethod.POST, entity, String.class);
+        httpClientService.exchange(configUrl, HttpMethod.POST, new HttpEntity<>(xml, headers), String.class);
     }
 
-
-
-    /* pipeline 테이블 기반 처리
-       pipeline script 존재 여부 확인 → 파라미터 분기 포함 여부 검사
-       없으면 config.xml 생성해서 등록
-    */
-
-    public void triggerPipeline(TriggerSettingRequestDto req, UUID id) {
-
+    public void triggerPipeline(BuildRequestDto.TriggerSettingRequestDto req, UUID id) {
+        // TODO: 파이프라인 트리거 로직 구현 필요
     }
 
-
-
-    /*
-     * freestyle job에서 만약 파라미터값 없다면 넣어주는 함수
-     *
-     */
-
-    private String injectParameterBlock(String originalXml, List<String> steps) {
-        if (originalXml.contains("<properties>") && originalXml.contains("</properties>")) {
-
-            StringBuilder paramBlockBuilder = new StringBuilder();
-            paramBlockBuilder.append("<hudson.model.ParametersDefinitionProperty>\n");
-            paramBlockBuilder.append("    <parameterDefinitions>\n");
+    private String injectParameterBlock(String xml, List<String> steps) {
+        if (xml.contains("<properties>") && xml.contains("</properties>")) {
+            StringBuilder paramBlock = new StringBuilder();
+            paramBlock.append("<hudson.model.ParametersDefinitionProperty>\n")
+                    .append("    <parameterDefinitions>\n");
 
             for (String step : steps) {
-                paramBlockBuilder.append("        <hudson.model.BooleanParameterDefinition>\n");
-                paramBlockBuilder.append("            <name>DO_").append(step.toUpperCase()).append("</name>\n");
-                paramBlockBuilder.append("            <defaultValue>true</defaultValue>\n");
-                paramBlockBuilder.append("            <description>").append(step).append("Whether to run the </description>\n");
-                paramBlockBuilder.append("        </hudson.model.BooleanParameterDefinition>\n");
+                paramBlock.append("        <hudson.model.BooleanParameterDefinition>\n")
+                        .append("            <name>DO_").append(step.toUpperCase()).append("</name>\n")
+                        .append("            <defaultValue>true</defaultValue>\n")
+                        .append("            <description>").append(step).append(" step toggle</description>\n")
+                        .append("        </hudson.model.BooleanParameterDefinition>\n");
             }
 
-            paramBlockBuilder.append("    </parameterDefinitions>\n");
-            paramBlockBuilder.append("</hudson.model.ParametersDefinitionProperty>\n");
+            paramBlock.append("    </parameterDefinitions>\n")
+                    .append("</hudson.model.ParametersDefinitionProperty>\n");
 
-            return originalXml.replaceFirst(
-                    "<properties>\\s*</properties>",
-                    "<properties>" + paramBlockBuilder + "</properties>"
-            );
+            return xml.replaceFirst("<properties>\\s*</properties>",
+                    "<properties>" + paramBlock + "</properties>");
         }
-
-        return originalXml;
+        return xml;
     }
 
-    private String injectShellScriptBlock(String originalXml, List<String> steps) {
-        if (originalXml.contains("<builders>") && originalXml.contains("</builders>")) {
-
+    private String injectShellScriptBlock(String xml, List<String> steps) {
+        if (xml.contains("<builders>") && xml.contains("</builders>")) {
             StringBuilder shellBlock = new StringBuilder();
-            shellBlock.append("<hudson.tasks.Shell>\n");
-            shellBlock.append("  <command><![CDATA[\n");
-            shellBlock.append("#!/bin/bash\n\n");
+            shellBlock.append("<hudson.tasks.Shell>\n")
+                    .append("  <command><![CDATA[\n")
+                    .append("#!/bin/bash\n\n");
+
             for (String step : steps) {
                 String upper = step.toUpperCase();
-                shellBlock.append("if [ \"$DO_").append(upper).append("\" = \"true\" ]; then\n");
-                shellBlock.append("  echo \"[").append(upper).append("] step is running...\"\n");
-                shellBlock.append("  sleep 2\n");
-                shellBlock.append("fi\n\n");
+                shellBlock.append("if [ \"$DO_").append(upper).append("\" = \"true\" ]; then\n")
+                        .append("  echo \"[").append(upper).append("] step is running...\"\n")
+                        .append("  sleep 2\n")
+                        .append("fi\n\n");
             }
 
-            shellBlock.append("]]></command>\n");
-            shellBlock.append("</hudson.tasks.Shell>\n");
+            shellBlock.append("]]></command>\n")
+                    .append("</hudson.tasks.Shell>\n");
 
-            return originalXml.replaceFirst(
-                    "<builders>\\s*</builders>",
-                    Matcher.quoteReplacement("<builders>" + shellBlock.toString() + "</builders>")
-            );
+            return xml.replaceFirst("<builders>\\s*</builders>",
+                    Matcher.quoteReplacement("<builders>" + shellBlock + "</builders>"));
         }
-
-        return originalXml;
+        return xml;
     }
 
-
     private String resetBuilderBlock(String xml) {
-        return xml.replaceAll(
-                "<builders>.*?</builders>",
-                Matcher.quoteReplacement("<builders></builders>")
-        );
+        return xml.replaceAll("<builders>.*?</builders>", Matcher.quoteReplacement("<builders></builders>"));
     }
 
     private String removeOldParametersBlock(String xml) {
-        return xml.replaceAll(
-                "<hudson.model.ParametersDefinitionProperty>.*?</hudson.model.ParametersDefinitionProperty>",
-                ""
-        );
+        return xml.replaceAll("<hudson.model.ParametersDefinitionProperty>.*?</hudson.model.ParametersDefinitionProperty>", "");
     }
-
-
 }

@@ -1,10 +1,7 @@
 package com.example.backend.jenkins.build.controller;
 
 import com.example.backend.jenkins.build.model.JobType;
-import com.example.backend.jenkins.build.model.dto.BuildLogResponseDto;
-import com.example.backend.jenkins.build.model.dto.BuildStreamLogResponseDto;
-import com.example.backend.jenkins.build.model.dto.BuildTriggerRequestDto;
-import com.example.backend.jenkins.build.model.dto.TriggerSettingRequestDto;
+import com.example.backend.jenkins.build.model.dto.*;
 import com.example.backend.jenkins.build.service.BuildService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +21,7 @@ public class BuildController {
 
 
     @PostMapping("/trigger")
-    public ResponseEntity trigger(@RequestBody BuildTriggerRequestDto requestDto, @RequestParam UUID freeStyle) {
+    public ResponseEntity trigger(@RequestBody BuildRequestDto.BuildTriggerRequestDto requestDto, @RequestParam UUID freeStyle) {
 
 
         buildService.triggerJenkinsBuild(requestDto, freeStyle);
@@ -34,7 +31,7 @@ public class BuildController {
     }
 
     @PostMapping("/triggersetting")
-    public ResponseEntity<String> triggerSetting(@RequestBody TriggerSettingRequestDto req, @RequestParam Map<String, String> id) {
+    public ResponseEntity<String> triggerSetting(@RequestBody BuildRequestDto.TriggerSettingRequestDto req, @RequestParam Map<String, String> id) {
 
         buildService.setTrigger(req, id);
 
@@ -57,7 +54,7 @@ public class BuildController {
     }
 
     @GetMapping("/builds")
-    public ResponseEntity<?> getBuilds(@RequestParam String jobName, @RequestParam JobType jobType, UUID freeStyle
+    public ResponseEntity<?> getBuilds(@RequestParam String jobName, @RequestParam JobType jobType,@RequestParam UUID freeStyle
 
     ) {
         return ResponseEntity.ok(buildService.getBuildInfo(jobName, jobType, freeStyle));
@@ -66,7 +63,7 @@ public class BuildController {
 
     // 4. 빌드 상세 로그 조회
     @GetMapping("/log")
-    public ResponseEntity<BuildLogResponseDto.BuildLogDto> getBuildLog(@RequestParam("jobName") String jobName, @RequestParam("buildNumber") String buildNumber, @RequestParam UUID freeStyle
+    public ResponseEntity<BuildResponseDto.BuildLogDto> getBuildLog(@RequestParam  String jobName, @RequestParam  String buildNumber, @RequestParam UUID freeStyle
 
     ) {
         return ResponseEntity.ok(buildService.getBuildLog(jobName, buildNumber, freeStyle));
@@ -75,7 +72,7 @@ public class BuildController {
 
     // 로그 조회
     @GetMapping(value = "/streamlog")
-    public ResponseEntity<BuildStreamLogResponseDto.BuildStreamLogDto> streamLog(@RequestParam("jobName") String jobName, @RequestParam UUID freeStyle, @RequestParam("buildNumber") String buildNumber) {
+    public ResponseEntity<BuildResponseDto.BuildStreamLogDto> streamLog(@RequestParam  String jobName, @RequestParam UUID freeStyle, @RequestParam String buildNumber) {
 
 
         return ResponseEntity.ok(buildService.getStreamLog(jobName, buildNumber, freeStyle));
