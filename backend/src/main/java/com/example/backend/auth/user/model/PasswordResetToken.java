@@ -14,12 +14,15 @@ import java.util.UUID;
 /**
  * 비밀번호 초기화 토큰 엔티티
  */
-@Schema(name = "PasswordResetToken", description = "사용자의 비밀번호 재설정을 위해 발급되는 일회용 토큰 정보 엔티티입니다.")
 @Entity
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
+@Schema(
+        name = "PasswordResetToken",
+        description = "사용자의 비밀번호 재설정을 위해 발급되는 일회용 토큰 정보 엔티티입니다."
+)
 public class PasswordResetToken {
 
     @Id

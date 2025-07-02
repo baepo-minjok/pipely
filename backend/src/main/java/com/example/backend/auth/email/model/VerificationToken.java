@@ -23,15 +23,26 @@ public class VerificationToken {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Schema(description = "고유 토큰 값(UUID)", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6")
+    @Schema(
+            description = "고유 토큰 값(UUID)",
+            example = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    )
     private UUID token;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @Schema(description = "연관된 사용자 정보", hidden = true)
+    @Schema(
+            description = "연관된 사용자 정보",
+            hidden = true,
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Users user;
 
     @Column(nullable = false)
-    @Schema(description = "토큰 만료 일시", example = "2025-07-10T12:00:00")
+    @Schema(
+            description = "토큰 만료 일시",
+            example = "2025-07-10T12:00:00",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private LocalDateTime expiryDate;
 }

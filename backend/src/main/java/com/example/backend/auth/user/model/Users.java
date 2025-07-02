@@ -14,17 +14,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+
+@Entity(name = "user")
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
 @Schema(
         name = "Users",
         description =
                 "시스템 내 등록된 사용자 정보를 나타내는 엔티티 클래스입니다. " +
                         "UUID, 이메일, 상태 정보 및 관련 Jenkins 설정을 포함합니다."
 )
-@Entity(name = "user")
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
 public class Users {
 
     @Schema(description = "사용자 고유 식별자(UUID)", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6",

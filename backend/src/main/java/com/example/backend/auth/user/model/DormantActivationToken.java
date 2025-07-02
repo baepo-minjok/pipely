@@ -14,7 +14,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Schema(description = "계정 재활성화 인증 토큰 엔티티")
+@Schema(
+        name = "DormantActivationToken",
+        description = "사용자의 계정 재활성화 인증 토큰 정보 엔티티입니다."
+)
 public class DormantActivationToken {
 
     @Id
