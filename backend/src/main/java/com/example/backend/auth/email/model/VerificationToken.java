@@ -31,6 +31,7 @@ public class VerificationToken {
     @Schema(description = "연관된 사용자 정보", hidden = true)
     private Users user;
 
+    @Column(nullable = false)
     @Schema(description = "토큰 만료 일시", example = "2025-07-10T12:00:00")
     private LocalDateTime expiryDate;
 }

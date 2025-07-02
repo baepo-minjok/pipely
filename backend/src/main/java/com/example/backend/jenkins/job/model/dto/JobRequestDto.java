@@ -14,6 +14,7 @@ public class JobRequestDto {
         private UUID infoId;
 
         private String jobName;
+
         private String description;
         private String projectUrl;
         private String projectDisplayName;
@@ -77,7 +78,7 @@ public class JobRequestDto {
         private Integer version;
 
         private LocalDateTime createdAt;
-        
+
         public static DetailHistoryDto toDetailHistoryDto(FreeStyleHistory freeStyleHistory) {
             return DetailHistoryDto.builder()
                     .id(freeStyleHistory.getId())
