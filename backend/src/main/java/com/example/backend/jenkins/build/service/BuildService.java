@@ -7,6 +7,7 @@ import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.*;
 import com.example.backend.jenkins.info.model.dto.InfoResponseDto;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
+import com.example.backend.service.HttpClientService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -18,8 +19,6 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -35,8 +34,7 @@ public class BuildService {
 
     private final JenkinsInfoService jenkinsInfoService;
 
-
-    private final RestTemplate restTemplate;
+    private final HttpClientService httpClientService;
 
     public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, UUID freeStyle) {
         log.info("빌드 정보 요청 - jobName: {}, jobType: {}", jobName, jobType);
@@ -63,7 +61,7 @@ public class BuildService {
             triggerPipeline(req, id);
         } else {
 //            throw new IllegalArgumentException("");
-            throw new CustomException(ErrorCode.JENKINS_JOB_TOPY_Error);
+            throw new CustomException(ErrorCode.JENKINS_JOB_TOPY_FAILED);
         }
 
 
@@ -91,18 +89,16 @@ public class BuildService {
 
         HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
 
-        try {
-            restTemplate.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
-        } catch (Exception e) {
-            log.error("Jenkins 빌드 트리거 실패 - jobName: {}", requestDto.getJobName(), e);
-            throw new CustomException(ErrorCode.JENKINS_BUILD_TRIGGER_FAILED);
-        }
+
+
+        httpClientService.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
+
     }
 
     public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, UUID freeStyle) {
-        ResponseEntity<String> response = JenkinsGetResponse(job, freeStyle);
+        String response = JenkinsGetResponse(job, freeStyle);
         try {
-            Map<String, Object> body = new ObjectMapper().readValue(response.getBody(), Map.class);
+            Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
             return BuildResponseDto.BuildInfo.listFrom(body);
         } catch (JsonProcessingException e) {
             log.error("빌드 이력 JSON 파싱 실패 - jobName: {}", job, e);
@@ -111,9 +107,9 @@ public class BuildService {
     }
 
     public BuildResponseDto.BuildInfo getLastBuildStatus(String job, UUID freeStyle) {
-        ResponseEntity<String> response = JenkinsGetResponse(job, freeStyle);
+        String response = JenkinsGetResponse(job, freeStyle);
         try {
-            Map<String, Object> body = new ObjectMapper().readValue(response.getBody(), Map.class);
+            Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
             return BuildResponseDto.BuildInfo.latestFrom(body);
         } catch (JsonProcessingException e) {
             log.error("최신 빌드 JSON 파싱 실패 - jobName: {}", job, e);
@@ -131,8 +127,8 @@ public class BuildService {
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
         try {
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            Document doc = Jsoup.parse(response.getBody());
+            String response = httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            Document doc = Jsoup.parse(response);
             Element pre = doc.selectFirst("pre.console-output");
             return BuildLogResponseDto.BuildLogDto.getLog(pre);
         } catch (Exception e) {
@@ -153,15 +149,16 @@ public class BuildService {
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
         try {
-            ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            return BuildStreamLogResponseDto.BuildStreamLogDto.getStreamLog(response.getBody());
+            String response = httpClientService.exchange(uri.toString(), HttpMethod.GET, new HttpEntity<>(headers), String.class);
+
+            return BuildStreamLogResponseDto.BuildStreamLogDto.getStreamLog(response);
         } catch (Exception e) {
             log.error("스트리밍 로그 조회 실패 - jobName: {}", jobName, e);
             throw new CustomException(ErrorCode.JENKINS_STREAM_LOG_FAILED);
         }
     }
 
-    public ResponseEntity<String> JenkinsGetResponse(String job, UUID freeStyle) {
+    public String JenkinsGetResponse(String job, UUID freeStyle) {
         InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
 
         String url = info.getUri() + "/job/" + job + "/api/json"
@@ -171,7 +168,7 @@ public class BuildService {
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
         try {
-            return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
         } catch (Exception e) {
             log.error("Jenkins API 호출 실패 - jobName: {}", job, e);
             throw new CustomException(ErrorCode.JENKINS_API_CALL_FAILED);
@@ -186,8 +183,8 @@ public class BuildService {
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
         try {
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            return response.getBody();
+            String response = httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            return response;
         } catch (Exception e) {
             log.error("config.xml 조회 실패 - jobName: {}", jobName, e);
             throw new CustomException(ErrorCode.JENKINS_CONFIG_XML_FETCH_FAILED);
@@ -205,16 +202,12 @@ public class BuildService {
             headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
             headers.setContentType(MediaType.APPLICATION_XML);
 
-            ResponseEntity<String> response = restTemplate.exchange(
+            String response = httpClientService.exchange(
                     info.getUri() + "/job/" + jobName + "/config.xml",
                     HttpMethod.POST,
                     new HttpEntity<>(updatedXml, headers),
                     String.class
             );
-
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                throw new CustomException(ErrorCode.JENKINS_CONFIG_XML_UPDATE_FAILED);
-            }
 
             String newConfigXml = getSchedule(jobName, freeStyle);
             return XmlConfigParser.getCronSpecFromConfig(newConfigXml);
@@ -250,9 +243,9 @@ public class BuildService {
 
         try {
             // 1. config.xml 불러오기
-            ResponseEntity<String> response = restTemplate.exchange(
+            String response = httpClientService.exchange(
                     configUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            String xml = response.getBody();
+            String xml = response;
             // 기존 파라미터 삭제
             xml = removeOldParametersBlock(xml);
             // 기존 빌더 삭제
@@ -267,7 +260,7 @@ public class BuildService {
             //  config.xml 다시 업로드
             headers.setContentType(MediaType.APPLICATION_XML);
             HttpEntity<String> entity = new HttpEntity<>(xml, headers);
-            restTemplate.exchange(configUrl, HttpMethod.POST, entity, String.class);
+            httpClientService.exchange(configUrl, HttpMethod.POST, entity, String.class);
         } catch (Exception e) {
             log.error("젠킨스 트리거 셋팅 실패 - jobName: {}", jobName, e);
             throw new CustomException(ErrorCode.JENKINS_TRIGGER_SETTING_FAILED);

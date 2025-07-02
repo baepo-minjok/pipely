@@ -14,56 +14,48 @@ import java.util.Map;
 import java.util.UUID;
 
 
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/build")
-
 public class BuildController {
 
 
     private final BuildService buildService;
 
+
     @PostMapping("/trigger")
     public ResponseEntity trigger(
-            @RequestBody BuildTriggerRequestDto requestDto , @RequestParam UUID freeStyle
+            @RequestBody BuildTriggerRequestDto requestDto, @RequestParam UUID freeStyle
     ) {
 
 
-
-
-
-        buildService.triggerJenkinsBuild(requestDto,freeStyle);
+        buildService.triggerJenkinsBuild(requestDto, freeStyle);
 
         return ResponseEntity.ok("");
-
 
     }
 
     @PostMapping("/triggersetting")
-    public ResponseEntity<String> triggerSetting(@RequestBody TriggerSettingRequestDto req , @RequestParam Map<String, String> id) {
+    public ResponseEntity<String> triggerSetting(@RequestBody TriggerSettingRequestDto req, @RequestParam Map<String, String> id) {
 
-        buildService.setTrigger(req,id);
-
+        buildService.setTrigger(req, id);
 
         return ResponseEntity.ok("");
     }
 
 
     @GetMapping("/schedule")
-    public ResponseEntity<String> scheduleJob(@RequestParam String jobName,@RequestParam UUID freeStyle) {
+    public ResponseEntity<String> scheduleJob(@RequestParam String jobName, @RequestParam UUID freeStyle) {
 
 
-
-
-        return ResponseEntity.ok(buildService.getSchedule(jobName,freeStyle));
+        return ResponseEntity.ok(buildService.getSchedule(jobName, freeStyle));
     }
+
     @PostMapping("/setSchedule")
-    public ResponseEntity<String> getscheduleJob(@RequestParam String jobName , @RequestParam String cron ,@RequestParam UUID freeStyle ){
+    public ResponseEntity<String> getscheduleJob(@RequestParam String jobName, @RequestParam String cron, @RequestParam UUID freeStyle) {
 
 
-
-        return ResponseEntity.ok(buildService.setSchedule(jobName,cron,freeStyle));
+        return ResponseEntity.ok(buildService.setSchedule(jobName, cron, freeStyle));
     }
 
     @GetMapping("/builds")
@@ -72,7 +64,7 @@ public class BuildController {
             @RequestParam JobType jobType, UUID freeStyle
 
     ) {
-        return ResponseEntity.ok(buildService.getBuildInfo(jobName,jobType,freeStyle));
+        return ResponseEntity.ok(buildService.getBuildInfo(jobName, jobType, freeStyle));
     }
 
 
@@ -80,10 +72,10 @@ public class BuildController {
     @GetMapping("/log")
     public ResponseEntity<BuildLogResponseDto.BuildLogDto> getBuildLog(
             @RequestParam("jobName") String jobName,
-            @RequestParam("buildNumber") String buildNumber,@RequestParam UUID freeStyle
+            @RequestParam("buildNumber") String buildNumber, @RequestParam UUID freeStyle
 
     ) {
-        return ResponseEntity.ok(buildService.getBuildLog(jobName,buildNumber,freeStyle));
+        return ResponseEntity.ok(buildService.getBuildLog(jobName, buildNumber, freeStyle));
     }
 
 
@@ -93,8 +85,7 @@ public class BuildController {
                                                                                  @RequestParam("buildNumber") String buildNumber) {
 
 
-
-        return ResponseEntity.ok(buildService.getStreamLog(jobName,buildNumber,freeStyle));
+        return ResponseEntity.ok(buildService.getStreamLog(jobName, buildNumber, freeStyle));
 
 
     }
