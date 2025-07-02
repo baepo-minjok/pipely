@@ -1,6 +1,5 @@
-package com.example.backend.notification.model;
+package com.example.backend.jenkins.job.model;
 
-import com.example.backend.jenkins.job.model.Job;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -20,8 +19,6 @@ public class JobNotification {
     private LocalDateTime jobCreatedAt;
 
     private Boolean shouldNotify;
-
-    private String recipient;
 
     private String channel;
 

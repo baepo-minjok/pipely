@@ -1,4 +1,4 @@
-package com.example.backend.notification.model;
+package com.example.backend.jenkins.job.model;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
