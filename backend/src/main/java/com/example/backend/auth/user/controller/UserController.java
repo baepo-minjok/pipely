@@ -101,7 +101,9 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "회원가입 실패")
     })
     @PostMapping("/signup")
-    public ResponseEntity<BaseResponse<String>> signup(@RequestBody @Valid SignupDto req) {
+    public ResponseEntity<BaseResponse<String>> signup(
+            @RequestBody @Valid SignupDto req
+    ) {
         userService.registerUser(req);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("signup success"));
