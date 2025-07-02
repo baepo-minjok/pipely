@@ -4,9 +4,11 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.build.config.XmlConfigParser;
 import com.example.backend.jenkins.build.model.JobType;
-import com.example.backend.jenkins.build.model.dto.*;
-import com.example.backend.jenkins.info.model.dto.InfoResponseDto;
+import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
+import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
+import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
+import com.example.backend.jenkins.job.service.FreeStyleJobService;
 import com.example.backend.service.HttpClientService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,13 +36,14 @@ public class BuildService {
 
     private final JenkinsInfoService jenkinsInfoService;
     private final HttpClientService httpClientService;
+    private final FreeStyleJobService freeStyleJobService;
 
-    public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, UUID freeStyle) {
+    public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, UUID freeStyleId) {
         log.info("빌드 정보 요청 - jobName: {}, jobType: {}", jobName, jobType);
         try {
             return switch (jobType) {
-                case LATEST -> ResponseEntity.ok(getLastBuildStatus(jobName, freeStyle));
-                case HISTORY -> ResponseEntity.ok(getBuildHistory(jobName, freeStyle));
+                case LATEST -> ResponseEntity.ok(getLastBuildStatus(jobName, freeStyleId));
+                case HISTORY -> ResponseEntity.ok(getBuildHistory(jobName, freeStyleId));
             };
         } catch (CustomException e) {
             throw e;
@@ -64,13 +67,11 @@ public class BuildService {
         }
     }
 
-    public void triggerJenkinsBuild(BuildRequestDto.BuildTriggerRequestDto requestDto, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
+    public void triggerJenkinsBuild(BuildRequestDto.BuildTriggerRequestDto requestDto, UUID freeStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
         String triggerUrl = info.getUri() + "/job/" + requestDto.getJobName() + "/buildWithParameters";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         requestDto.getStepToggles().forEach((key, value) ->
@@ -79,8 +80,8 @@ public class BuildService {
         httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
     }
 
-    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, UUID freeStyle) {
-        String response = JenkinsGetResponse(job, freeStyle);
+    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, UUID freeStyleId) {
+        String response = JenkinsGetResponse(job, freeStyleId);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
             return BuildResponseDto.BuildInfo.listFrom(body);
@@ -90,8 +91,8 @@ public class BuildService {
         }
     }
 
-    public BuildResponseDto.BuildInfo getLastBuildStatus(String job, UUID freeStyle) {
-        String response = JenkinsGetResponse(job, freeStyle);
+    public BuildResponseDto.BuildInfo getLastBuildStatus(String job, UUID freeStyleId) {
+        String response = JenkinsGetResponse(job, freeStyleId);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
             return BuildResponseDto.BuildInfo.latestFrom(body);
@@ -101,12 +102,11 @@ public class BuildService {
         }
     }
 
-    public BuildResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
+    public BuildResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, UUID freeStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
         String url = info.getUri() + "/job/" + jobName + "/" + buildNumber + "/console";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
         try {
             String response = httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
@@ -119,47 +119,42 @@ public class BuildService {
         }
     }
 
-    public BuildResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
+    public BuildResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, UUID freeStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
         URI uri = UriComponentsBuilder
                 .fromHttpUrl(info.getUri() + "/job/" + jobName + "/" + buildNumber + "/logText/progressiveText")
                 .build().toUri();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
         String response = httpClientService.exchange(uri.toString(), HttpMethod.GET, new HttpEntity<>(headers), String.class);
         return BuildResponseDto.BuildStreamLogDto.getStreamLog(response);
     }
 
-    public String JenkinsGetResponse(String job, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
+    public String JenkinsGetResponse(String job, UUID freeStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
         String url = info.getUri() + "/job/" + job + "/api/json"
                 + "?tree=builds[number,result,timestamp,duration,building,id,url,actions[causes[userId,userName]]]";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
         return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
-    public String getSchedule(String jobName, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
+    public String getSchedule(String jobName, UUID freeStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
         String url = info.getUri() + "/job/" + jobName + "/config.xml";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
         return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
-    public String setSchedule(String jobName, String cron, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-        String updatedXml = XmlConfigParser.updateCronSpecInXml(getSchedule(jobName, freeStyle), cron);
+    public String setSchedule(String jobName, String cron, UUID freeStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
+        String updatedXml = XmlConfigParser.updateCronSpecInXml(getSchedule(jobName, freeStyleId), cron);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
-        headers.setContentType(MediaType.APPLICATION_XML);
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
 
         httpClientService.exchange(
                 info.getUri() + "/job/" + jobName + "/config.xml",
@@ -168,21 +163,20 @@ public class BuildService {
                 String.class
         );
 
-        return XmlConfigParser.getCronSpecFromConfig(getSchedule(jobName, freeStyle));
+        return XmlConfigParser.getCronSpecFromConfig(getSchedule(jobName, freeStyleId));
     }
 
-    public void setupFreestyleTrigger(BuildRequestDto.TriggerSettingRequestDto req, UUID jenkinsId) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(jenkinsId);
+    public void setupFreestyleTrigger(BuildRequestDto.TriggerSettingRequestDto req, UUID freeStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
         String configUrl = info.getUri() + "/job/" + req.getJobName() + "/config.xml";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
+
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
         headers.setAccept(List.of(MediaType.APPLICATION_XML));
 
         String xml = httpClientService.exchange(configUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
         xml = injectShellScriptBlock(injectParameterBlock(resetBuilderBlock(removeOldParametersBlock(xml)), req.getSteps()), req.getSteps());
 
-        headers.setContentType(MediaType.APPLICATION_XML);
         httpClientService.exchange(configUrl, HttpMethod.POST, new HttpEntity<>(xml, headers), String.class);
     }
 

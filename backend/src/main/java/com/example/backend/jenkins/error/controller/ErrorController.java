@@ -2,20 +2,21 @@ package com.example.backend.jenkins.error.controller;
 
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
+import com.example.backend.jenkins.error.client.JenkinsRestClient;
 import com.example.backend.jenkins.error.model.dto.FailedBuildResDto;
 import com.example.backend.jenkins.error.model.dto.FailedBuildSummaryResDto;
 import com.example.backend.jenkins.error.model.dto.JenkinsReqDto;
 import com.example.backend.jenkins.error.model.dto.JenkinsSummaryReqDto;
-import com.example.backend.jenkins.info.model.dto.InfoResponseDto.DetailInfoDto;
-import com.example.backend.jenkins.info.service.JenkinsInfoService;
-import com.example.backend.jenkins.error.client.JenkinsRestClient;
 import com.example.backend.jenkins.error.service.ErrorService;
+import com.example.backend.jenkins.info.model.dto.InfoResponseDto.DetailInfoDto;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -26,14 +27,16 @@ public class ErrorController {
 
     private final ErrorService errorService;
     private final HttpClientService httpClientService;
+
     private JenkinsRestClient buildClient(DetailInfoDto info) {
         return new JenkinsRestClient(
                 info.getUri(),
                 info.getJenkinsId(),
-                info.getSecretKey(),
+                info.getApiToken(),
                 httpClientService
         );
     }
+
     // 특정 Job의 최근 빌드 1건 조회 API
     @PostMapping("/recent")
     public ResponseEntity<BaseResponse<FailedBuildResDto>> getRecentBuild(

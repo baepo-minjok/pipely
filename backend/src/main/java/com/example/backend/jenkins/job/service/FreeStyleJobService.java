@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.w3c.dom.Document;
@@ -35,6 +36,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +64,7 @@ public class FreeStyleJobService {
 
         String config = createFreestyleConfig(dto);
 
-        HttpEntity<String> requestEntity = new HttpEntity<>(config, httpClientService.buildHeaders(info));
+        HttpEntity<String> requestEntity = new HttpEntity<>(config, httpClientService.buildHeaders(info, new MediaType("application", "xml", StandardCharsets.UTF_8)));
 
         httpClientService.exchange(jenkinsUrl, HttpMethod.POST, requestEntity, String.class);
 
@@ -127,7 +129,7 @@ public class FreeStyleJobService {
 
         // 1. Fetch original config.xml
         String configUrl = info.getUri() + "/job/" + dto.getJobName() + "/config.xml";
-        HttpEntity<Void> getReq = new HttpEntity<>(httpClientService.buildHeaders(info));
+        HttpEntity<Void> getReq = new HttpEntity<>(httpClientService.buildHeaders(info, new MediaType("application", "xml", StandardCharsets.UTF_8)));
         String originalXml = httpClientService.exchange(configUrl, HttpMethod.GET, getReq, String.class);
 
         // 2. Generate patch fragment via Mustache
@@ -139,7 +141,7 @@ public class FreeStyleJobService {
         log.info("Merged XML:\n{}", mergedXml);
 
         // 4. Push updated config to Jenkins
-        HttpEntity<String> postReq = new HttpEntity<>(mergedXml, httpClientService.buildHeaders(info));
+        HttpEntity<String> postReq = new HttpEntity<>(mergedXml, httpClientService.buildHeaders(info, new MediaType("application", "xml", StandardCharsets.UTF_8)));
         httpClientService.exchange(configUrl, HttpMethod.POST, postReq, String.class);
 
         // 5. Persist changed fields in DB
@@ -279,7 +281,7 @@ public class FreeStyleJobService {
         String configUrl = jenkinsInfo.getUri() + "/job/" + freeStyleHistory.getJobName() + "/config.xml";
 
 
-        HttpEntity<String> postReq = new HttpEntity<>(freeStyleHistory.getConfig(), httpClientService.buildHeaders(jenkinsInfo));
+        HttpEntity<String> postReq = new HttpEntity<>(freeStyleHistory.getConfig(), httpClientService.buildHeaders(jenkinsInfo, new MediaType("application", "xml", StandardCharsets.UTF_8)));
         httpClientService.exchange(configUrl, HttpMethod.POST, postReq, String.class);
 
         FreeStyle rollBack = FreeStyleHistory.toFreeStyle(freeStyleHistory, freeStyle);
@@ -289,8 +291,15 @@ public class FreeStyleJobService {
     }
 
     public FreeStyle getFreeStyleById(UUID id) {
-        return freeStyleRepository.findById(id)
+        return freeStyleRepository.findFreeStyleById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND));
+    }
+
+    public JenkinsInfo getJenkinsInfoByFreeStyleId(UUID id) {
+
+        FreeStyle freeStyle = getFreeStyleById(id);
+        return freeStyle.getJenkinsInfo();
+
     }
 
 }

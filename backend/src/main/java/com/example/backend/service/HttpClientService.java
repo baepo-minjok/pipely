@@ -59,10 +59,11 @@ public class HttpClientService {
         }
     }
 
-    public HttpHeaders buildHeaders(JenkinsInfo info) {
+    public HttpHeaders buildHeaders(JenkinsInfo info, MediaType mediaType) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBasicAuth(info.getJenkinsId(), info.getApiToken());
+        headers.setContentType(mediaType);
 
         return headers;
     }
