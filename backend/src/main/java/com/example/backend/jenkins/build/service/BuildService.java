@@ -62,7 +62,8 @@ public class BuildService {
             UUID id = UUID.fromString(allParams.get("pipeLine"));
             triggerPipeline(req, id);
         } else {
-            throw new IllegalArgumentException("freestyle 또는 pipeline 파라미터가 필요합니다");
+//            throw new IllegalArgumentException("");
+            throw new CustomException(ErrorCode.JENKINS_JOB_TOPY_Error);
         }
 
 
