@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.info.model.JenkinsInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -56,6 +57,15 @@ public class HttpClientService {
         } catch (CancellationException ex) {
             throw new CustomException(ErrorCode.JENKINS_URI_NOT_FOUND);
         }
+    }
+
+    public HttpHeaders buildHeaders(JenkinsInfo info, MediaType mediaType) {
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(info.getJenkinsId(), info.getApiToken());
+        headers.setContentType(mediaType);
+
+        return headers;
     }
 }
 

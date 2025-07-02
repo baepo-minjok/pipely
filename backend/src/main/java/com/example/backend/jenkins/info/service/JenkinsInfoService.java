@@ -44,7 +44,7 @@ public class JenkinsInfoService {
                 .name(createDto.getName())
                 .description(createDto.getDescription())
                 .jenkinsId(createDto.getJenkinsId())
-                .secretKey(createDto.getSecretKey()) // 실제로는 암호화/안전 저장 고려
+                .apiToken(createDto.getApiToken())
                 .uri(createDto.getUri())
                 .user(user)
                 .build();
@@ -66,7 +66,7 @@ public class JenkinsInfoService {
 
         info.setName(updateDto.getName());
         info.setDescription(updateDto.getDescription());
-        info.setSecretKey(updateDto.getSecretKey());
+        info.setApiToken(updateDto.getApiToken());
         info.setUri(updateDto.getUri());
         info.setJenkinsId(updateDto.getJenkinsId());
 
@@ -116,7 +116,7 @@ public class JenkinsInfoService {
 
         String baseUri = jenkinsInfo.getUri();
         String username = jenkinsInfo.getJenkinsId();
-        String apiToken = jenkinsInfo.getSecretKey();
+        String apiToken = jenkinsInfo.getApiToken();
 
         String auth = username + ":" + apiToken;
         String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
