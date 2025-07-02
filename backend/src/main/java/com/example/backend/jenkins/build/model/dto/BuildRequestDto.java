@@ -9,15 +9,6 @@ import java.util.Map;
 public class BuildRequestDto {
 
 
-
-
-
-
-
-
-
-
-
     @AllArgsConstructor
     @NoArgsConstructor
     @Getter
@@ -37,31 +28,27 @@ public class BuildRequestDto {
         private List<String> steps;
     }
 
-
-
-
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public class BuildQueryRequestDto {
         private String jobName;
         private JobType jobType;
     }
 
-
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     public class BuildLogRequestDto {
-
-
 
 
         private String jobName;
         private String buildNumber;
 
 
-
-
-
-
     }
-
-
 
 
 }

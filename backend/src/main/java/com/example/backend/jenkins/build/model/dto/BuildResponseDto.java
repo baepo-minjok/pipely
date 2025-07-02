@@ -96,10 +96,6 @@ public class BuildResponseDto {
     }
 
 
-
-
-
-
     @AllArgsConstructor
     @NoArgsConstructor
     @Getter
@@ -116,10 +112,7 @@ public class BuildResponseDto {
         }
 
 
-
     }
-
-
 
 
     @AllArgsConstructor
@@ -137,7 +130,6 @@ public class BuildResponseDto {
                     .log(lines)
                     .build();
         }
-
 
 
     }
