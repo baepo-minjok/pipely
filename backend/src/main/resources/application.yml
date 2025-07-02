@@ -80,3 +80,6 @@ app:
 encryption:
   key: ${ENCRYPTION_KEY}
 
+openai:
+  api-key: ${OPENAI_API_KEY}
+

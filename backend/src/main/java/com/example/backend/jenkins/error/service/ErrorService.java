@@ -4,8 +4,7 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.error.client.JenkinsRestClient;
 import com.example.backend.jenkins.error.model.dto.FailedBuildResDto;
-import com.example.backend.jenkins.error.client.JenkinsRestClient;
-import com.example.backend.jenkins.error.model.dto.FailedBuildResDto;
+import com.example.backend.jenkins.error.model.dto.FailedBuildSummaryResDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.model.dto.InfoResponseDto;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
@@ -14,12 +13,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+
 import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class ErrorService {
     private final JenkinsInfoRepository jenkinsInfoRepository;
+    private final LlmService llmService;
     private static final Logger log = LoggerFactory.getLogger(ErrorService.class);
 
     // 특정 Job의 최근 빌드 1건 조회
@@ -101,6 +102,11 @@ public class ErrorService {
         Map<?, ?> jobsResponse = client.get("/api/json?tree=jobs[name,url]", Map.class);
         List<Map<String, Object>> jobs = (List<Map<String, Object>>) jobsResponse.get("jobs");
 
+        if (jobs == null || jobs.isEmpty()) {
+            log.warn("Jenkins 서버에 등록된 Job이 없습니다.");
+            return builds;
+        }
+
         for (Map<String, Object> job : jobs) {
             String jobName = (String) job.get("name");
 
@@ -136,6 +142,10 @@ public class ErrorService {
 
         Map<?, ?> jobsResponse = client.get("/api/json?tree=jobs[name]", Map.class);
         List<Map<String, Object>> jobs = (List<Map<String, Object>>) jobsResponse.get("jobs");
+
+        if (jobs == null || jobs.isEmpty()) {
+            throw new CustomException(ErrorCode.JENKINS_NO_JOBS_FOUND);
+        }
 
         for (Map<String, Object> job : jobs) {
             String jobName = (String) job.get("name");
@@ -178,6 +188,27 @@ public class ErrorService {
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
 
         return InfoResponseDto.DetailInfoDto.fromEntity(info);
+    }
+
+    public FailedBuildSummaryResDto summarizeBuild(JenkinsRestClient client, String jobName, int buildNumber) {
+        String log = client.getConsoleLog(jobName, buildNumber);
+
+        // 에러가 없어 보이면 바로 응답
+        if (!log.contains("Exception") && !log.contains("FAILURE") && !log.contains("Caused by")) {
+            return FailedBuildSummaryResDto.builder()
+                    .jobName(jobName)
+                    .buildNumber(buildNumber)
+                    .naturalResponse("이 빌드는 에러 없이 정상적으로 완료된 것으로 보입니다.")
+                    .build();
+        }
+
+        String response = llmService.summarizeBuildLog(log);
+
+        return FailedBuildSummaryResDto.builder()
+                .jobName(jobName)
+                .buildNumber(buildNumber)
+                .naturalResponse(response)
+                .build();
     }
 
 
