@@ -50,7 +50,8 @@ public class BuildService {
             throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
         }
     }
-    public void setTrigger(TriggerSettingRequestDto req,Map<String, String> allParams) {
+
+    public void setTrigger(TriggerSettingRequestDto req, Map<String, String> allParams) {
 
 
         if (allParams.containsKey("freeStyle")) {
@@ -82,13 +83,11 @@ public class BuildService {
         for (Map.Entry<String, Boolean> entry : requestDto.getStepToggles().entrySet()) {
             String paramName = "DO_" + entry.getKey().toUpperCase();
             String paramValue = String.valueOf(entry.getValue());  // "true" or "false"
-            log.info("파라미터 전송@@@@@@@@@@@@@: {} = {}", paramName, paramValue);
 
             body.add(paramName, paramValue);
         }
 
         HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
-
 
 
         httpClientService.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
@@ -148,14 +147,9 @@ public class BuildService {
         HttpHeaders headers = new HttpHeaders();
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
-        try {
-            String response = httpClientService.exchange(uri.toString(), HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        String response = httpClientService.exchange(uri.toString(), HttpMethod.GET, new HttpEntity<>(headers), String.class);
 
-            return BuildStreamLogResponseDto.BuildStreamLogDto.getStreamLog(response);
-        } catch (Exception e) {
-            log.error("스트리밍 로그 조회 실패 - jobName: {}", jobName, e);
-            throw new CustomException(ErrorCode.JENKINS_STREAM_LOG_FAILED);
-        }
+        return BuildStreamLogResponseDto.BuildStreamLogDto.getStreamLog(response);
     }
 
     public String JenkinsGetResponse(String job, UUID freeStyle) {
@@ -167,12 +161,7 @@ public class BuildService {
         HttpHeaders headers = new HttpHeaders();
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
-        try {
-            return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-        } catch (Exception e) {
-            log.error("Jenkins API 호출 실패 - jobName: {}", job, e);
-            throw new CustomException(ErrorCode.JENKINS_API_CALL_FAILED);
-        }
+        return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
     public String getSchedule(String jobName, UUID freeStyle) {
@@ -182,51 +171,38 @@ public class BuildService {
         HttpHeaders headers = new HttpHeaders();
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
-        try {
-            String response = httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            return response;
-        } catch (Exception e) {
-            log.error("config.xml 조회 실패 - jobName: {}", jobName, e);
-            throw new CustomException(ErrorCode.JENKINS_CONFIG_XML_FETCH_FAILED);
-        }
+        return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
     public String setSchedule(String jobName, String cron, UUID freeStyle) {
         InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
 
-        try {
-            String originalXml = getSchedule(jobName, freeStyle);
-            String updatedXml = XmlConfigParser.updateCronSpecInXml(originalXml, cron);
+        String originalXml = getSchedule(jobName, freeStyle);
+        String updatedXml = XmlConfigParser.updateCronSpecInXml(originalXml, cron);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
-            headers.setContentType(MediaType.APPLICATION_XML);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
+        headers.setContentType(MediaType.APPLICATION_XML);
 
-            String response = httpClientService.exchange(
-                    info.getUri() + "/job/" + jobName + "/config.xml",
-                    HttpMethod.POST,
-                    new HttpEntity<>(updatedXml, headers),
-                    String.class
-            );
+        httpClientService.exchange(
+                info.getUri() + "/job/" + jobName + "/config.xml",
+                HttpMethod.POST,
+                new HttpEntity<>(updatedXml, headers),
+                String.class
+        );
 
-            String newConfigXml = getSchedule(jobName, freeStyle);
-            return XmlConfigParser.getCronSpecFromConfig(newConfigXml);
+        String newConfigXml = getSchedule(jobName, freeStyle);
+        return XmlConfigParser.getCronSpecFromConfig(newConfigXml);
 
-        } catch (CustomException ce) {
 
-            throw ce;
-        } catch (Exception e) {
-            log.error("스케줄 설정 실패 - jobName: {}", jobName, e);
-            throw new CustomException(ErrorCode.JENKINS_XML_CRON_PARSE_ERROR);
-        }
     }
 
 
     /*
-    * FreeStyle Job이라면
-    * buildwithParameters 실행
-    *
-    * */
+     * FreeStyle Job이라면
+     * buildwithParameters 실행
+     *
+     * */
     public void setupFreestyleTrigger(TriggerSettingRequestDto req, UUID jenkinsId) {
 
 
@@ -241,30 +217,25 @@ public class BuildService {
         headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
         headers.setAccept(List.of(MediaType.APPLICATION_XML));
 
-        try {
-            // 1. config.xml 불러오기
-            String response = httpClientService.exchange(
-                    configUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            String xml = response;
-            // 기존 파라미터 삭제
-            xml = removeOldParametersBlock(xml);
-            // 기존 빌더 삭제
-            xml = resetBuilderBlock(xml);
+        // 1. config.xml 불러오기
+        String response = httpClientService.exchange(
+                configUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        String xml = response;
+        // 기존 파라미터 삭제
+        xml = removeOldParametersBlock(xml);
+        // 기존 빌더 삭제
+        xml = resetBuilderBlock(xml);
 
-            //  파라미터 삽입
-            xml = injectParameterBlock(xml, steps);
+        //  파라미터 삽입
+        xml = injectParameterBlock(xml, steps);
 
-            //   실행 스크립트 삽입
-            xml = injectShellScriptBlock(xml, steps);
+        //   실행 스크립트 삽입
+        xml = injectShellScriptBlock(xml, steps);
 
-            //  config.xml 다시 업로드
-            headers.setContentType(MediaType.APPLICATION_XML);
-            HttpEntity<String> entity = new HttpEntity<>(xml, headers);
-            httpClientService.exchange(configUrl, HttpMethod.POST, entity, String.class);
-        } catch (Exception e) {
-            log.error("젠킨스 트리거 셋팅 실패 - jobName: {}", jobName, e);
-            throw new CustomException(ErrorCode.JENKINS_TRIGGER_SETTING_FAILED);
-        }
+        //  config.xml 다시 업로드
+        headers.setContentType(MediaType.APPLICATION_XML);
+        HttpEntity<String> entity = new HttpEntity<>(xml, headers);
+        httpClientService.exchange(configUrl, HttpMethod.POST, entity, String.class);
     }
 
 
@@ -281,9 +252,9 @@ public class BuildService {
 
 
     /*
-    * freestyle job에서 만약 파라미터값 없다면 넣어주는 함수
-    *
-    */
+     * freestyle job에서 만약 파라미터값 없다면 넣어주는 함수
+     *
+     */
 
     private String injectParameterBlock(String originalXml, List<String> steps) {
         if (originalXml.contains("<properties>") && originalXml.contains("</properties>")) {
@@ -311,6 +282,7 @@ public class BuildService {
 
         return originalXml;
     }
+
     private String injectShellScriptBlock(String originalXml, List<String> steps) {
         if (originalXml.contains("<builders>") && originalXml.contains("</builders>")) {
 
@@ -339,23 +311,19 @@ public class BuildService {
     }
 
 
-
-
-
     private String resetBuilderBlock(String xml) {
         return xml.replaceAll(
                 "<builders>.*?</builders>",
                 Matcher.quoteReplacement("<builders></builders>")
         );
     }
+
     private String removeOldParametersBlock(String xml) {
         return xml.replaceAll(
                 "<hudson.model.ParametersDefinitionProperty>.*?</hudson.model.ParametersDefinitionProperty>",
                 ""
         );
     }
-
-
 
 
 }

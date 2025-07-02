@@ -24,9 +24,7 @@ public class BuildController {
 
 
     @PostMapping("/trigger")
-    public ResponseEntity trigger(
-            @RequestBody BuildTriggerRequestDto requestDto, @RequestParam UUID freeStyle
-    ) {
+    public ResponseEntity trigger(@RequestBody BuildTriggerRequestDto requestDto, @RequestParam UUID freeStyle) {
 
 
         buildService.triggerJenkinsBuild(requestDto, freeStyle);
@@ -59,9 +57,7 @@ public class BuildController {
     }
 
     @GetMapping("/builds")
-    public ResponseEntity<?> getBuilds(
-            @RequestParam String jobName,
-            @RequestParam JobType jobType, UUID freeStyle
+    public ResponseEntity<?> getBuilds(@RequestParam String jobName, @RequestParam JobType jobType, UUID freeStyle
 
     ) {
         return ResponseEntity.ok(buildService.getBuildInfo(jobName, jobType, freeStyle));
@@ -70,9 +66,7 @@ public class BuildController {
 
     // 4. 빌드 상세 로그 조회
     @GetMapping("/log")
-    public ResponseEntity<BuildLogResponseDto.BuildLogDto> getBuildLog(
-            @RequestParam("jobName") String jobName,
-            @RequestParam("buildNumber") String buildNumber, @RequestParam UUID freeStyle
+    public ResponseEntity<BuildLogResponseDto.BuildLogDto> getBuildLog(@RequestParam("jobName") String jobName, @RequestParam("buildNumber") String buildNumber, @RequestParam UUID freeStyle
 
     ) {
         return ResponseEntity.ok(buildService.getBuildLog(jobName, buildNumber, freeStyle));
@@ -81,8 +75,7 @@ public class BuildController {
 
     // 로그 조회
     @GetMapping(value = "/streamlog")
-    public ResponseEntity<BuildStreamLogResponseDto.BuildStreamLogDto> streamLog(@RequestParam("jobName") String jobName, @RequestParam UUID freeStyle,
-                                                                                 @RequestParam("buildNumber") String buildNumber) {
+    public ResponseEntity<BuildStreamLogResponseDto.BuildStreamLogDto> streamLog(@RequestParam("jobName") String jobName, @RequestParam UUID freeStyle, @RequestParam("buildNumber") String buildNumber) {
 
 
         return ResponseEntity.ok(buildService.getStreamLog(jobName, buildNumber, freeStyle));

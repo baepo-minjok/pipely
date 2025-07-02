@@ -9,11 +9,8 @@ import java.util.Map;
 @NoArgsConstructor
 @Builder
 @Getter
-
-
-
 public class BuildTriggerRequestDto {
 
-        private String jobName;
-        private Map<String, Boolean> stepToggles;
+    private String jobName;
+    private Map<String, Boolean> stepToggles;
 }
