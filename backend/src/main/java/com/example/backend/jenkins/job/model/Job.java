@@ -1,6 +1,5 @@
 package com.example.backend.jenkins.job.model;
 
-import com.example.backend.notification.model.JobNotification;
 import jakarta.persistence.*;
 import org.hibernate.annotations.GenericGenerator;
 
