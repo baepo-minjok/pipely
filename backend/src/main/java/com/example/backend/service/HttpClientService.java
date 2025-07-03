@@ -40,9 +40,7 @@ public class HttpClientService {
             );
             HttpStatusCode httpStatusCode = response.getStatusCode();
 
-            if (httpStatusCode == HttpStatus.OK) {
-                return response.getBody();
-            } else if (httpStatusCode == HttpStatus.NOT_FOUND) {
+            if (httpStatusCode == HttpStatus.NOT_FOUND) {
                 throw new CustomException(ErrorCode.JENKINS_ENDPOINT_NOT_FOUND);
             } else if (httpStatusCode == HttpStatus.UNAUTHORIZED) {
                 throw new CustomException(ErrorCode.JENKINS_AUTHENTICATION_FAILED);
@@ -50,8 +48,10 @@ public class HttpClientService {
                 throw new CustomException(ErrorCode.JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR);
             } else if (httpStatusCode.is5xxServerError()) {
                 throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
-            } else {
+            } else if (httpStatusCode.is4xxClientError()) {
                 throw new CustomException(ErrorCode.JENKINS_CONNECTION_FAILED);
+            } else {
+                return response.getBody();
             }
 
         } catch (CancellationException ex) {
