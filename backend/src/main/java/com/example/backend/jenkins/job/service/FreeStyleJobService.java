@@ -6,10 +6,10 @@ import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.FreeStyle;
 import com.example.backend.jenkins.job.model.FreeStyleHistory;
-import com.example.backend.jenkins.job.model.dto.JobRequestDto.CreateFreeStyleDto;
-import com.example.backend.jenkins.job.model.dto.JobRequestDto.DetailHistoryDto;
-import com.example.backend.jenkins.job.model.dto.JobRequestDto.LightHistoryDto;
-import com.example.backend.jenkins.job.model.dto.JobRequestDto.UpdateFreeStyleDto;
+import com.example.backend.jenkins.job.model.dto.FreeStyleRequestDto.CreateFreeStyleDto;
+import com.example.backend.jenkins.job.model.dto.FreeStyleRequestDto.UpdateFreeStyleDto;
+import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailHistoryDto;
+import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.LightHistoryDto;
 import com.example.backend.jenkins.job.repository.FreeStyleHistoryRepository;
 import com.example.backend.jenkins.job.repository.FreeStyleRepository;
 import com.example.backend.service.HttpClientService;
@@ -124,7 +124,8 @@ public class FreeStyleJobService {
 
     @Transactional
     public void updateFreestyleJob(UpdateFreeStyleDto dto) {
-        JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
+
+        JenkinsInfo info = getJenkinsInfoByFreeStyleId(dto.getFreeStyleId());
         FreeStyle existing = getFreeStyleById(dto.getFreeStyleId());
 
         // 1. Fetch original config.xml
