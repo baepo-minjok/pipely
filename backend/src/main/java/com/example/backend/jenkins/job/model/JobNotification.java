@@ -30,6 +30,9 @@ public class JobNotification {
 
     private String eventType;
 
+    @Column(name = "credential_name")
+    private String credentialName;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
             @JoinColumn(name = "id", referencedColumnName = "id", insertable = false, updatable = false),
