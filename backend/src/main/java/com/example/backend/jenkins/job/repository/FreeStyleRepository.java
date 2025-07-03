@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,4 +18,6 @@ public interface FreeStyleRepository extends JpaRepository<FreeStyle, UUID> {
                 WHERE fs.id = :freeStyleId
             """)
     Optional<FreeStyle> findFreeStyleById(@Param("freeStyleId") UUID freeStyleId);
+
+    List<FreeStyle> findFreeStyleByJenkinsInfo_Id(UUID infoId);
 }
