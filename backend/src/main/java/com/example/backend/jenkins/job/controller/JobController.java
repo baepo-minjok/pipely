@@ -3,7 +3,9 @@ package com.example.backend.jenkins.job.controller;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.job.model.dto.FreeStyleRequestDto.CreateFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleRequestDto.UpdateFreeStyleDto;
+import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailHistoryDto;
+import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.LightFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.LightHistoryDto;
 import com.example.backend.jenkins.job.service.FreeStyleJobService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,7 +44,8 @@ public class JobController {
             @RequestBody @Valid CreateFreeStyleDto dto
     ) {
         freeStyleJobService.createFreestyleJob(dto);
-        return ResponseEntity.ok(BaseResponse.success("create freestyle success"));
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("create freestyle success"));
     }
 
     @Operation(
@@ -60,7 +63,8 @@ public class JobController {
             @RequestBody @Valid UpdateFreeStyleDto dto
     ) {
         freeStyleJobService.updateFreestyleJob(dto);
-        return ResponseEntity.ok(BaseResponse.success("update freestyle success"));
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("update freestyle success"));
     }
 
     @Operation(
@@ -77,7 +81,25 @@ public class JobController {
             @RequestParam UUID id
     ) {
         freeStyleJobService.deleteById(id);
-        return ResponseEntity.ok(BaseResponse.success("delete freestyle success"));
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("delete freestyle success"));
+    }
+
+    @GetMapping
+    public ResponseEntity<BaseResponse<List<LightFreeStyleDto>>> getAllFreeStyle(
+            @Parameter(description = "JenkinsInfo의 UUID", required = true)
+            @RequestParam UUID infoId
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(freeStyleJobService.getAllLightFreeStyle(infoId)));
+    }
+
+    @PostMapping("/{id}")
+    public ResponseEntity<BaseResponse<DetailFreeStyleDto>> getFreeStyleById(
+            @PathVariable UUID id
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(freeStyleJobService.getDetailFreeStyleById(id)));
     }
 
     @Operation(
@@ -93,7 +115,8 @@ public class JobController {
             @Parameter(description = "조회할 FreeStyle 잡의 UUID", required = true)
             @RequestParam UUID id
     ) {
-        return ResponseEntity.ok(BaseResponse.success(freeStyleJobService.getLightHistory(id)));
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(freeStyleJobService.getLightHistory(id)));
     }
 
     @Operation(
@@ -109,7 +132,8 @@ public class JobController {
             @Parameter(description = "조회할 FreeStyleHistory의 UUID", required = true)
             @PathVariable UUID id
     ) {
-        return ResponseEntity.ok(BaseResponse.success(freeStyleJobService.getFreeStyleHistoryById(id)));
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(freeStyleJobService.getFreeStyleHistoryById(id)));
     }
 
     @Operation(
@@ -127,6 +151,7 @@ public class JobController {
             @RequestParam UUID id
     ) {
         freeStyleJobService.rollBack(id);
-        return ResponseEntity.ok(BaseResponse.success("roll back success"));
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("roll back success"));
     }
 }

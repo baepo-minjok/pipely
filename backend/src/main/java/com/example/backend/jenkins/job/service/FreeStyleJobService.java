@@ -8,7 +8,9 @@ import com.example.backend.jenkins.job.model.FreeStyle;
 import com.example.backend.jenkins.job.model.FreeStyleHistory;
 import com.example.backend.jenkins.job.model.dto.FreeStyleRequestDto.CreateFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleRequestDto.UpdateFreeStyleDto;
+import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailHistoryDto;
+import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.LightFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.LightHistoryDto;
 import com.example.backend.jenkins.job.repository.FreeStyleHistoryRepository;
 import com.example.backend.jenkins.job.repository.FreeStyleRepository;
@@ -292,8 +294,10 @@ public class FreeStyleJobService {
     }
 
     public FreeStyle getFreeStyleById(UUID id) {
+
         return freeStyleRepository.findFreeStyleById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND));
+
     }
 
     public JenkinsInfo getJenkinsInfoByFreeStyleId(UUID id) {
@@ -301,6 +305,19 @@ public class FreeStyleJobService {
         FreeStyle freeStyle = getFreeStyleById(id);
         return freeStyle.getJenkinsInfo();
 
+    }
+
+    public List<LightFreeStyleDto> getAllLightFreeStyle(UUID infoId) {
+
+        return freeStyleRepository.findFreeStyleByJenkinsInfo_Id(infoId).stream()
+                .map(LightFreeStyleDto::fromEntity)
+                .toList();
+
+    }
+
+    public DetailFreeStyleDto getDetailFreeStyleById(UUID id) {
+
+        return DetailFreeStyleDto.toDetailFreeStyleDto(getFreeStyleById(id));
     }
 
 }
