@@ -4,8 +4,11 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.error.model.dto.FailedBuildResDto;
 import com.example.backend.jenkins.error.model.dto.FailedBuildSummaryResDto;
+import com.example.backend.jenkins.error.model.dto.JobSummaryReqDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
+import com.example.backend.jenkins.job.model.FreeStyle;
+import com.example.backend.jenkins.job.service.FreeStyleJobService;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +22,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ErrorService {
     private final JenkinsInfoRepository jenkinsInfoRepository;
+    private final FreeStyleJobService freeStyleJobService;
     private final HttpClientService httpClientService;
     private final LlmService llmService;
 
@@ -30,6 +34,18 @@ public class ErrorService {
                 .filter(i -> i.getUser().getId().equals(userId))
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
     }
+
+    public FreeStyle getVerifiedJob(UUID jobId, UUID userId) {
+        FreeStyle job = freeStyleJobService.getFreeStyleById(jobId);
+
+        if (!job.getJenkinsInfo().getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        return job;
+    }
+
+
 
     public FailedBuildResDto getRecentBuild(JenkinsInfo info, String jobName) {
         String url = info.getUri() + "/job/" + jobName + "/lastBuild/api/json";
@@ -48,6 +64,12 @@ public class ErrorService {
                 ((Number) lastBuild.get("duration")).longValue()
         );
     }
+
+    public FailedBuildResDto getRecentBuildByJob(UUID jobId, UUID userId) {
+        FreeStyle job = getVerifiedJob(jobId, userId);
+        return getRecentBuild(job.getJenkinsInfo(), job.getJobName());
+    }
+
 
     public List<FailedBuildResDto> getBuildsForJob(JenkinsInfo info, String jobName) {
         String url = info.getUri() + "/job/" + jobName + "/api/json?tree=builds[number,result,timestamp,duration]";
@@ -72,6 +94,12 @@ public class ErrorService {
         }
         return builds;
     }
+
+    public List<FailedBuildResDto> getBuildsForJobByUser(UUID jobId, UUID userId) {
+        FreeStyle job = getVerifiedJob(jobId, userId);
+        return getBuildsForJob(job.getJenkinsInfo(), job.getJobName());
+    }
+
 
     public List<FailedBuildResDto> getFailedBuildsForJob(JenkinsInfo info, String jobName) {
         String url = info.getUri() + "/job/" + jobName + "/api/json?tree=builds[number,result,timestamp,duration]";
@@ -104,6 +132,12 @@ public class ErrorService {
         return builds;
     }
 
+    public List<FailedBuildResDto> getFailedBuildsForJobByUser(UUID jobId, UUID userId) {
+        FreeStyle job = getVerifiedJob(jobId, userId); // 사용자 소유 확인 포함
+        return getFailedBuildsForJob(job.getJenkinsInfo(), job.getJobName());
+    }
+
+
     public FailedBuildSummaryResDto summarizeBuild(JenkinsInfo info, String jobName, int buildNumber) {
         String url = info.getUri() + "/job/" + jobName + "/" + buildNumber + "/consoleText";
         HttpEntity<?> entity = new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.TEXT_PLAIN));
@@ -125,6 +159,12 @@ public class ErrorService {
                 .naturalResponse(response)
                 .build();
     }
+
+    public FailedBuildSummaryResDto summarizeBuildByJob(JobSummaryReqDto dto, UUID userId) {
+        FreeStyle job = getVerifiedJob(dto.getJobId(), userId);
+        return summarizeBuild(job.getJenkinsInfo(), job.getJobName(), dto.getBuildNumber());
+    }
+
 
     public void retryBuildIfFailed(JenkinsInfo info, String jobName, int buildNumber, int retryCount) {
         if (retryCount >= maxRetryCount) {

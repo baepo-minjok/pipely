@@ -2,20 +2,16 @@ package com.example.backend.jenkins.error.controller;
 
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
-import com.example.backend.jenkins.error.model.dto.FailedBuildResDto;
-import com.example.backend.jenkins.error.model.dto.FailedBuildSummaryResDto;
-import com.example.backend.jenkins.error.model.dto.JenkinsReqDto;
-import com.example.backend.jenkins.error.model.dto.JenkinsSummaryReqDto;
+import com.example.backend.jenkins.error.model.dto.*;
 import com.example.backend.jenkins.error.service.ErrorService;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
-import com.example.backend.service.HttpClientService;
+import com.example.backend.jenkins.job.repository.FreeStyleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/jenkins-error")
@@ -23,26 +19,26 @@ import java.util.UUID;
 public class ErrorController {
 
     private final ErrorService errorService;
+    private final FreeStyleRepository freeStyleRepository;
 
     // 특정 Job의 최근 빌드 1건 조회 API
     @PostMapping("/recent")
     public ResponseEntity<BaseResponse<FailedBuildResDto>> getRecentBuild(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JenkinsReqDto request
+            @RequestBody JobReqDto request
     ) {
-        JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
-        FailedBuildResDto build = errorService.getRecentBuild(info, request.getJobName());
+        FailedBuildResDto build = errorService.getRecentBuildByJob(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success(build));
     }
+
 
     // 특정 Job의 전체 빌드 내역 조회 API (성공/실패 모두 포함)
     @PostMapping("/history")
     public ResponseEntity<BaseResponse<List<FailedBuildResDto>>> getBuildsByJob(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JenkinsReqDto request
+            @RequestBody JobReqDto request
     ) {
-        JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
-        List<FailedBuildResDto> builds = errorService.getBuildsForJob(info, request.getJobName());
+        List<FailedBuildResDto> builds = errorService.getBuildsForJobByUser(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
@@ -50,12 +46,12 @@ public class ErrorController {
     @PostMapping("/history/failed")
     public ResponseEntity<BaseResponse<List<FailedBuildResDto>>> getFailedBuildsByJob(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JenkinsReqDto request
+            @RequestBody JobReqDto request
     ) {
-        JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
-        List<FailedBuildResDto> builds = errorService.getFailedBuildsForJob(info, request.getJobName());
+        List<FailedBuildResDto> builds = errorService.getFailedBuildsForJobByUser(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
+
 
     // 전체 Job 목록에 대한 최근 빌드 목록 조회 API
     @PostMapping("/recent/all")
@@ -83,21 +79,21 @@ public class ErrorController {
     @PostMapping("/summary")
     public ResponseEntity<BaseResponse<FailedBuildSummaryResDto>> getBuildSummaryWithSolution(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JenkinsSummaryReqDto request
+            @RequestBody JobSummaryReqDto request
     ) {
-        JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
-        FailedBuildSummaryResDto result = errorService.summarizeBuild(info, request.getJobName(), request.getBuildNumber());
-        return ResponseEntity.ok(BaseResponse.success(result));
+        FailedBuildSummaryResDto builds = errorService.summarizeBuildByJob(request, user.getId());
+        return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
-    @PostMapping("/retry")
-    public ResponseEntity<BaseResponse<String>> retryBuildManually(
-            @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JenkinsSummaryReqDto request
-    ) {
-        JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
-        errorService.retryBuildIfFailed(info, request.getJobName(), request.getBuildNumber(), 0);
-        return ResponseEntity.ok(BaseResponse.success("재시도 로직 실행 완료"));
-    }
+
+//    @PostMapping("/retry")
+//    public ResponseEntity<BaseResponse<String>> retryBuildManually(
+//            @AuthenticationPrincipal(expression = "userEntity") Users user,
+//            @RequestBody JenkinsSummaryReqDto request
+//    ) {
+//        JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
+//        errorService.retryBuildIfFailed(info, request.getJobName(), request.getBuildNumber(), 0);
+//        return ResponseEntity.ok(BaseResponse.success("재시도 로직 실행 완료"));
+//    }
 
 }
