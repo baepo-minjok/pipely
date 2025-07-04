@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -52,7 +52,7 @@ public class EmailController {
                     required = true,
                     example = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
             )
-            @RequestParam @NotBlank(message = "토큰은 필수입니다.") UUID token
+            @RequestParam @NotNull UUID token
     ) {
 
         // Token 검증
