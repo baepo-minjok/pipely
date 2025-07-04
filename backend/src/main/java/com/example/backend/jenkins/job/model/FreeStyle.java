@@ -61,4 +61,6 @@ public class FreeStyle {
     @OneToMany(mappedBy = "freeStyle", fetch = FetchType.LAZY,
             cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FreeStyleHistory> historyList = new ArrayList<>();
+    @OneToMany(mappedBy = "freeStyle", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<JobNotification> jobNotifications = new ArrayList<>();
 }

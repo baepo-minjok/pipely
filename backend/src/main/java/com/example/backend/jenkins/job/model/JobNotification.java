@@ -1,10 +1,16 @@
 package com.example.backend.jenkins.job.model;
 
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.util.UUID;
 import java.time.LocalDateTime;
 
 @Entity
+@Builder
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @IdClass(JobNotificationId.class)
 @Table(name = "job_notification")
 public class JobNotification {
@@ -36,8 +42,7 @@ public class JobNotification {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
             @JoinColumn(name = "id", referencedColumnName = "id", insertable = false, updatable = false),
-            @JoinColumn(name = "created_at", referencedColumnName = "created_at", insertable = false, updatable = false)
     })
-    private Job job;
+    private FreeStyle freeStyle;
 }
 

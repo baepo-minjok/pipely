@@ -7,6 +7,6 @@ import java.util.UUID;
 public class JobNotificationId implements Serializable {
     private UUID id;
     private String name;
-    private LocalDateTime jobCreatedAt;
+    private LocalDateTime createdAt;
 }
 
