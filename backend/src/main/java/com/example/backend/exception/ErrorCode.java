@@ -16,6 +16,7 @@ public enum ErrorCode {
      */
     UNKNOWN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "UNKNOWN_ERROR_500", "서버 오류입니다."),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED_400", "올바른 값이 아닙니다."),
+    MISSING_PARAMETER(HttpStatus.BAD_REQUEST, "MISSING_PARAMETER_400", "파라미터가 존재하지 않습니다."),
 
     /**
      * Cookie 관련 ErrorCode
@@ -47,7 +48,7 @@ public enum ErrorCode {
      * Auth/Email 도메인에서 사용하는 ErrorCode
      */
     EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "EMAIL_SEND_FAILED_500", "이메일 발송 실패"),
-    EMAIL_VERIFICATION_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "EMAIL_VERFICATION_TOKEN_INVALID_400", "유효하지않은 인증 코드 입니다."),
+    EMAIL_VERIFICATION_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "EMAIL_VERIFICATION_TOKEN_INVALID_400", "유효하지않은 인증 코드 입니다."),
 
     /**
      * Jenkins/Info 도메인에서 사용하는 ErrorCode

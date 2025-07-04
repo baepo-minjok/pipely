@@ -29,7 +29,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        if (path.startsWith("/api/auth/reactive") || path.startsWith("/api/auth/user/signup") || path.startsWith("/api/auth/user/login") || path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) {
+        if (path.startsWith("/api/auth/reactive") ||
+                path.startsWith("/api/auth/user/signup") ||
+                path.startsWith("/api/auth/user/login") ||
+                path.startsWith("/oauth2/") ||
+                path.startsWith("/login/oauth2/") ||
+                path.startsWith("/api/auth/email") ||
+                path.startsWith("/api/auth/token")
+        ) {
             filterChain.doFilter(request, response);
             return;
         }

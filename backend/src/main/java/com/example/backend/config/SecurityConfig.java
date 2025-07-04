@@ -38,7 +38,9 @@ public class SecurityConfig {
                                 "/", "/css/**", "/js/**",
                                 "/api/auth/**",
                                 "/oauth2/**",
-                                "/login/oauth2/**"
+                                "/login/oauth2/**",
+                                "/api/auth/email/**",
+                                "/api/auth/token/**"
                         ).permitAll()
                         .requestMatchers("/api/auth/withdraw").authenticated()
                         .anyRequest().authenticated()
