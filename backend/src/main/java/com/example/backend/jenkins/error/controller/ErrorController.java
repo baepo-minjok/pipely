@@ -85,15 +85,4 @@ public class ErrorController {
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
-
-//    @PostMapping("/retry")
-//    public ResponseEntity<BaseResponse<String>> retryBuildManually(
-//            @AuthenticationPrincipal(expression = "userEntity") Users user,
-//            @RequestBody JenkinsSummaryReqDto request
-//    ) {
-//        JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
-//        errorService.retryBuildIfFailed(info, request.getJobName(), request.getBuildNumber(), 0);
-//        return ResponseEntity.ok(BaseResponse.success("재시도 로직 실행 완료"));
-//    }
-
 }

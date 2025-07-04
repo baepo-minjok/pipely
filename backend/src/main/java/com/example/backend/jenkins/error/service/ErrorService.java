@@ -166,44 +166,6 @@ public class ErrorService {
     }
 
 
-    public void retryBuildIfFailed(JenkinsInfo info, String jobName, int buildNumber, int retryCount) {
-        if (retryCount >= maxRetryCount) {
-            log.warn("[RETRY] 최대 재시도 횟수 도달 - 중단 (job: {}, build: {})", jobName, buildNumber);
-            return;
-        }
-
-        String url = info.getUri() + "/job/" + jobName + "/" + buildNumber + "/api/json";
-        HttpEntity<?> entity = new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON));
-        Map<?, ?> buildInfo = httpClientService.exchange(url, HttpMethod.GET, entity, Map.class);
-        String result = (String) buildInfo.get("result");
-
-        if (result == null) {
-            log.info("[RETRY] 빌드 중 상태 감지 - {}초 후 재확인 (job: {}, build: {}, retry: {})",
-                    retryIntervalSeconds, jobName, buildNumber, retryCount);
-            sleep();
-            retryBuildIfFailed(info, jobName, buildNumber, retryCount);
-        } else if ("FAILURE".equalsIgnoreCase(result)) {
-            log.warn("[RETRY] 빌드 실패 감지 - {}초 후 재시도 예정 (job: {}, build: {}, retry: {})",
-                    retryIntervalSeconds, jobName, buildNumber, retryCount + 1);
-            sleep();
-            String triggerUrl = info.getUri() + "/job/" + jobName + "/build";
-            HttpEntity<?> triggerEntity = new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON));
-            httpClientService.exchange(triggerUrl, HttpMethod.POST, triggerEntity, String.class);
-            retryBuildIfFailed(info, jobName, buildNumber + 1, retryCount + 1);
-        } else {
-            log.info("[RETRY] 빌드 성공 - 재시도 종료 (job: {}, build: {})", jobName, buildNumber);
-        }
-    }
-
-    private void sleep() {
-        try {
-            Thread.sleep(retryIntervalSeconds * 1000L);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("[RETRY] 재시도 대기 중 인터럽트 발생", e);
-        }
-    }
-
     public List<FailedBuildResDto> getRecentBuilds(JenkinsInfo info) {
         List<FailedBuildResDto> builds = new ArrayList<>();
 
