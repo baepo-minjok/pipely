@@ -23,7 +23,7 @@ import java.util.UUID;
 @Tag(name = "Email API", description = "회원가입 후 이메일 인증을 처리하는 API입니다.")
 @Validated
 @RestController
-@RequestMapping("/api/email")
+@RequestMapping("/api/auth/email")
 @RequiredArgsConstructor
 public class EmailController {
 

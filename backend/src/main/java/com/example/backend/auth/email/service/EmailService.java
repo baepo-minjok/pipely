@@ -37,7 +37,7 @@ public class EmailService {
     public void sendVerificationEmail(Users user, UUID token) {
 
         log.info("[EmailService] 이메일 인증 메일 발송 시작: email={}, token={}", user.getEmail(), token);
-        String link = frontendUrl + "/api/email/verify-email?token=" + token;
+        String link = frontendUrl + "/api/auth/email/verify-email?token=" + token;
 
         SimpleMailMessage mail = new SimpleMailMessage();
         mail.setTo(user.getEmail());
