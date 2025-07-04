@@ -72,7 +72,7 @@ class EmailServiceTest {
 
         assertThat(sentMessage.getTo()).containsExactly(testUser.getEmail());
         assertThat(sentMessage.getSubject()).isEqualTo("[Pipely] 이메일 인증 안내");
-        assertThat(sentMessage.getText()).contains("http://localhost:3000/api/email/verify-email?token=" + testToken);
+        assertThat(sentMessage.getText()).contains("http://localhost:3000/api/auth/email/verify-email?token=" + testToken);
         assertThat(sentMessage.getText()).contains("안녕하세요!");
     }
 

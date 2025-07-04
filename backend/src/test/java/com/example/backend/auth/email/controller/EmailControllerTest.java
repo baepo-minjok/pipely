@@ -65,7 +65,7 @@ class EmailControllerTest {
         when(emailService.validateToken(testToken)).thenReturn(testUser);
         doNothing().when(userService).setUserStatusActive(testUser);
 
-        mockMvc.perform(get("/api/email/verify-email")
+        mockMvc.perform(get("/api/auth/email/verify-email")
                         .param("token", testToken.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -82,7 +82,7 @@ class EmailControllerTest {
         when(emailService.validateToken(testToken))
                 .thenThrow(new CustomException(ErrorCode.EMAIL_VERIFICATION_TOKEN_INVALID));
 
-        mockMvc.perform(get("/api/email/verify-email")
+        mockMvc.perform(get("/api/auth/email/verify-email")
                         .param("token", testToken.toString()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
@@ -97,7 +97,7 @@ class EmailControllerTest {
     @DisplayName("토큰 파라미터 누락 시 400 Bad Request 반환")
     void verifyEmail_missingTokenParameter_returnsBadRequest() throws Exception {
 
-        mockMvc.perform(get("/api/email/verify-email")) // 토큰 파라미터 없이 요청
+        mockMvc.perform(get("/api/auth/email/verify-email")) // 토큰 파라미터 없이 요청
                 .andExpect(status().isBadRequest()) // HTTP 상태 코드 400 Bad Request 검증
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.message").exists())
