@@ -2,7 +2,8 @@ package com.example.backend.jenkins.build.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
-import com.example.backend.jenkins.build.config.XmlConfigParser;
+import com.example.backend.jenkins.build.config.JobTriggerConfigurer;
+import com.example.backend.parser.XmlConfigParser;
 import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
@@ -24,10 +25,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
 
 @Slf4j
 @Service
@@ -37,23 +38,25 @@ public class BuildService {
     private final JenkinsInfoService jenkinsInfoService;
     private final HttpClientService httpClientService;
     private final FreeStyleJobService freeStyleJobService;
+    private final JobTriggerConfigurer jobTriggerConfigurer;
 
-    public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, UUID freeStyleId) {
+
+    public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, UUID JobStyleId) {
         log.info("빌드 정보 요청 - jobName: {}, jobType: {}", jobName, jobType);
         try {
             return switch (jobType) {
-                case LATEST -> ResponseEntity.ok(getLastBuildStatus(jobName, freeStyleId));
-                case HISTORY -> ResponseEntity.ok(getBuildHistory(jobName, freeStyleId));
+                case LATEST -> ResponseEntity.ok(getLastBuildStatus(jobName, JobStyleId));
+                case HISTORY -> ResponseEntity.ok(getBuildHistory(jobName, JobStyleId));
             };
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
             log.error("빌드 정보 조회 실패 - jobName: {}", jobName, e);
-            throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
+                throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
         }
     }
 
-    public void setTrigger(BuildRequestDto.TriggerSettingRequestDto req, Map<String, String> allParams) {
+    public void setStage(BuildRequestDto.StageSettingRequestDto req, Map<String, String> allParams) {
         UUID id = allParams.containsKey("freeStyle") ? UUID.fromString(allParams.get("freeStyle"))
                 : allParams.containsKey("pipeLine") ? UUID.fromString(allParams.get("pipeLine"))
                 : null;
@@ -61,27 +64,37 @@ public class BuildService {
         if (id == null) throw new CustomException(ErrorCode.JENKINS_JOB_TYPE_FAILED);
 
         if (allParams.containsKey("freeStyle")) {
-            setupFreestyleTrigger(req, id);
+            jobTriggerConfigurer.setupFreestyleStage(req, id);
         } else {
-            triggerPipeline(req, id);
+            stagePipeline(req, id);
         }
     }
 
-    public void triggerJenkinsBuild(BuildRequestDto.BuildTriggerRequestDto requestDto, UUID freeStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
+
+    /*
+    * 특정 스테이지 실행 freestyle
+    * */
+    public void StageFreeStyleJenkinsBuild(BuildRequestDto.BuildStageRequestDto requestDto, UUID JobStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
         String triggerUrl = info.getUri() + "/job/" + requestDto.getJobName() + "/buildWithParameters";
+        log.info("Jenkins Trigger URL = {}", triggerUrl);
+
 
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        requestDto.getStepToggles().forEach((key, value) ->
+        requestDto.getStageToggles().forEach((key, value) ->
                 body.add("DO_" + key.toUpperCase(), String.valueOf(value)));
-
         httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+
+
     }
 
-    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, UUID freeStyleId) {
-        String response = JenkinsGetResponse(job, freeStyleId);
+    /*
+    * 특정 job 빌드 내역 조회
+    * */
+    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, UUID JobStyleId) {
+        String response = JenkinsGetResponse(job, JobStyleId);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
             return BuildResponseDto.BuildInfo.listFrom(body);
@@ -91,8 +104,12 @@ public class BuildService {
         }
     }
 
-    public BuildResponseDto.BuildInfo getLastBuildStatus(String job, UUID freeStyleId) {
-        String response = JenkinsGetResponse(job, freeStyleId);
+    /*
+    * 특정 job 의 마지막 build 번호 조회
+    * */
+
+    public BuildResponseDto.BuildInfo getLastBuildStatus(String job, UUID JobStyleId) {
+        String response = JenkinsGetResponse(job, JobStyleId);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
             return BuildResponseDto.BuildInfo.latestFrom(body);
@@ -102,8 +119,12 @@ public class BuildService {
         }
     }
 
-    public BuildResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, UUID freeStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
+    /*
+    * job 의 특정 빌드 번호의 빌드 로그 조회
+    *
+    * */
+    public BuildResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, UUID JobStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
         String url = info.getUri() + "/job/" + jobName + "/" + buildNumber + "/console";
 
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
@@ -119,8 +140,15 @@ public class BuildService {
         }
     }
 
-    public BuildResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, UUID freeStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
+    /*
+    * 특정 job의 실시간 빌드 조회
+    *
+    * */
+    public BuildResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, UUID JobStyleId) {
+        // TODO : build 번호 안받고 마지막 빌드 번호 조회하게 해서 동적 할당하기
+
+
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
         URI uri = UriComponentsBuilder
                 .fromHttpUrl(info.getUri() + "/job/" + jobName + "/" + buildNumber + "/logText/progressiveText")
                 .build().toUri();
@@ -130,9 +158,11 @@ public class BuildService {
         String response = httpClientService.exchange(uri.toString(), HttpMethod.GET, new HttpEntity<>(headers), String.class);
         return BuildResponseDto.BuildStreamLogDto.getStreamLog(response);
     }
-
-    public String JenkinsGetResponse(String job, UUID freeStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
+    /*
+    *
+    * */
+    public String JenkinsGetResponse(String job, UUID JobStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
         String url = info.getUri() + "/job/" + job + "/api/json"
                 + "?tree=builds[number,result,timestamp,duration,building,id,url,actions[causes[userId,userName]]]";
 
@@ -140,9 +170,12 @@ public class BuildService {
 
         return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
+    /*
+    * cron 시간 읽어옴
+    * */
 
-    public String getSchedule(String jobName, UUID freeStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
+    public String getSchedule(String jobName, UUID JobStyleId) {
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
         String url = info.getUri() + "/job/" + jobName + "/config.xml";
 
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
@@ -150,9 +183,19 @@ public class BuildService {
         return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
-    public String setSchedule(String jobName, String cron, UUID freeStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
-        String updatedXml = XmlConfigParser.updateCronSpecInXml(getSchedule(jobName, freeStyleId), cron);
+
+    /*
+     * cron 수정
+     *
+     * */
+
+    public void setSchedule(BuildRequestDto.SetScheduleJob req) {
+        UUID JobStyleId = req.getJobStyleId();
+        String jobName = req.getJobName();
+        String cron = req.getCron();
+
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
+        String updatedXml = XmlConfigParser.updateCronSpecInXml(getSchedule(jobName, JobStyleId), cron);
 
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
 
@@ -163,79 +206,38 @@ public class BuildService {
                 String.class
         );
 
-        return XmlConfigParser.getCronSpecFromConfig(getSchedule(jobName, freeStyleId));
+        XmlConfigParser.getCronSpecFromConfig(getSchedule(jobName, JobStyleId));
     }
 
-    public void setupFreestyleTrigger(BuildRequestDto.TriggerSettingRequestDto req, UUID freeStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(freeStyleId);
-        String configUrl = info.getUri() + "/job/" + req.getJobName() + "/config.xml";
 
 
-        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
-        headers.setAccept(List.of(MediaType.APPLICATION_XML));
 
-        String xml = httpClientService.exchange(configUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-        xml = injectShellScriptBlock(injectParameterBlock(resetBuilderBlock(removeOldParametersBlock(xml)), req.getSteps()), req.getSteps());
 
-        httpClientService.exchange(configUrl, HttpMethod.POST, new HttpEntity<>(xml, headers), String.class);
-    }
 
-    public void triggerPipeline(BuildRequestDto.TriggerSettingRequestDto req, UUID id) {
+    public void stagePipeline(BuildRequestDto.StageSettingRequestDto req, UUID id) {
         // TODO: 파이프라인 트리거 로직 구현 필요
     }
 
-    private String injectParameterBlock(String xml, List<String> steps) {
-        if (xml.contains("<properties>") && xml.contains("</properties>")) {
-            StringBuilder paramBlock = new StringBuilder();
-            paramBlock.append("<hudson.model.ParametersDefinitionProperty>\n")
-                    .append("    <parameterDefinitions>\n");
 
-            for (String step : steps) {
-                paramBlock.append("        <hudson.model.BooleanParameterDefinition>\n")
-                        .append("            <name>DO_").append(step.toUpperCase()).append("</name>\n")
-                        .append("            <defaultValue>true</defaultValue>\n")
-                        .append("            <description>").append(step).append(" step toggle</description>\n")
-                        .append("        </hudson.model.BooleanParameterDefinition>\n");
-            }
 
-            paramBlock.append("    </parameterDefinitions>\n")
-                    .append("</hudson.model.ParametersDefinitionProperty>\n");
 
-            return xml.replaceFirst("<properties>\\s*</properties>",
-                    "<properties>" + paramBlock + "</properties>");
-        }
-        return xml;
-    }
 
-    private String injectShellScriptBlock(String xml, List<String> steps) {
-        if (xml.contains("<builders>") && xml.contains("</builders>")) {
-            StringBuilder shellBlock = new StringBuilder();
-            shellBlock.append("<hudson.tasks.Shell>\n")
-                    .append("  <command><![CDATA[\n")
-                    .append("#!/bin/bash\n\n");
 
-            for (String step : steps) {
-                String upper = step.toUpperCase();
-                shellBlock.append("if [ \"$DO_").append(upper).append("\" = \"true\" ]; then\n")
-                        .append("  echo \"[").append(upper).append("] step is running...\"\n")
-                        .append("  sleep 2\n")
-                        .append("fi\n\n");
-            }
 
-            shellBlock.append("]]></command>\n")
-                    .append("</hudson.tasks.Shell>\n");
+    public BuildResponseDto.Stage getJobPipelineStage(UUID jobStyleId) {
 
-            return xml.replaceFirst("<builders>\\s*</builders>",
-                    Matcher.quoteReplacement("<builders>" + shellBlock + "</builders>"));
-        }
-        return xml;
-    }
+        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(jobStyleId);
 
-    private String resetBuilderBlock(String xml) {
-        return xml.replaceAll("<builders>.*?</builders>", Matcher.quoteReplacement("<builders></builders>"));
-    }
 
-    private String removeOldParametersBlock(String xml) {
-        return xml.replaceAll("<hudson.model.ParametersDefinitionProperty>.*?</hudson.model.ParametersDefinitionProperty>", "");
+
+        List<String> stageNames = new ArrayList<>();
+
+        //TODO : 파이프 라인 생성 전
+
+
+
+        return new BuildResponseDto.Stage(stageNames);
+
+
     }
 }
