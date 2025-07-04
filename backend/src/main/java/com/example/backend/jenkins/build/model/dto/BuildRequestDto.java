@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class BuildRequestDto {
 
@@ -12,10 +13,10 @@ public class BuildRequestDto {
     @AllArgsConstructor
     @NoArgsConstructor
     @Getter
-    public class BuildTriggerRequestDto {
+    public static class BuildStageRequestDto {
 
         private String jobName;
-        private Map<String, Boolean> stepToggles;
+        private Map<String, Boolean> stageToggles;
     }
 
 
@@ -23,16 +24,16 @@ public class BuildRequestDto {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    public class TriggerSettingRequestDto {
+    public static class StageSettingRequestDto {
         private String jobName;
-        private List<String> steps;
+        private List<String> stage;
     }
 
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    public class BuildQueryRequestDto {
+    public static class BuildQueryRequestDto {
         private String jobName;
         private JobType jobType;
     }
@@ -41,7 +42,7 @@ public class BuildRequestDto {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    public class BuildLogRequestDto {
+    public static class BuildLogRequestDto {
 
 
         private String jobName;
@@ -49,6 +50,31 @@ public class BuildRequestDto {
 
 
     }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SetScheduleJob {
+
+        private String jobName;
+        private String cron;
+        private UUID JobStyleId;
+
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class GetLogRequestDto {
+
+        private String jobName;
+        private String buildNumber;
+        private UUID JobStyleId;
+
+    }
+
 
 
 }
