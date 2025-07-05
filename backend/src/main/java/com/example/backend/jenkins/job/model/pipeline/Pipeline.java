@@ -14,13 +14,13 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "pipeline_script_job",
-        uniqueConstraints = @UniqueConstraint(name = "uq_script_job", columnNames = {"jenkins_info_id", "job_name"}))
+@Table(name = "pipeline_job",
+        uniqueConstraints = @UniqueConstraint(name = "uq_pipeline_job", columnNames = {"jenkins_info_id", "job_name"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PipelineScript {
+public class Pipeline {
 
     @Id
     @GeneratedValue(generator = "UUID")
@@ -47,7 +47,7 @@ public class PipelineScript {
     private JenkinsInfo jenkinsInfo;
 
 
-    @OneToMany(mappedBy = "pipelineScript", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PipelineScriptHistory> historyList = new ArrayList<>();
+    @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PipelineHistory> historyList = new ArrayList<>();
 }
 

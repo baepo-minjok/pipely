@@ -7,11 +7,11 @@ import lombok.Getter;
 
 import java.util.UUID;
 
-public class PipelineScriptRequestDto {
+public class PipelineRequestDto {
 
     @Getter
-    @Schema(name = "CreatePipelineScriptDto", description = "스크립트 입력 방식 Pipeline Job 생성 요청")
-    public static class CreatePipelineScriptDto {
+    @Schema(name = "CreatePipelineDto", description = "스크립트 입력 방식 Pipeline Job 생성 요청")
+    public static class CreatePipelineDto {
 
         @Schema(
                 description = "JenkinsInfo 고유 식별자 (UUID)",

@@ -31,9 +31,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         if (
                 //swagger 관련 경로
-                path.startsWith("/swagger-ui") ||
+                path.startsWith("/swagger") ||
                 path.startsWith("/v3/api-docs") ||
-                path.startsWith("/swagger-resources") ||
 
                 // 인증 관련 허용 경로
                 path.startsWith("/api/email") || // 이메일 인증

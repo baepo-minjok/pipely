@@ -4,11 +4,11 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
-import com.example.backend.jenkins.job.model.dto.pipeline.PipelineScriptRequestDto.CreatePipelineScriptDto;
-import com.example.backend.jenkins.job.model.pipeline.PipelineScript;
-import com.example.backend.jenkins.job.model.pipeline.PipelineScriptHistory;
-import com.example.backend.jenkins.job.repository.PipelineScriptHistoryRepository;
-import com.example.backend.jenkins.job.repository.PipelineScriptRepository;
+import com.example.backend.jenkins.job.model.dto.pipeline.PipelineRequestDto.CreatePipelineDto;
+import com.example.backend.jenkins.job.model.pipeline.Pipeline;
+import com.example.backend.jenkins.job.model.pipeline.PipelineHistory;
+import com.example.backend.jenkins.job.repository.PipelineHistoryRepository;
+import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.service.HttpClientService;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
@@ -30,11 +30,11 @@ public class PipelineJobService {
     private final JenkinsInfoService jenkinsInfoService;
     private final HttpClientService httpClientService;
     private final MustacheFactory mf;
-    private final PipelineScriptRepository scriptRepository;
-    private final PipelineScriptHistoryRepository scriptHistoryRepository;
+    private final PipelineRepository scriptRepository;
+    private final PipelineHistoryRepository scriptHistoryRepository;
 
     @Transactional
-    public void createPipelineScriptJob(CreatePipelineScriptDto dto) {
+    public void createPipelineScriptJob(CreatePipelineDto dto) {
 
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
 
@@ -50,7 +50,7 @@ public class PipelineJobService {
 
     }
 
-    private String createPipelineScriptConfig(CreatePipelineScriptDto dto) {
+    private String createPipelineScriptConfig(CreatePipelineDto dto) {
 
         Mustache mustache = null;
 
@@ -76,9 +76,9 @@ public class PipelineJobService {
         return writer.toString();
     }
 
-    private void registerPipelineScriptJob(JenkinsInfo info, CreatePipelineScriptDto dto, String config) {
+    private void registerPipelineScriptJob(JenkinsInfo info, CreatePipelineDto dto, String config) {
 
-        PipelineScript job = PipelineScript.builder()
+        Pipeline job = Pipeline.builder()
                 .jenkinsInfo(info)
                 .jobName(dto.getJobName())
                 .description(dto.getDescription())
@@ -89,11 +89,11 @@ public class PipelineJobService {
 
                 .build();
         scriptRepository.save(job);
-        info.getPipelineScriptList().add(job);
+        info.getPipelineList().add(job);
 
         Integer maxVersion = scriptHistoryRepository.findMaxVersionByPipelineScript(job);
         int nextVersion = (maxVersion == null ? 1 : maxVersion + 1);
 
-        PipelineScriptHistory history = PipelineScriptHistory.toHistory(job, nextVersion, config);
+        PipelineHistory history = PipelineHistory.toHistory(job, nextVersion, config);
     }
 }

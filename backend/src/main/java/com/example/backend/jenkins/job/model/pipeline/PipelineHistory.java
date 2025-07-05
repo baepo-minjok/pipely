@@ -11,13 +11,13 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "pipeline_script_history",
-        uniqueConstraints = @UniqueConstraint(name = "uq_script_version", columnNames = {"pipeline_script_id", "version"}))
+@Table(name = "pipeline_history",
+        uniqueConstraints = @UniqueConstraint(name = "uq_pipeline_version", columnNames = {"pipeline_id", "version"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PipelineScriptHistory {
+public class PipelineHistory {
 
     @Id
     @GeneratedValue(generator = "UUID")
@@ -42,11 +42,11 @@ public class PipelineScriptHistory {
     private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pipeline_script_id", nullable = false)
-    private PipelineScript pipelineScript;
+    @JoinColumn(name = "pipeline_id", nullable = false)
+    private Pipeline pipeline;
 
-    public static PipelineScriptHistory toHistory(PipelineScript job, int version, String config) {
-        return PipelineScriptHistory.builder()
+    public static PipelineHistory toHistory(Pipeline job, int version, String config) {
+        return PipelineHistory.builder()
                 .jobName(job.getJobName())
                 .description(job.getDescription())
                 .projectUrl(job.getProjectUrl())
@@ -56,7 +56,7 @@ public class PipelineScriptHistory {
                 .version(version)
                 .createdAt(LocalDateTime.now())
                 .config(config)
-                .pipelineScript(job)
+                .pipeline(job)
                 .build();
     }
 }
