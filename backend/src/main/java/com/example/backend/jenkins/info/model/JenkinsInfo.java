@@ -3,6 +3,7 @@ package com.example.backend.jenkins.info.model;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.converter.CryptoConverter;
 import com.example.backend.jenkins.job.model.FreeStyle;
+import com.example.backend.jenkins.job.model.pipeline.PipelineScript;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -99,6 +100,11 @@ public class JenkinsInfo {
             cascade = CascadeType.ALL, orphanRemoval = true)
     @Schema(description = "관련된 Freestyle 잡 리스트", hidden = true)
     private List<FreeStyle> freeStyleList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "jenkinsInfo", fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL, orphanRemoval = true)
+    @Schema(description = "관련된 pipelineScript 잡 리스트", hidden = true)
+    private List<PipelineScript> pipelineScriptList = new ArrayList<>();
 
     @PrePersist
     public void prePersist() {

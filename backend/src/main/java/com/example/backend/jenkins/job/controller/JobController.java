@@ -24,7 +24,7 @@ import java.util.UUID;
 @Tag(name = "FreeStyle Job API", description = "Jenkins Freestyle 잡 생성, 수정, 삭제 및 이력 조회 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/jenkins/job")
+@RequestMapping("/api/jenkins/freestyle/job")
 public class JobController {
 
     private final FreeStyleJobService freeStyleJobService;
