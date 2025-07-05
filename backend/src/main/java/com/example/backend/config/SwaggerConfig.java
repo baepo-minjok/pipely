@@ -52,4 +52,12 @@ public class SwaggerConfig {
                 .pathsToMatch("/api/auth/**")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi jobApi() {
+        return GroupedOpenApi.builder()
+                .group("job-api")
+                .pathsToMatch("/api/jenkins/**")
+                .build();
+    }
 }
