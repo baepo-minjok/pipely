@@ -35,6 +35,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -248,4 +249,38 @@ public class UserControllerTest {
 
     }
 
+    @Test
+    @DisplayName("DELETE /api/auth/user/withdraw - 성공 시 200, 쿠키 만료 및 메시지 반환")
+    void withdraw_success() throws Exception {
+        // expired-cookie mocks
+        ResponseCookie deleteAccess = ResponseCookie.from(ACCESS_COOKIE_NAME, "")
+                .path("/")
+                .maxAge(0)
+                .build();
+        ResponseCookie deleteRefresh = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
+                .path("/")
+                .maxAge(0)
+                .build();
+        when(cookieService.deleteCookie(ACCESS_COOKIE_NAME)).thenReturn(deleteAccess);
+        when(cookieService.deleteCookie(REFRESH_COOKIE_NAME)).thenReturn(deleteRefresh);
+
+        doNothing().when(userService).withdrawCurrentUser(any(Users.class));
+
+        mockMvc.perform(delete("/api/auth/user/withdraw")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(authToken)))
+                .andExpect(status().isOk())
+                .andExpect(result -> {
+                    List<String> setCookieHeaders = result.getResponse().getHeaders(HttpHeaders.SET_COOKIE);
+
+                    // accessToken 검사
+                    assertTrue(setCookieHeaders.stream().anyMatch(h -> h.contains("accessToken=;")));
+                    assertTrue(setCookieHeaders.stream().anyMatch(h -> h.contains("Max-Age=0")));
+
+                    // refreshToken 검사
+                    assertTrue(setCookieHeaders.stream().anyMatch(h -> h.contains("refreshToken=;")));
+                    assertTrue(setCookieHeaders.stream().anyMatch(h -> h.contains("Max-Age=0")));
+                })
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").value("withdraw success"));
+    }
 }
