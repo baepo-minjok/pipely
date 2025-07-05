@@ -2,6 +2,7 @@ package com.example.backend.auth.user.controller;
 
 import com.example.backend.auth.token.service.RefreshTokenService;
 import com.example.backend.auth.user.model.Users;
+import com.example.backend.auth.user.model.dto.UserRequestDto;
 import com.example.backend.auth.user.model.dto.UserRequestDto.LoginRequest;
 import com.example.backend.auth.user.service.CustomUserDetails;
 import com.example.backend.auth.user.service.UserService;
@@ -124,5 +125,22 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.error.message").exists());
     }
 
+    @Test
+    @DisplayName("POST /api/auth/user/signup - valid 위반 시 400, 에러 반환")
+    void signup_valid() throws Exception {
 
+        String email = "user@example.com";
+        String password = "password123";
+        String name = "user";
+        String phoneNumber = "010-3923-2943";
+
+        UserRequestDto.SignupDto req = new UserRequestDto.SignupDto(email, password, name, phoneNumber);
+
+        mockMvc.perform(post("/api/auth/user/signup")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED_400"))
+                .andExpect(jsonPath("$.error.message").exists());
+    }
 }
