@@ -38,7 +38,11 @@ public class SecurityConfig {
                                 "/", "/css/**", "/js/**",
                                 "/api/auth/**",
                                 "/oauth2/**",
-                                "/login/oauth2/**"
+                                "/login/oauth2/**",
+                                "/api/email/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers("/api/auth/withdraw").authenticated()
                         .anyRequest().authenticated()
