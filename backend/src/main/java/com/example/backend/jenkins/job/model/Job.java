@@ -34,8 +34,6 @@ public class Job {
     private List<JobSchedule> jobSchedules = new ArrayList<>();
     @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<JobVersion> jobVersions = new ArrayList<>();
-    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobNotification> jobNotifications = new ArrayList<>();
 
     public enum JobType {
         FREESTYLE, PIPELINE
