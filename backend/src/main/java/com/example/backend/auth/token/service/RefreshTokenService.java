@@ -4,7 +4,6 @@ import com.example.backend.auth.token.model.RefreshToken;
 import com.example.backend.auth.token.repository.RefreshTokenRepository;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.auth.user.service.CustomUserDetails;
-import com.example.backend.auth.user.service.UserService;
 import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
@@ -23,7 +22,6 @@ import java.util.Optional;
 public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserService userService;
 
     @Value("${jwt.refresh-expiration}")
     private long refreshTokenDurationMs;

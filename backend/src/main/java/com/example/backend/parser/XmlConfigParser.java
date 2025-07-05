@@ -1,4 +1,4 @@
-package com.example.backend.jenkins.build.config;
+package com.example.backend.parser;
 
 import lombok.extern.slf4j.Slf4j;
 import org.w3c.dom.*;
@@ -16,6 +16,8 @@ import java.io.StringWriter;
 
 @Slf4j
 public class XmlConfigParser {
+
+    //TODO : 일단 freestyle 기준으로만 트리거 설정들인데 공용적으로 pipeline 테이블 생기면 바꿔야함
 
     public static String getCronSpecFromConfig(String configXml) {
         try {
