@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Pipeline Job API", description = "Jenkins pipeline 잡 생성, 수정, 삭제 및 이력 조회 API")
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/jenkins/pipeline/job")
+@RequestMapping("/api/jenkins/job")
 public class PipelineJobController {
     private final PipelineJobService pipelineJobService;
 
