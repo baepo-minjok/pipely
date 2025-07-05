@@ -2,6 +2,7 @@ package com.example.backend.jenkins.job.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 
 import java.util.UUID;
@@ -12,7 +13,7 @@ public class FreeStyleRequestDto {
     @Schema(name = "CreateFreeStyleDto", description = "새로운 FreeStyle 등록을 위한 요청 데이터")
     public static class CreateFreeStyleDto {
 
-        @NotBlank
+        @NotNull
         @Schema(
                 description = "JenkinsInfo 고유 식별자 (UUID)",
                 example = "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -82,7 +83,7 @@ public class FreeStyleRequestDto {
     @Schema(name = "UpdateFreeStyleDto", description = "FreeStyle 수정을 위한 요청 데이터")
     public static class UpdateFreeStyleDto {
 
-        @NotBlank
+        @NotNull
         @Schema(
                 description = "FreeStyle 고유 식별자 (UUID)",
                 example = "3fa85f64-5717-4562-b3fc-2c963f66afa6",
