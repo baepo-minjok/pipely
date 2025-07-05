@@ -63,7 +63,6 @@ public class UserController {
         Authentication auth = authManager.authenticate(authToken);
 
         Users user = ((CustomUserDetails) auth.getPrincipal()).getUserEntity();
-        ;
 
         // 마지막 로그인 시간 갱신
         userService.setLastLogin(user);

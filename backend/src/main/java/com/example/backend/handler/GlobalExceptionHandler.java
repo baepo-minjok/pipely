@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -102,6 +103,19 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(code.getHttpStatus())
+                .body(BaseResponse.error(code, path));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<BaseResponse<String>> handleAuthenticationException(Exception ex, HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+        String query = request.getQueryString();
+
+        ErrorCode code = ErrorCode.USER_LOGIN_FAILED;
+        
+        return ResponseEntity
+                .status(code.getHttpStatus().value())
                 .body(BaseResponse.error(code, path));
     }
 
