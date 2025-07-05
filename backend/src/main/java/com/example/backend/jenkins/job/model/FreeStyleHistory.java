@@ -89,6 +89,7 @@ public class FreeStyleHistory {
     )
     private String script;
 
+    @Lob
     @Column(nullable = false)
     @Schema(
             description = "Jenkins 잡 구성 XML (config.xml) 내용",

@@ -3,15 +3,16 @@ package com.example.backend.config;
 import com.example.backend.auth.user.service.CustomOAuth2UserService;
 import com.example.backend.config.jwt.JwtAuthenticationFilter;
 import com.example.backend.handler.OAuth2LoginSuccessHandler;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
@@ -34,6 +35,8 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+
+                        .requestMatchers("/api/auth/withdraw", "/api/auth/user/logout").authenticated()
                         .requestMatchers(
                                 "/", "/css/**", "/js/**",
                                 "/api/auth/**",
@@ -42,15 +45,11 @@ public class SecurityConfig {
                                 "/api/auth/email/**",
                                 "/api/auth/token/**"
                         ).permitAll()
-                        .requestMatchers("/api/auth/withdraw").authenticated()
                         .anyRequest().authenticated()
                 )
 
                 .exceptionHandling(eh -> eh
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.getWriter().write("Forbidden: 인증이 필요합니다");
-                        })
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo

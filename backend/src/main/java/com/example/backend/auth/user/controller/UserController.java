@@ -8,8 +8,6 @@ import com.example.backend.auth.user.service.CustomUserDetails;
 import com.example.backend.auth.user.service.UserService;
 import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.exception.BaseResponse;
-import com.example.backend.exception.CustomException;
-import com.example.backend.exception.ErrorCode;
 import com.example.backend.service.CookieService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -64,12 +62,8 @@ public class UserController {
                 new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword());
         Authentication auth = authManager.authenticate(authToken);
 
-        Users user;
-        if (auth.getPrincipal() instanceof CustomUserDetails) {
-            user = ((CustomUserDetails) auth.getPrincipal()).getUserEntity();
-        } else {
-            throw new CustomException(ErrorCode.USER_NOT_FOUND);
-        }
+        Users user = ((CustomUserDetails) auth.getPrincipal()).getUserEntity();
+
         // 마지막 로그인 시간 갱신
         userService.setLastLogin(user);
 

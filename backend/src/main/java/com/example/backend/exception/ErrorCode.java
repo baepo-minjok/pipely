@@ -18,6 +18,7 @@ public enum ErrorCode {
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED_400", "올바른 값이 아닙니다."),
     MISSING_PARAMETER(HttpStatus.BAD_REQUEST, "MISSING_PARAMETER_400", "파라미터가 존재하지 않습니다."),
 
+
     /**
      * Cookie 관련 ErrorCode
      */
@@ -33,6 +34,7 @@ public enum ErrorCode {
     /**
      * Auth/User 도메인에서 사용하는 ErrorCode
      */
+    USER_LOGIN_FAILED(HttpStatus.BAD_REQUEST, "USER_LOGIN_FAILED_400", "로그인 실패"),
     USER_REFRESH_TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, "USER_REFRESH_TOKEN_EXPIRED_400", "만료된 리프레쉬 토큰입니다."),
     USER_REFRESH_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "USER_REFRESH_TOKEN_INVALID_400", "유효하지않은 리프레쉬 토큰입니다."),
     USER_NOT_FOUND(HttpStatus.BAD_REQUEST, "USER_NOT_FOUND_400", "유저를 찾을 수 없습니다."),
