@@ -42,8 +42,12 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/oauth2/**",
                                 "/login/oauth2/**",
-                                "/api/auth/email/**",
-                                "/api/auth/token/**"
+                                "/api/email/**",
+                                "/api/auth/token",
+
+                                //swagger
+                                "/swagger**",
+                                "/v3/api-docs/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
