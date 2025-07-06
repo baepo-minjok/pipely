@@ -1,8 +1,10 @@
 <script setup>
 import Header from '../../components/common/Header.vue';
 import { ref } from 'vue';
+import CreateCicdModal from '../../components/users/CreateCicdModal.vue';
 
 const openDropdown = ref(false);
+const showModal = ref(false);
 
 const cicdItems = ref([
   {
@@ -76,7 +78,7 @@ function selectItem(item) {
               </ul>
             </div>
           </div>
-          <img src="/src/assets/icons/plus_circle.svg" alt="plus_btn" class="plus_btn" />
+          <img src="/src/assets/icons/plus_circle.svg" alt="plus_btn" class="plus_btn" @click="showModal = true" />
         </div>
         <div class="cicd_card_list">
           <div class="cicd_card">
@@ -94,6 +96,7 @@ function selectItem(item) {
         </div>
       </div>
     </div>
+    <CreateCicdModal v-if="showModal" @close="showModal = false" />
   </div>
 </template>
 
