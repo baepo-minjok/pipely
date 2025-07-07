@@ -2,9 +2,8 @@
   <img src="frontend/src/assets/images/logo.png" alt="Pipely 대표 이미지" />
 </p>
 
-![License](https://img.shields.io/badge/license-MIT-blue)
-
-![CI](https://github.com/baepo-minjok/pipely/blob/develop/.github/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-blue)  
+![CI](https://github.com/baepo-minjok/pipely/actions/workflows/ci.yml/badge.svg)
 
 Looking for the Korean version? [Click here](./README.ko.md)
 
