@@ -22,18 +22,18 @@ public class BuildController {
 
     // 특정 스테이지 목록 보기
     @GetMapping("/stage")
-    public ResponseEntity<BaseResponse<BuildResponseDto.Stage>> getScript(@RequestParam UUID JobStyleId){
+    public ResponseEntity<BaseResponse<BuildResponseDto.Stage>> getScript(@RequestParam String jobname, @RequestParam Map<String, String> JobStyleId){
 
 
 
-        return ResponseEntity.ok(BaseResponse.success(buildService.getJobPipelineStage(JobStyleId)));
+        return ResponseEntity.ok(BaseResponse.success(buildService.getJobPipelineStage(jobname,JobStyleId)));
 
 
     }
 
     // 특정 스테이지 실행
     @PostMapping("/stage")
-    public ResponseEntity Steps(@RequestBody BuildRequestDto.BuildStageRequestDto requestDto, @RequestParam UUID JobStyleId) {
+    public ResponseEntity Steps(@RequestBody BuildRequestDto.BuildStageRequestDto requestDto, @RequestParam Map<String, String> JobStyleId) {
 
         buildService.StageFreeStyleJenkinsBuild(requestDto, JobStyleId);
 
@@ -52,7 +52,7 @@ public class BuildController {
 
 
     @GetMapping("/schedule")
-    public ResponseEntity<BaseResponse<String>> scheduleJob(@RequestParam String jobName, @RequestParam UUID JobStyleId) {
+    public ResponseEntity<BaseResponse<String>> scheduleJob(@RequestParam String jobName, @RequestParam Map<String, String> JobStyleId) {
 
 
         return ResponseEntity.ok(BaseResponse.success(buildService.getSchedule(jobName, JobStyleId)));
@@ -66,12 +66,12 @@ public class BuildController {
     }
 
     @GetMapping("/builds")
-    public ResponseEntity<BaseResponse<?>> getBuilds(@RequestParam String jobName, @RequestParam JobType jobType, @RequestParam UUID JobStyleId) {
+    public ResponseEntity<BaseResponse<?>> getBuilds(@RequestParam String jobName, @RequestParam JobType jobType, @RequestParam Map<String, String> JobStyleId) {
         return ResponseEntity.ok(BaseResponse.success(buildService.getBuildInfo(jobName, jobType, JobStyleId)));
     }
 
     @GetMapping("/log")
-    public ResponseEntity<BaseResponse<BuildResponseDto.BuildLogDto>> getBuildLog(@RequestParam  String jobName, @RequestParam  String buildNumber, @RequestParam UUID JobStyleId
+    public ResponseEntity<BaseResponse<BuildResponseDto.BuildLogDto>> getBuildLog(@RequestParam  String jobName, @RequestParam  String buildNumber, @RequestParam Map<String, String> JobStyleId
 
     ) {
         return ResponseEntity.ok(BaseResponse.success(buildService.getBuildLog(jobName, buildNumber, JobStyleId)));
@@ -80,7 +80,7 @@ public class BuildController {
 
     // 실시간 로그 조회
     @GetMapping(value = "/streamlog")
-    public ResponseEntity<BaseResponse<BuildResponseDto.BuildStreamLogDto>> streamLog(@RequestParam  String jobName, @RequestParam UUID JobStyleId, @RequestParam String buildNumber) {
+    public ResponseEntity<BaseResponse<BuildResponseDto.BuildStreamLogDto>> streamLog(@RequestParam  String jobName, @RequestParam Map<String, String> JobStyleId, @RequestParam String buildNumber) {
         return ResponseEntity.ok(BaseResponse.success(buildService.getStreamLog(jobName, buildNumber, JobStyleId)));
 
     }
