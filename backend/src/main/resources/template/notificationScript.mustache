@@ -1,0 +1,33 @@
+{{#notifications}}
+    {{#isSlack}}
+        withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
+        sh '''
+        curl -X POST "$WEBHOOK_URL" \
+        -H "Content-Type: application/json" \
+        -d '{
+        "text": "[{{eventType}}] {{jobName}} 알림입니다."
+        }'
+        '''
+        }
+    {{/isSlack}}
+    {{^isSlack}}
+        withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
+        sh '''
+        curl -X POST "$WEBHOOK_URL" \
+        -H "Content-Type: application/json" \
+        -d '{
+        "username": "CI/CD Bot",
+        "avatar_url": "https://i.imgur.com/CI-CD-Bot.png",
+        "embeds": [{
+        "title": "{{eventType}} 🚀",
+        "description": "**Job:** {{jobName}}\n**Status:** {{eventType}}",
+        "color": {{#isBuildSuccess}}3066993{{/isBuildSuccess}}{{#isBuildFail}}15158332{{/isBuildFail}}{{#isTestSuccess}}3447003{{/isTestSuccess}}{{#isTestFail}}15158332{{/isTestFail}}{{#isDeploySuccess}}10181046{{/isDeploySuccess}}{{#isDeployFail}}15158332{{/isDeployFail}},
+        "footer": {
+        "text": "Powered by Jenkins Notification System"
+        }
+        }]
+        }'
+        '''
+        }
+    {{/isSlack}}
+{{/notifications}}

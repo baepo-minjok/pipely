@@ -79,9 +79,32 @@ public class JenkinsClientFactory {
                         }
                     });
         }
+
+        public Mono<Void> runNotificationScript(String script) {
+            return webClient.post()
+                    .uri("/scriptText")
+                    .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                    .body(BodyInserters.fromFormData("script", script))
+                    .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(), response -> {
+                        log.error("[JenkinsClient] Jenkins 스크립트 실행 에러 상태: {}", response.statusCode());
+                        return response.bodyToMono(String.class).flatMap(errorBody -> {
+                            log.error("[JenkinsClient] 에러 바디: {}", errorBody);
+                            return Mono.error(new RuntimeException("스크립트 실행 오류: " + errorBody));
+                        });
+                    })
+                    .bodyToMono(Void.class)
+                    .doOnSuccess(unused -> log.info("[JenkinsClient] 알림 스크립트 실행 성공"))
+                    .doOnError(error -> {
+                        if (error instanceof WebClientResponseException ex) {
+                            log.error("[JenkinsClient] WebClient 오류 상태: {}, 응답: {}", ex.getStatusCode(), ex.getResponseBodyAsString());
+                        } else {
+                            log.error("[JenkinsClient] WebClient 예외 발생", error);
+                        }
+                    });
+        }
     }
 
-    // userId로 JenkinsClient 인스턴스 생성 메서드
     public JenkinsClient createClientForUser(UUID userId) {
         JenkinsInfo info = jenkinsInfoRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Jenkins info not found for user: " + userId));
