@@ -85,4 +85,13 @@ public class ErrorController {
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
+    @PostMapping("/retry")
+    public ResponseEntity<BaseResponse<String>> retryWithRollback(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestBody RetryReqDto request
+    ) {
+        errorService.retryWithRollback(request.getJobId(), user.getId());
+        return ResponseEntity.ok(BaseResponse.success("Retry with rollback triggered."));
+    }
+
 }

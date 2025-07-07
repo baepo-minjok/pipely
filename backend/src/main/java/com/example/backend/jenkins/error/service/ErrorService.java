@@ -8,6 +8,10 @@ import com.example.backend.jenkins.error.model.dto.JobSummaryReqDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.jenkins.job.model.FreeStyle;
+import com.example.backend.jenkins.job.model.FreeStyleHistory;
+import com.example.backend.jenkins.job.model.JobVersion;
+import com.example.backend.jenkins.job.repository.FreeStyleHistoryRepository;
+import com.example.backend.jenkins.job.repository.JobVersionRepository;
 import com.example.backend.jenkins.job.service.FreeStyleJobService;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +27,7 @@ import java.util.*;
 public class ErrorService {
     private final JenkinsInfoRepository jenkinsInfoRepository;
     private final FreeStyleJobService freeStyleJobService;
+    private final JobVersionRepository jobVersionRepository;
     private final HttpClientService httpClientService;
     private final LlmService llmService;
 
@@ -210,4 +215,71 @@ public class ErrorService {
 
         return failedBuilds;
     }
+
+    public void retryWithRollback(UUID jobId, UUID userId) {
+        FreeStyle job = getVerifiedJob(jobId, userId);
+        JenkinsInfo info = job.getJenkinsInfo();
+        String jobName = job.getJobName();
+
+        // 1. 최근 빌드 실패 여부 확인
+        FailedBuildResDto latestBuild = getRecentBuild(info, jobName);
+        if (!"FAILURE".equals(latestBuild.getResult())) {
+            throw new CustomException(ErrorCode.JENKINS_BUILD_NOT_FAILED);
+        }
+
+        // 2. 최근 성공 빌드 찾기
+        List<FailedBuildResDto> history = getBuildsForJob(info, jobName);
+        FailedBuildResDto lastSuccess = history.stream()
+                .filter(b -> "SUCCESS".equals(b.getResult()))
+                .max(Comparator.comparing(FailedBuildResDto::getBuildNumber))
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SUCCESS_BUILD_NOT_FOUND));
+
+        // 3. 해당 빌드의 로그에서 설정 버전 추출
+        String logUrl = info.getUri() + "/job/" + jobName + "/" + lastSuccess.getBuildNumber() + "/consoleText";
+        HttpEntity<?> entity = new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.TEXT_PLAIN));
+        String log = httpClientService.exchange(logUrl, HttpMethod.GET, entity, String.class);
+
+        String version = extractVersionFromLog(log);
+        if (version == null) {
+            throw new CustomException(ErrorCode.JENKINS_VERSION_NOT_FOUND_IN_LOG);
+        }
+
+        int versionNum = Integer.parseInt(version);  // ex. "1"
+
+        // 4. JobVersion에서 해당 설정 가져오기
+        JobVersion jobVersion = jobVersionRepository
+                .findTopByJob_IdAndVersionOrderByVersionCreatedAtDesc(jobId, versionNum)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
+
+        // 5. 설정 롤백 적용 (Jenkins config.xml 업데이트)
+        applyJenkinsConfig(info, jobName, jobVersion.getScriptContent());
+
+        // 6. 빌드 재시도 트리거
+        String triggerUrl = info.getUri() + "/job/" + jobName + "/build";
+        httpClientService.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
+    }
+
+    private String extractVersionFromLog(String log) {
+        for (String line : log.split("\n")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("#VERSION:")) {
+                String[] parts = trimmed.split(":");
+                if (parts.length > 1) {
+                    return parts[1].trim(); // ex. "2"
+                }
+            }
+        }
+        return null;
+    }
+
+
+    private void applyJenkinsConfig(JenkinsInfo info, String jobName, String configXml) {
+        String configUrl = info.getUri() + "/job/" + jobName + "/config.xml";
+        HttpEntity<String> postReq = new HttpEntity<>(configXml, httpClientService.buildHeaders(info, MediaType.APPLICATION_XML));
+        httpClientService.exchange(configUrl, HttpMethod.POST, postReq, String.class);
+    }
+
+
+
+
 }
