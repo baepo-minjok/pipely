@@ -2,14 +2,16 @@ package com.example.backend.jenkins.build.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
-import com.example.backend.jenkins.build.config.XmlConfigParser;
+import com.example.backend.jenkins.build.config.JobTriggerConfigurer;
+import com.example.backend.jenkins.job.service.PipelineJobService;
+import com.example.backend.parser.XmlConfigParser;
 import com.example.backend.jenkins.build.model.JobType;
-import com.example.backend.jenkins.build.model.dto.BuildLogResponseDto;
+import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
-import com.example.backend.jenkins.build.model.dto.BuildStreamLogResponseDto;
-import com.example.backend.jenkins.build.model.dto.BuildTriggerRequestDto;
-import com.example.backend.jenkins.info.model.dto.InfoResponseDto;
+import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
+import com.example.backend.jenkins.job.service.FreeStyleJobService;
+import com.example.backend.service.HttpClientService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -21,10 +23,10 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -35,51 +37,66 @@ import java.util.UUID;
 public class BuildService {
 
     private final JenkinsInfoService jenkinsInfoService;
+    private final HttpClientService httpClientService;
+    private final FreeStyleJobService freeStyleJobService;
+    private final JobTriggerConfigurer jobTriggerConfigurer;
+    private final PipelineJobService pipelineJobService;
+    private final XmlConfigParser  xmlConfigParser;
 
-
-    private final RestTemplate restTemplate;
-
-    public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, UUID freeStyle) {
+    public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, Map<String, String> JobStyleId) {
         log.info("빌드 정보 요청 - jobName: {}, jobType: {}", jobName, jobType);
         try {
             return switch (jobType) {
-                case LATEST -> ResponseEntity.ok(getLastBuildStatus(jobName, freeStyle));
-                case HISTORY -> ResponseEntity.ok(getBuildHistory(jobName, freeStyle));
+                case LATEST -> ResponseEntity.ok(getLastBuildStatus(jobName, JobStyleId));
+                case HISTORY -> ResponseEntity.ok(getBuildHistory(jobName, JobStyleId));
             };
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
             log.error("빌드 정보 조회 실패 - jobName: {}", jobName, e);
-            throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
+                throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
         }
     }
 
-    public void triggerJenkinsBuild(BuildTriggerRequestDto requestDto, UUID freeStyle) {
+    public void setStage(BuildRequestDto.StageSettingRequestDto req, Map<String, String> allParams) {
+        JenkinsInfo info = getJobTypeJnekinsInfo(allParams);
+
+        if (allParams.containsKey("freeStyle")) {
+            jobTriggerConfigurer.setupFreestyleStage(req, info.getId());
+        } else {
+            stagePipeline(req, info.getId());
+        }
+    }
 
 
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
+    /*
+    * 특정 스테이지 실행 freestyle
+    * */
+    public void StageFreeStyleJenkinsBuild(BuildRequestDto.BuildStageRequestDto requestDto, Map<String, String> JobStyleId) {
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
+
+
         String triggerUrl = info.getUri() + "/job/" + requestDto.getJobName() + "/buildWithParameters";
+        log.info("Jenkins Trigger URL = {}", triggerUrl);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("STEP", String.valueOf(requestDto.getBuildTriggerType()));
-        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(body, headers);
+        requestDto.getStageToggles().forEach((key, value) ->
+                body.add("DO_" + key.toUpperCase(), String.valueOf(value)));
+        httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
 
-        try {
-            restTemplate.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
-        } catch (Exception e) {
-            log.error("빌드 트리거 실패 - jobName: {}", requestDto.getJobName(), e);
-            throw new CustomException(ErrorCode.JENKINS_BUILD_TRIGGER_FAILED);
-        }
+
     }
 
-    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, UUID freeStyle) {
-        ResponseEntity<String> response = JenkinsGetResponse(job, freeStyle);
+    /*
+    * 특정 job 빌드 내역 조회
+    * */
+    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, Map<String, String> JobStyleId) {
+        String response = JenkinsGetResponse(job, JobStyleId);
         try {
-            Map<String, Object> body = new ObjectMapper().readValue(response.getBody(), Map.class);
+            Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
             return BuildResponseDto.BuildInfo.listFrom(body);
         } catch (JsonProcessingException e) {
             log.error("빌드 이력 JSON 파싱 실패 - jobName: {}", job, e);
@@ -87,10 +104,14 @@ public class BuildService {
         }
     }
 
-    public BuildResponseDto.BuildInfo getLastBuildStatus(String job, UUID freeStyle) {
-        ResponseEntity<String> response = JenkinsGetResponse(job, freeStyle);
+    /*
+    * 특정 job 의 마지막 build 번호 조회
+    * */
+
+    public BuildResponseDto.BuildInfo getLastBuildStatus(String job, Map<String, String> JobStyleId) {
+        String response = JenkinsGetResponse(job, JobStyleId);
         try {
-            Map<String, Object> body = new ObjectMapper().readValue(response.getBody(), Map.class);
+            Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
             return BuildResponseDto.BuildInfo.latestFrom(body);
         } catch (JsonProcessingException e) {
             log.error("최신 빌드 JSON 파싱 실패 - jobName: {}", job, e);
@@ -98,112 +119,145 @@ public class BuildService {
         }
     }
 
-    public BuildLogResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, UUID freeStyle) {
-
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-
+    /*
+    * job 의 특정 빌드 번호의 빌드 로그 조회
+    *
+    * */
+    public BuildResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, Map<String, String> JobStyleId) {
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
         String url = info.getUri() + "/job/" + jobName + "/" + buildNumber + "/console";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
         try {
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            Document doc = Jsoup.parse(response.getBody());
+            String response = httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            Document doc = Jsoup.parse(response);
             Element pre = doc.selectFirst("pre.console-output");
-            return BuildLogResponseDto.BuildLogDto.getLog(pre);
+            return BuildResponseDto.BuildLogDto.getLog(pre);
         } catch (Exception e) {
             log.error("콘솔 로그 조회 실패 - jobName: {}", jobName, e);
             throw new CustomException(ErrorCode.JENKINS_CONSOLE_LOG_PARSE_ERROR);
         }
     }
 
-    public BuildStreamLogResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
+    /*
+    * 특정 job의 실시간 빌드 조회
+    *
+    * */
+    public BuildResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, Map<String, String> JobStyleId) {
+        // TODO : build 번호 안받고 마지막 빌드 번호 조회하게 해서 동적 할당하기
 
+
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
         URI uri = UriComponentsBuilder
                 .fromHttpUrl(info.getUri() + "/job/" + jobName + "/" + buildNumber + "/logText/progressiveText")
-                .build()
-                .toUri();
+                .build().toUri();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            return BuildStreamLogResponseDto.BuildStreamLogDto.getStreamLog(response.getBody());
-        } catch (Exception e) {
-            log.error("스트리밍 로그 조회 실패 - jobName: {}", jobName, e);
-            throw new CustomException(ErrorCode.JENKINS_STREAM_LOG_FAILED);
-        }
+        String response = httpClientService.exchange(uri.toString(), HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        return BuildResponseDto.BuildStreamLogDto.getStreamLog(response);
     }
-
-    public ResponseEntity<String> JenkinsGetResponse(String job, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-
+    /*
+    *
+    * */
+    public String JenkinsGetResponse(String job, Map<String, String> JobStyleId) {
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
         String url = info.getUri() + "/job/" + job + "/api/json"
                 + "?tree=builds[number,result,timestamp,duration,building,id,url,actions[causes[userId,userName]]]";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
-        try {
-            return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-        } catch (Exception e) {
-            log.error("Jenkins API 호출 실패 - jobName: {}", job, e);
-            throw new CustomException(ErrorCode.JENKINS_API_CALL_FAILED);
-        }
+        return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
+    /*
+    * cron 시간 읽어옴
+    * */
 
-    public String getSchedule(String jobName, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-
+    public String getSchedule(String jobName, Map<String, String> JobStyleId) {
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
         String url = info.getUri() + "/job/" + jobName + "/config.xml";
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
 
-        try {
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            return response.getBody();
-        } catch (Exception e) {
-            log.error("config.xml 조회 실패 - jobName: {}", jobName, e);
-            throw new CustomException(ErrorCode.JENKINS_CONFIG_XML_FETCH_FAILED);
-        }
-    }
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
-    public String setSchedule(String jobName, String cron, UUID freeStyle) {
-        InfoResponseDto.DetailInfoDto info = jenkinsInfoService.getDetailInfoById(freeStyle);
-
-        try {
-            String originalXml = getSchedule(jobName, freeStyle);
-            String updatedXml = XmlConfigParser.updateCronSpecInXml(originalXml, cron);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBasicAuth(info.getJenkinsId(), info.getSecretKey());
-            headers.setContentType(MediaType.APPLICATION_XML);
-
-            ResponseEntity<String> response = restTemplate.exchange(
-                    info.getUri() + "/job/" + jobName + "/config.xml",
-                    HttpMethod.POST,
-                    new HttpEntity<>(updatedXml, headers),
-                    String.class
-            );
-
-            if (!response.getStatusCode().is2xxSuccessful()) {
-                throw new CustomException(ErrorCode.JENKINS_CONFIG_XML_UPDATE_FAILED);
-            }
-
-            String newConfigXml = getSchedule(jobName, freeStyle);
-            return XmlConfigParser.getCronSpecFromConfig(newConfigXml);
-
-        } catch (CustomException ce) {
-
-            throw ce;
-        } catch (Exception e) {
-            log.error("스케줄 설정 실패 - jobName: {}", jobName, e);
-            throw new CustomException(ErrorCode.JENKINS_XML_CRON_PARSE_ERROR);
-        }
+        return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
 
+    /*
+     * cron 수정
+     *
+     * */
+
+    public void setSchedule(BuildRequestDto.SetScheduleJob req) {
+        Map<String, String> JobStyleId = req.getJobStyleId();
+        String jobName = req.getJobName();
+        String cron = req.getCron();
+
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
+        String updatedXml = xmlConfigParser.updateCronSpecInXml(getSchedule(jobName, JobStyleId), cron);
+
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
+
+        httpClientService.exchange(
+                info.getUri() + "/job/" + jobName + "/config.xml",
+                HttpMethod.POST,
+                new HttpEntity<>(updatedXml, headers),
+                String.class
+        );
+
+
+        xmlConfigParser.getCronSpecFromConfig(getSchedule(jobName, JobStyleId));
+    }
+
+
+
+
+
+
+    public void stagePipeline(BuildRequestDto.StageSettingRequestDto req, UUID id) {
+        // TODO: 파이프라인 트리거 로직 구현 필요
+    }
+
+
+
+
+
+
+
+    public BuildResponseDto.Stage getJobPipelineStage(String jobname, Map<String, String> jobStyleId) {
+
+        JenkinsInfo info = getJobTypeJnekinsInfo(jobStyleId);
+
+
+
+
+
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
+
+        String xml = httpClientService.exchange(
+                info.getUri() + "/job/" + jobname + "/config.xml",
+                HttpMethod.GET,
+                new HttpEntity<>(headers)    ,
+                String.class
+        );
+        List<String> stageNames =  xmlConfigParser.getPipelineStageNamesFromXml(xml);
+        return new BuildResponseDto.Stage(stageNames);
+
+
+    }
+
+    public JenkinsInfo getJobTypeJnekinsInfo(Map<String, String> JobStyleId){
+        if (JobStyleId.containsKey("freeStyle")) {
+            UUID id = UUID.fromString(JobStyleId.get("freeStyle"));
+            return freeStyleJobService.getJenkinsInfoByFreeStyleId(id);
+        } else if (JobStyleId.containsKey("pipeLine")) {
+            UUID id = UUID.fromString(JobStyleId.get("pipeLine"));
+            return pipelineJobService.getJenkinsInfoByFreeStyleId(id);
+        } else {
+            throw new CustomException(ErrorCode.JENKINS_JOB_TYPE_FAILED);
+        }
+    }
 }
+
+

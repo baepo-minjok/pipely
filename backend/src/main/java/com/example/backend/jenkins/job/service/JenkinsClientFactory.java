@@ -109,6 +109,6 @@ public class JenkinsClientFactory {
         JenkinsInfo info = jenkinsInfoRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Jenkins info not found for user: " + userId));
 
-        return new JenkinsClient(info.getUri(), info.getJenkinsId(), info.getSecretKey());
+        return new JenkinsClient(info.getUri(), info.getJenkinsId(), info.getApiToken());
     }
 }

@@ -7,7 +7,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -65,6 +68,55 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(errorCode.getHttpStatus().value())
                 .body(BaseResponse.error(errorCode, path));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<BaseResponse<?>> handleMissingParams(
+            MissingServletRequestParameterException ex,
+            HttpServletRequest request
+    ) {
+
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+        String query = request.getQueryString();
+
+        if (query != null) {
+            log.error("MissingServletRequestParameter exception [{} {}?{}]: {}", method, path, query, ex.getMessage(), ex);
+        } else {
+            log.error("MissingServletRequestParameter exception [{} {}]: {}", method, path, ex.getMessage(), ex);
+        }
+
+        ErrorCode code = ErrorCode.MISSING_PARAMETER;
+
+        return ResponseEntity
+                .status(code.getHttpStatus().value())
+                .body(BaseResponse.error(code, path));
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<BaseResponse<String>> handleUsernameNotFoundException(Exception ex, HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+        String query = request.getQueryString();
+
+        ErrorCode code = ErrorCode.USER_LOGIN_FAILED;
+
+        return ResponseEntity
+                .status(code.getHttpStatus())
+                .body(BaseResponse.error(code, path));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<BaseResponse<String>> handleAuthenticationException(Exception ex, HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+        String query = request.getQueryString();
+
+        ErrorCode code = ErrorCode.USER_LOGIN_FAILED;
+        
+        return ResponseEntity
+                .status(code.getHttpStatus().value())
+                .body(BaseResponse.error(code, path));
     }
 
     @ExceptionHandler(Exception.class)

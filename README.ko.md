@@ -3,7 +3,7 @@
 </p>
 
 ![License](https://img.shields.io/badge/license-MIT-blue)  
-![Service Status](https://img.shields.io/badge/status-online-brightgreen)
+![CI](https://github.com/baepo-minjok/pipely/actions/workflows/ci.yml/badge.svg)
 
 Want to read this in English? [Click here](./README.md)
 

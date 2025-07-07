@@ -1,6 +1,7 @@
-package com.example.backend.jenkins.build.config;
+package com.example.backend.parser;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 import org.w3c.dom.*;
 import org.xml.sax.InputSource;
 
@@ -13,9 +14,55 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.StringReader;
 import java.io.StringWriter;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.List;
+import java.util.ArrayList;
+@Component
 @Slf4j
 public class XmlConfigParser {
+
+    //TODO : 일단 freestyle 기준으로만 트리거 설정들인데 공용적으로 pipeline 테이블 생기면 바꿔야함
+
+    /*
+    * stage 추출 파이프라인
+    * */
+
+    public List<String> getPipelineStageNamesFromXml(String configXml) {
+        List<String> stageNames = new ArrayList<>();
+        try {
+            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            Document doc = builder.parse(new InputSource(new StringReader(configXml)));
+
+            // <script> 태그 중 정의 스크립트 추출
+            NodeList scripts = doc.getElementsByTagName("script");
+
+            for (int i = 0; i < scripts.getLength(); i++) {
+                Node scriptNode = scripts.item(i);
+                if (scriptNode != null && scriptNode.getTextContent().contains("pipeline")) {
+                    String script = scriptNode.getTextContent();
+
+                    // 정규식으로 stage 이름 추출
+                    Pattern pattern = Pattern.compile("stage\\([\"'](.+?)[\"']\\)");
+                    Matcher matcher = pattern.matcher(script);
+
+                    while (matcher.find()) {
+                        stageNames.add(matcher.group(1));
+                    }
+
+                    break; // 첫 번째 pipeline script만 처리
+                }
+            }
+
+            log.info("추출된 스테이지들: {}", stageNames);
+
+        } catch (Exception e) {
+            log.error("Stage 파싱 중 오류 발생", e);
+            throw new RuntimeException("Stage 파싱 실패", e);
+        }
+        return stageNames;
+    }
+
 
     public static String getCronSpecFromConfig(String configXml) {
         try {

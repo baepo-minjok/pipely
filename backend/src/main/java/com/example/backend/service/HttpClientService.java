@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.info.model.JenkinsInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -39,9 +40,7 @@ public class HttpClientService {
             );
             HttpStatusCode httpStatusCode = response.getStatusCode();
 
-            if (httpStatusCode == HttpStatus.OK) {
-                return response.getBody();
-            } else if (httpStatusCode == HttpStatus.NOT_FOUND) {
+            if (httpStatusCode == HttpStatus.NOT_FOUND) {
                 throw new CustomException(ErrorCode.JENKINS_ENDPOINT_NOT_FOUND);
             } else if (httpStatusCode == HttpStatus.UNAUTHORIZED) {
                 throw new CustomException(ErrorCode.JENKINS_AUTHENTICATION_FAILED);
@@ -49,13 +48,24 @@ public class HttpClientService {
                 throw new CustomException(ErrorCode.JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR);
             } else if (httpStatusCode.is5xxServerError()) {
                 throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
-            } else {
+            } else if (httpStatusCode.is4xxClientError()) {
                 throw new CustomException(ErrorCode.JENKINS_CONNECTION_FAILED);
+            } else {
+                return response.getBody();
             }
 
         } catch (CancellationException ex) {
             throw new CustomException(ErrorCode.JENKINS_URI_NOT_FOUND);
         }
+    }
+
+    public HttpHeaders buildHeaders(JenkinsInfo info, MediaType mediaType) {
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(info.getJenkinsId(), info.getApiToken());
+        headers.setContentType(mediaType);
+
+        return headers;
     }
 }
 

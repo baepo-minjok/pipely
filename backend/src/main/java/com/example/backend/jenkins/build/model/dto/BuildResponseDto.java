@@ -4,13 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.jsoup.nodes.Element;
 
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class BuildResponseDto {
@@ -93,5 +92,60 @@ public class BuildResponseDto {
         }
     }
 
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Builder
+    public static class BuildStreamLogDto {
+        private List<String> log;
+
+
+        public static BuildStreamLogDto getStreamLog(String body) {
+            List<String> lines = Arrays.asList(body.split("\\r?\\n"));
+            return BuildStreamLogDto.builder()
+                    .log(lines)
+                    .build();
+        }
+
+
+    }
+
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Builder
+    public static class BuildLogDto {
+        private List<String> log;
+
+
+        public static BuildLogDto getLog(Element pre) {
+            String rawLog = pre.text();
+            List<String> lines = List.of(rawLog.split("\n"));
+            return BuildLogDto.builder()
+                    .log(lines)
+                    .build();
+        }
+
+
+    }
+
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Builder
+    public static class Stage {
+
+        List<String> stage = new ArrayList<>();
+
+        public static Stage getStage(List<String> body) {
+
+            return Stage.builder().stage(body).build();
+
+        }
+
+
+    }
 
 }
