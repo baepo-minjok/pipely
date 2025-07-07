@@ -1,36 +1,41 @@
 <script setup>
 import { ref } from 'vue';
 
-
 const sendEmail = ref(false);
 const emailValue = ref('');
 
 const handleNextClick = () => {
   console.log(emailValue.value);
-  // [TODO] : 이메일 발송 인증 보내기 
+  // [TODO] : 이메일 발송 인증 보내기
   // [TODO] : 이메일 발송 완료 문구 띄우기
   sendEmail.value = true;
-}
-
+};
 </script>
 
 <template>
   <div class="container">
-    <img src="/src/assets/images/logo.png" alt="logo">
-    <h1>{{ sendEmail ? '비밀번호 찾기':'비밀번호 찾기'}}</h1>
+    <img src="/src/assets/images/logo.png" alt="logo" />
+    <h1>{{ sendEmail ? '비밀번호 찾기' : '비밀번호 찾기' }}</h1>
     <form v-if="!sendEmail" action="" class="form_box">
       <p>기존에 가입하신 이메일을 입력하시면, 비밀번호 변경 메일을 발송해드립니다.</p>
-      <input type="email" id="email" name="email" v-model="emailValue" class="input_box" placeholder="이메일 주소를 입력해주세요." />
+      <input
+        type="email"
+        id="email"
+        name="email"
+        v-model="emailValue"
+        class="input_box"
+        placeholder="이메일 주소를 입력해주세요."
+      />
       <button type="button" class="btn find_btn" @click="handleNextClick">다음</button>
     </form>
     <div v-if="sendEmail" class="send_email_box">
-    <img src="/src/assets/icons/check.svg" alt="check">
-    <p>비밀번호 재설정 링크가 포함된 메일이 발송되었습니다. <br/>이메일을 확인해주세요.</p>
-    <router-link to="/login" class="btn login_btn">로그인 화면으로</router-link>
-  </div>
+      <img src="/src/assets/icons/check.svg" alt="check" />
+      <p>비밀번호 재설정 링크가 포함된 메일이 발송되었습니다. <br />이메일을 확인해주세요.</p>
+      <router-link to="/user/login" class="btn login_btn">로그인 화면으로</router-link>
+    </div>
   </div>
 </template>
-  
+
 <style scoped>
 .container {
   display: flex;
@@ -42,11 +47,11 @@ const handleNextClick = () => {
   gap: 30px;
 }
 
-.container>img {
+.container > img {
   width: 150px;
 }
 
-.container>h1 {
+.container > h1 {
   font-size: 25px;
 }
 
@@ -61,7 +66,7 @@ const handleNextClick = () => {
   gap: 10px;
 }
 
-.form_box>p {
+.form_box > p {
   font-size: 16px;
   align-self: center;
   line-height: 140%;
