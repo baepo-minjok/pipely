@@ -59,7 +59,7 @@ public class BuildRequestDto {
 
         private String jobName;
         private String cron;
-        private UUID JobStyleId;
+        private Map<String, String> jobStyleId;
 
     }
 

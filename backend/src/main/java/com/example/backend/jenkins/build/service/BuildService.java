@@ -3,6 +3,7 @@ package com.example.backend.jenkins.build.service;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.build.config.JobTriggerConfigurer;
+import com.example.backend.jenkins.job.service.PipelineJobService;
 import com.example.backend.parser.XmlConfigParser;
 import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
@@ -39,9 +40,10 @@ public class BuildService {
     private final HttpClientService httpClientService;
     private final FreeStyleJobService freeStyleJobService;
     private final JobTriggerConfigurer jobTriggerConfigurer;
+    private final PipelineJobService pipelineJobService;
+    private final XmlConfigParser  xmlConfigParser;
 
-
-    public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, UUID JobStyleId) {
+    public ResponseEntity<?> getBuildInfo(String jobName, JobType jobType, Map<String, String> JobStyleId) {
         log.info("빌드 정보 요청 - jobName: {}, jobType: {}", jobName, jobType);
         try {
             return switch (jobType) {
@@ -57,16 +59,12 @@ public class BuildService {
     }
 
     public void setStage(BuildRequestDto.StageSettingRequestDto req, Map<String, String> allParams) {
-        UUID id = allParams.containsKey("freeStyle") ? UUID.fromString(allParams.get("freeStyle"))
-                : allParams.containsKey("pipeLine") ? UUID.fromString(allParams.get("pipeLine"))
-                : null;
-
-        if (id == null) throw new CustomException(ErrorCode.JENKINS_JOB_TYPE_FAILED);
+        JenkinsInfo info = getJobTypeJnekinsInfo(allParams);
 
         if (allParams.containsKey("freeStyle")) {
-            jobTriggerConfigurer.setupFreestyleStage(req, id);
+            jobTriggerConfigurer.setupFreestyleStage(req, info.getId());
         } else {
-            stagePipeline(req, id);
+            stagePipeline(req, info.getId());
         }
     }
 
@@ -74,8 +72,10 @@ public class BuildService {
     /*
     * 특정 스테이지 실행 freestyle
     * */
-    public void StageFreeStyleJenkinsBuild(BuildRequestDto.BuildStageRequestDto requestDto, UUID JobStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
+    public void StageFreeStyleJenkinsBuild(BuildRequestDto.BuildStageRequestDto requestDto, Map<String, String> JobStyleId) {
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
+
+
         String triggerUrl = info.getUri() + "/job/" + requestDto.getJobName() + "/buildWithParameters";
         log.info("Jenkins Trigger URL = {}", triggerUrl);
 
@@ -93,7 +93,7 @@ public class BuildService {
     /*
     * 특정 job 빌드 내역 조회
     * */
-    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, UUID JobStyleId) {
+    public List<BuildResponseDto.BuildInfo> getBuildHistory(String job, Map<String, String> JobStyleId) {
         String response = JenkinsGetResponse(job, JobStyleId);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
@@ -108,7 +108,7 @@ public class BuildService {
     * 특정 job 의 마지막 build 번호 조회
     * */
 
-    public BuildResponseDto.BuildInfo getLastBuildStatus(String job, UUID JobStyleId) {
+    public BuildResponseDto.BuildInfo getLastBuildStatus(String job, Map<String, String> JobStyleId) {
         String response = JenkinsGetResponse(job, JobStyleId);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
@@ -123,8 +123,8 @@ public class BuildService {
     * job 의 특정 빌드 번호의 빌드 로그 조회
     *
     * */
-    public BuildResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, UUID JobStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
+    public BuildResponseDto.BuildLogDto getBuildLog(String jobName, String buildNumber, Map<String, String> JobStyleId) {
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
         String url = info.getUri() + "/job/" + jobName + "/" + buildNumber + "/console";
 
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
@@ -144,11 +144,11 @@ public class BuildService {
     * 특정 job의 실시간 빌드 조회
     *
     * */
-    public BuildResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, UUID JobStyleId) {
+    public BuildResponseDto.BuildStreamLogDto getStreamLog(String jobName, String buildNumber, Map<String, String> JobStyleId) {
         // TODO : build 번호 안받고 마지막 빌드 번호 조회하게 해서 동적 할당하기
 
 
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
         URI uri = UriComponentsBuilder
                 .fromHttpUrl(info.getUri() + "/job/" + jobName + "/" + buildNumber + "/logText/progressiveText")
                 .build().toUri();
@@ -161,8 +161,8 @@ public class BuildService {
     /*
     *
     * */
-    public String JenkinsGetResponse(String job, UUID JobStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
+    public String JenkinsGetResponse(String job, Map<String, String> JobStyleId) {
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
         String url = info.getUri() + "/job/" + job + "/api/json"
                 + "?tree=builds[number,result,timestamp,duration,building,id,url,actions[causes[userId,userName]]]";
 
@@ -174,8 +174,8 @@ public class BuildService {
     * cron 시간 읽어옴
     * */
 
-    public String getSchedule(String jobName, UUID JobStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
+    public String getSchedule(String jobName, Map<String, String> JobStyleId) {
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
         String url = info.getUri() + "/job/" + jobName + "/config.xml";
 
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
@@ -190,12 +190,12 @@ public class BuildService {
      * */
 
     public void setSchedule(BuildRequestDto.SetScheduleJob req) {
-        UUID JobStyleId = req.getJobStyleId();
+        Map<String, String> JobStyleId = req.getJobStyleId();
         String jobName = req.getJobName();
         String cron = req.getCron();
 
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
-        String updatedXml = XmlConfigParser.updateCronSpecInXml(getSchedule(jobName, JobStyleId), cron);
+        JenkinsInfo info = getJobTypeJnekinsInfo(JobStyleId);
+        String updatedXml = xmlConfigParser.updateCronSpecInXml(getSchedule(jobName, JobStyleId), cron);
 
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
 
@@ -206,7 +206,8 @@ public class BuildService {
                 String.class
         );
 
-        XmlConfigParser.getCronSpecFromConfig(getSchedule(jobName, JobStyleId));
+
+        xmlConfigParser.getCronSpecFromConfig(getSchedule(jobName, JobStyleId));
     }
 
 
@@ -224,20 +225,39 @@ public class BuildService {
 
 
 
-    public BuildResponseDto.Stage getJobPipelineStage(UUID jobStyleId) {
+    public BuildResponseDto.Stage getJobPipelineStage(String jobname, Map<String, String> jobStyleId) {
 
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(jobStyleId);
-
-
-
-        List<String> stageNames = new ArrayList<>();
-
-        //TODO : 파이프 라인 생성 전
+        JenkinsInfo info = getJobTypeJnekinsInfo(jobStyleId);
 
 
 
+
+
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
+
+        String xml = httpClientService.exchange(
+                info.getUri() + "/job/" + jobname + "/config.xml",
+                HttpMethod.GET,
+                new HttpEntity<>(headers)    ,
+                String.class
+        );
+        List<String> stageNames =  xmlConfigParser.getPipelineStageNamesFromXml(xml);
         return new BuildResponseDto.Stage(stageNames);
 
 
     }
+
+    public JenkinsInfo getJobTypeJnekinsInfo(Map<String, String> JobStyleId){
+        if (JobStyleId.containsKey("freeStyle")) {
+            UUID id = UUID.fromString(JobStyleId.get("freeStyle"));
+            return freeStyleJobService.getJenkinsInfoByFreeStyleId(id);
+        } else if (JobStyleId.containsKey("pipeLine")) {
+            UUID id = UUID.fromString(JobStyleId.get("pipeLine"));
+            return pipelineJobService.getJenkinsInfoByFreeStyleId(id);
+        } else {
+            throw new CustomException(ErrorCode.JENKINS_JOB_TYPE_FAILED);
+        }
+    }
 }
+
+

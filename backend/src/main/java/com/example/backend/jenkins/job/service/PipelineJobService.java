@@ -4,6 +4,7 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
+import com.example.backend.jenkins.job.model.FreeStyle;
 import com.example.backend.jenkins.job.model.dto.pipeline.PipelineRequestDto.CreatePipelineDto;
 import com.example.backend.jenkins.job.model.pipeline.Pipeline;
 import com.example.backend.jenkins.job.model.pipeline.PipelineHistory;
@@ -23,6 +24,7 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
@@ -96,4 +98,22 @@ public class PipelineJobService {
 
         PipelineHistory history = PipelineHistory.toHistory(job, nextVersion, config);
     }
+
+    public Pipeline getPipelineById(UUID id) {
+
+
+        return scriptRepository.findPipelineById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND));
+
+
+    }
+
+    public JenkinsInfo getJenkinsInfoByFreeStyleId(UUID id) {
+
+        Pipeline pipeline = getPipelineById(id);
+        return pipeline.getJenkinsInfo();
+
+    }
+
+
 }
