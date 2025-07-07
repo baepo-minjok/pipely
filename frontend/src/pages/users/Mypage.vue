@@ -1,10 +1,10 @@
 <script setup>
+import { useRouter } from 'vue-router';
 import Header from '../../components/common/Header.vue';
 import { ref } from 'vue';
-import CreateCicdModal from '../../components/users/CreateCicdModal.vue';
 
 const openDropdown = ref(false);
-const showModal = ref(false);
+const router = useRouter();
 
 const cicdItems = ref([
   {
@@ -19,93 +19,90 @@ const cicdItems = ref([
 
 const selectedItem = ref(cicdItems.value[0]);
 
-function toggleDropdown() {
+const toggleDropdown = () => {
   openDropdown.value = !openDropdown.value;
-}
+};
 
-function selectItem(item) {
+const selectItem = (item) => {
   selectedItem.value = item;
   openDropdown.value = false;
-}
+};
 </script>
 
 <template>
   <div class="container">
-    <Header></Header>
-    <div class="wrapper">
-      <div class="info_wrapper">
-        <h3 class="title">기본 정보</h3>
-        <div class="info_box">
-          <div class="item_box">
-            <p class="item_label">이메일</p>
+    <div class="info_wrapper">
+      <h3 class="title">기본 정보</h3>
+      <div class="info_box">
+        <div class="item_box">
+          <p class="item_label">이메일</p>
 
-            <div class="email_text">
-              <p>test01@example.com</p>
-              <img src="/src/assets/icons/check.svg" alt="check_icon" />
-            </div>
-            <button class="info_btn">인증 메일 발송</button>
+          <div class="email_text">
+            <p>test01@example.com</p>
+            <img src="/src/assets/icons/check.svg" alt="check_icon" />
           </div>
-
-          <div class="item_box">
-            <p class="item_label">이름</p>
-            <p>test01</p>
-          </div>
-          <div class="item_box">
-            <p class="item_label">비밀번호</p>
-            <p>••••••••••••</p>
-            <button class="info_btn">비밀번호 변경</button>
-          </div>
+          <button class="info_btn">인증 메일 발송</button>
         </div>
-      </div>
-      <div class="cicd_wrapper">
-        <h3 class="title">CI/CD 정보</h3>
-        <div class="cicd_header">
-          <div class="dropdown_container">
-            <button @click="toggleDropdown" class="dropdown">
-              <div>
-                <img :src="selectedItem.image" alt="icon" class="dropdown_img" />
-                <span class="dropdown_label">{{ selectedItem.label }}</span>
-              </div>
-              <img src="/src/assets/icons/down_arrow.svg" alt="down_icon" class="dropdown_arrow" />
-            </button>
 
-            <div v-if="openDropdown" class="dropdown_menu">
-              <ul>
-                <li v-for="(item, index) in cicdItems" :key="index" @click="selectItem(item)" class="dropdown_item">
-                  <img :src="item.image" alt="icon" class="dropdown_img" />
-                  <span>{{ item.label }}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <img src="/src/assets/icons/plus_circle.svg" alt="plus_btn" class="plus_btn" @click="showModal = true" />
+        <div class="item_box">
+          <p class="item_label">이름</p>
+          <p>test01</p>
         </div>
-        <div class="cicd_card_list">
-          <div class="cicd_card">
-            <p>젠킨스 01</p>
-            <p>https://jenkins.io/abcdefghehe</p>
-          </div>
-          <div class="cicd_card">
-            <p>젠킨스 01</p>
-            <p>https://jenkins.io/abcdefghehe</p>
-          </div>
-          <div class="cicd_card">
-            <p>젠킨스 01</p>
-            <p>https://jenkins.io/abcdefghehe</p>
-          </div>
+        <div class="item_box">
+          <p class="item_label">비밀번호</p>
+          <p>••••••••••••</p>
+          <button class="info_btn">비밀번호 변경</button>
         </div>
       </div>
     </div>
-    <CreateCicdModal v-if="showModal" @close="showModal = false" />
+    <div class="cicd_wrapper">
+      <h3 class="title">CI/CD 정보</h3>
+      <div class="cicd_header">
+        <div class="dropdown_container">
+          <button @click="toggleDropdown" class="dropdown">
+            <div>
+              <img :src="selectedItem.image" alt="icon" class="dropdown_img" />
+              <span class="dropdown_label">{{ selectedItem.label }}</span>
+            </div>
+            <img src="/src/assets/icons/down_arrow.svg" alt="down_icon" class="dropdown_arrow" />
+          </button>
+
+          <div v-if="openDropdown" class="dropdown_menu">
+            <ul>
+              <li v-for="(item, index) in cicdItems" :key="index" @click="selectItem(item)" class="dropdown_item">
+                <img :src="item.image" alt="icon" class="dropdown_img" />
+                <span>{{ item.label }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <img
+          src="/src/assets/icons/plus_circle.svg"
+          alt="plus_btn"
+          class="plus_btn"
+          @click="router.push('/mypage/cicd/create')"
+        />
+      </div>
+      <div class="cicd_card_list">
+        <div class="cicd_card">
+          <p>젠킨스 01</p>
+          <p>https://jenkins.io/abcdefghehe</p>
+        </div>
+        <div class="cicd_card">
+          <p>젠킨스 01</p>
+          <p>https://jenkins.io/abcdefghehe</p>
+        </div>
+        <div class="cicd_card">
+          <p>젠킨스 01</p>
+          <p>https://jenkins.io/abcdefghehe</p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .container {
-  width: 100%;
-}
-
-.wrapper {
   width: 60%;
   margin: 70px auto;
 }
