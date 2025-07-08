@@ -18,7 +18,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -30,7 +29,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class JenkinsInfoService {
 
-    private final RestTemplate restTemplate;
     private final HttpClientService httpClientService;
     private final JenkinsInfoRepository jenkinsInfoRepository;
 
