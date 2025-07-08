@@ -4,13 +4,19 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
 public class InfoRequestDto {
 
-    @Getter
+    @Builder
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Schema(name = "CreateDto", description = "새로운 Jenkins 정보 등록을 위한 요청 데이터")
     public static class CreateDto {
 
@@ -55,7 +61,10 @@ public class InfoRequestDto {
         private String apiToken;
     }
 
-    @Getter
+    @Builder
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Schema(name = "UpdateDto", description = "기존 Jenkins 정보 수정 요청 DTO")
     public static class UpdateDto {
 
@@ -108,7 +117,10 @@ public class InfoRequestDto {
         private String apiToken;
     }
 
-    @Getter
+    @Builder
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Schema(name = "InfoDto", description = "Jenkins 상세 조회 또는 검증 요청 DTO")
     public static class InfoDto {
 
