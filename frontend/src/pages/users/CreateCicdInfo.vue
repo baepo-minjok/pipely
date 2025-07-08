@@ -47,6 +47,18 @@ function selectItem(item) {
       <div class="input_box">
         <label for="name">정보 닉네임</label>
         <input type="text" placeholder="정보 닉네임을 입력해주세요." class="input" />
+        <label for="description">정보 설명</label>
+        <textarea name="description" id="description" placeholder="정보에 대한 설명을 입력해주세요."></textarea>
+        <label for="url">URL</label>
+        <input type="text" placeholder="https://jenkins.io" class="input" />
+        <label for="secret_key">Secret Token</label>
+        <input type="text" placeholder="토큰 입력.." class="input" />
+        <label for="cicd_id">ID</label>
+        <input type="text" placeholder="ID를 입력해주세요." class="input" />
+      </div>
+      <div class="btn_box">
+        <button class="cancel_btn" type="button">취소</button>
+        <button class="create_btn" type="submit">생성</button>
       </div>
     </form>
   </div>
@@ -152,9 +164,62 @@ label {
   border: 1px solid var(--gray200);
   padding: 14px 16px;
   font-size: 16px;
+  margin-bottom: 46px;
 
   &::placeholder {
     color: var(--gray400);
+  }
+}
+
+textarea {
+  width: 100%;
+  height: 100px;
+  resize: none;
+  background-color: white;
+  border: 1px solid var(--gray200);
+  margin-bottom: 46px;
+  padding: 15px 17px;
+  font-size: 16px;
+
+  &::placeholder {
+    color: gray400;
+  }
+}
+
+.btn_box {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  margin-top: 18px;
+
+  & > button {
+    width: 65px;
+    height: 40px;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+}
+
+.cancel_btn {
+  background-color: white;
+  color: var(--gray500);
+  border: 1px solid var(--gray400);
+
+  &:hover {
+    background-color: var(--gray200);
+  }
+}
+
+.create_btn {
+  background-color: var(--main-color);
+  color: white;
+  border: none;
+
+  &:hover {
+    background-color: var(--main-color-hover);
   }
 }
 </style>
