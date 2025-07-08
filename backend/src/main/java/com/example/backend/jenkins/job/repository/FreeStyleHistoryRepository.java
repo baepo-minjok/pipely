@@ -21,4 +21,17 @@ public interface FreeStyleHistoryRepository extends JpaRepository<FreeStyleHisto
                 WHERE h.id = :freeStyleHistoryId
             """)
     Optional<FreeStyleHistory> findAllWithFreeStyleAndJenkinsInfoByFreeStyleHistoryId(@Param("freeStyleHistoryId") UUID freeStyleHistoryId);
+    //
+    @Query("""
+    SELECT h
+    FROM FreeStyleHistory h
+    JOIN FETCH h.freeStyle fs
+    JOIN FETCH fs.jenkinsInfo ji
+    WHERE fs.id = :jobId AND h.version = :version
+    """)
+    Optional<FreeStyleHistory> findAllWithFreeStyleAndJenkinsInfoByFreeStyleIdAndVersion(
+            @Param("jobId") UUID jobId,
+            @Param("version") int version
+    );
+
 }

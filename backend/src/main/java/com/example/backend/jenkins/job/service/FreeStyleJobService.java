@@ -122,6 +122,7 @@ public class FreeStyleJobService {
         int nextVersion = (maxVersion == null ? 1 : maxVersion + 1);
 
         FreeStyleHistory history = FreeStyleHistory.toHistory(job, nextVersion, config);
+        historyRepository.save(history);
     }
 
     @Transactional

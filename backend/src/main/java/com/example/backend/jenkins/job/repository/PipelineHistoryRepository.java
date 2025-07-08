@@ -6,9 +6,23 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PipelineHistoryRepository extends JpaRepository<PipelineHistory, UUID> {
     @Query("SELECT MAX(h.version) FROM PipelineHistory h WHERE h.pipeline = :ps")
     Integer findMaxVersionByPipelineScript(@Param("ps") Pipeline pipelineScript);
+
+    @Query("""
+    SELECT h
+    FROM PipelineHistory h
+    JOIN FETCH h.pipeline p
+    JOIN FETCH p.jenkinsInfo ji
+    WHERE p.id = :pipelineId AND h.version = :version
+""")
+    Optional<PipelineHistory> findAllWithPipelineAndJenkinsInfoByPipelineIdAndVersion(
+            @Param("pipelineId") UUID pipelineId,
+            @Param("version") int version
+    );
+
 }
