@@ -142,6 +142,4 @@ public class FreeStyle {
             hidden = true
     )
     private List<FreeStyleHistory> historyList = new ArrayList<>();
-    @OneToMany(mappedBy = "freeStyle", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobNotification> jobNotifications = new ArrayList<>();
 }

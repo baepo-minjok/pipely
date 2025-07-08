@@ -1,5 +1,6 @@
 package com.example.backend.jenkins.job.model;
 
+import com.example.backend.jenkins.job.model.pipeline.Pipeline;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -43,6 +44,6 @@ public class JobNotification {
     @JoinColumns({
             @JoinColumn(name = "id", referencedColumnName = "id", insertable = false, updatable = false),
     })
-    private FreeStyle freeStyle;
+    private Pipeline pipeline;
 }
 

@@ -1,6 +1,7 @@
 package com.example.backend.jenkins.job.model.pipeline;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
+import com.example.backend.jenkins.job.model.JobNotification;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -49,5 +50,8 @@ public class Pipeline {
 
     @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PipelineHistory> historyList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<JobNotification> jobNotifications = new ArrayList<>();
 }
 
