@@ -287,7 +287,7 @@ public class ErrorService {
         httpClientService.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
     }
 
-    private String extractVersionFromLog(String buildLog) {
+    String extractVersionFromLog(String buildLog) {
         for (String line : buildLog.split("\n")) {
             String trimmed = line.trim();
             int idx = trimmed.indexOf("#VERSION:");
@@ -297,7 +297,7 @@ public class ErrorService {
                 if (parts.length > 1) {
                     String version = parts[1].trim();
                     log.info("[버전 추출] 추출된 VERSION: {}", version); // 이제 정상 작동
-                    return version;
+                    return version.replaceAll("\"", "").trim();
                 }
             }
         }
