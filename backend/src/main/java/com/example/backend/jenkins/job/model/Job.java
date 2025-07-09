@@ -3,9 +3,6 @@ package com.example.backend.jenkins.job.model;
 import jakarta.persistence.*;
 import org.hibernate.annotations.GenericGenerator;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -18,26 +15,21 @@ public class Job {
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     private UUID id;
 
+    // job 이름
+    private String name;
+
+    // job 설명
     private String description;
 
-    private LocalDateTime deletedAt;
+    // 연동된 git 주소
+    private String githubUrl;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    // git webhook trigger 설정 여부
+    private Boolean trigger;
 
-    private Integer latestVersion;
+    // Build Stage가 선택되었는지 여부
+    private Boolean isBuildSelected;
 
-    @Enumerated(EnumType.STRING)
-    private JobType jobType;
-
-    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobSchedule> jobSchedules = new ArrayList<>();
-    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobVersion> jobVersions = new ArrayList<>();
-    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobNotification> jobNotifications = new ArrayList<>();
-
-    public enum JobType {
-        FREESTYLE, PIPELINE
-    }
+    // 선택한 Build 도구
+    private String buildTool;
 }
