@@ -1,13 +1,14 @@
 package com.example.backend.jenkins.job.controller;
 
 import com.example.backend.exception.BaseResponse;
-import com.example.backend.jenkins.job.model.dto.FreeStyleRequestDto.CreateFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleRequestDto.UpdateFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailHistoryDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.LightFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.LightHistoryDto;
+import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.service.FreeStyleJobService;
+import com.example.backend.jenkins.job.service.JobService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -28,10 +29,11 @@ import java.util.UUID;
 public class JobController {
 
     private final FreeStyleJobService freeStyleJobService;
+    private final JobService jobService;
 
     @Operation(
-            summary = "새 FreeStyle 잡 생성",
-            description = "사용자가 지정한 설정(CreateFreeStyleDto)을 기반으로 Jenkins에 Freestyle 잡을 생성합니다."
+            summary = "새 Job 생성",
+            description = "사용자가 지정한 설정(CreateDto)을 기반으로 Jenkins에 Freestyle 잡을 생성합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "FreeStyle Job 생성 성공"),
@@ -39,13 +41,13 @@ public class JobController {
             @ApiResponse(responseCode = "404", description = "잘못된 JenkinsInfo Id"),
             @ApiResponse(responseCode = "500", description = "Jenkins 서버 문제로 인한 실패")
     })
-    @PostMapping("/create/freeStyle")
-    public ResponseEntity<BaseResponse<String>> createFreeStyle(
-            @RequestBody @Valid CreateFreeStyleDto dto
+    @PostMapping("/create")
+    public ResponseEntity<BaseResponse<String>> create(
+            @RequestBody @Valid RequestDto.CreateDto dto
     ) {
-        freeStyleJobService.createFreestyleJob(dto);
+        jobService.createJob(dto);
         return ResponseEntity.ok()
-                .body(BaseResponse.success("create freestyle success"));
+                .body(BaseResponse.success("create job success"));
     }
 
     @Operation(

@@ -1,15 +1,12 @@
 package com.example.backend.jenkins.job.model;
 
+import com.example.backend.jenkins.info.model.JenkinsInfo;
 import jakarta.persistence.*;
 import org.hibernate.annotations.GenericGenerator;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "job")
 public class Job {
 
     @Id
@@ -18,26 +15,31 @@ public class Job {
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     private UUID id;
 
+    // job 이름
+    private String name;
+
+    // job 설명
     private String description;
 
-    private LocalDateTime deletedAt;
+    // 연동된 git 주소
+    private String githubUrl;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    // clone할 branch 이름
+    private String branch;
 
-    private Integer latestVersion;
+    // 빌드를 실행할 폴더 경로
+    private String directory;
 
-    @Enumerated(EnumType.STRING)
-    private JobType jobType;
+    // git webhook trigger 설정 여부
+    private Boolean trigger;
 
-    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobSchedule> jobSchedules = new ArrayList<>();
-    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobVersion> jobVersions = new ArrayList<>();
-    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<JobNotification> jobNotifications = new ArrayList<>();
+    // Build Stage가 선택되었는지 여부
+    private Boolean isBuildSelected;
 
-    public enum JobType {
-        FREESTYLE, PIPELINE
-    }
+    // 선택한 Build 도구
+    private String buildTool;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "jenkins_info_id", nullable = false)
+    private JenkinsInfo jenkinsInfo;
 }

@@ -1,0 +1,39 @@
+pipeline {
+    agent any
+
+    stages {
+
+        {{#githubUrl}}
+        stage('Git clone') {
+            steps {
+                dir('{{#directory}}{{directory}}{{/directory}}{{^directory}}.{{/directory}}') {
+                  git branch: '{{branch}}', url: '{{githubUrl}}'
+                }
+            }
+        }
+        {{/githubUrl}}
+
+        {{#isBuildSelected}}
+            stage('Build') {
+              steps {
+                dir('{{#directory}}{{directory}}{{/directory}}{{^directory}}.{{/directory}}') {
+                  {{#gradle}}
+                  sh 'chmod +x gradlew'
+                  sh './gradlew clean build -x test'
+                  {{/gradle}}
+
+                  {{#maven}}
+                  sh 'mvn clean install'
+                  {{/maven}}
+
+                  {{#npm}}
+                  sh 'npm ci'
+                  sh 'npm run build'
+                  {{/npm}}
+                }
+              }
+            }
+            {{/isBuildSelected}}
+
+    }
+}
