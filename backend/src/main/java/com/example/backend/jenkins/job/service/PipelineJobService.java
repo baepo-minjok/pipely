@@ -97,6 +97,7 @@ public class PipelineJobService {
         int nextVersion = (maxVersion == null ? 1 : maxVersion + 1);
 
         PipelineHistory history = PipelineHistory.toHistory(job, nextVersion, config);
+        scriptHistoryRepository.save(history);
     }
 
     public Pipeline getPipelineById(UUID id) {
