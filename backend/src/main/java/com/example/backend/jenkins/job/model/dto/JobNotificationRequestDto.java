@@ -50,4 +50,26 @@ public class JobNotificationRequestDto {
     public static class NotificationDetailRequestDto {
         private String credentialName;
     }
+
+    @Data
+    public static class JobNotificationUpdateRequestDto {
+        private String credentialName;
+        private String eventType;
+        private String webhookUrl;
+        private Boolean shouldNotify;
+
+        public JobNotification toEntity(JobNotification notification) {
+            return JobNotification.builder()
+                    .id(notification.getId())
+                    .name(notification.getName())
+                    .createdAt(notification.getCreatedAt())
+                    .pipeline(notification.getPipeline())
+                    .credentialName(notification.getCredentialName())
+                    .eventType(this.eventType != null ? this.eventType : notification.getEventType())
+                    .webhookUrl(this.webhookUrl != null ? this.webhookUrl : notification.getWebhookUrl())
+                    .shouldNotify(this.shouldNotify != null ? this.shouldNotify : notification.getShouldNotify())
+                    .channel(notification.getChannel())
+                    .build();
+        }
+    }
 }

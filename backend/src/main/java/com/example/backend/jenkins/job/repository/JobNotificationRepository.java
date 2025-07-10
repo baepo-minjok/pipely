@@ -10,8 +10,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface JobNotificationRepository extends JpaRepository<JobNotification, JobNotificationId> {
-    long countByChannelAndEventType(String channel, String eventType);
-
     List<JobNotification> findByIdAndShouldNotify(UUID jobId, boolean b);
 
     List<JobNotification> findByPipeline_JenkinsInfo_User_IdAndPipeline_Id(UUID userId, UUID jobId);

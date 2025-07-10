@@ -83,6 +83,18 @@ public class JobNotificationService {
     }
 
     @Transactional
+    public void updateNotification(JobNotificationRequestDto.JobNotificationUpdateRequestDto dto, UUID userId) {
+        JobNotification oldEntity = notificationRepository.findByCredentialName(dto.getCredentialName())
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_NOTIFICATION_NOT_FOUND));
+
+        JobNotification updatedEntity = dto.toEntity(oldEntity);
+        notificationRepository.save(updatedEntity);
+
+        UUID jobId = updatedEntity.getPipeline().getId();
+        createNotifyScript(userId, jobId);
+    }
+
+    @Transactional
     public void createNotifyScript(UUID userId, UUID jobId) {
         JenkinsInfo jenkinsInfo = jenkinsInfoRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));

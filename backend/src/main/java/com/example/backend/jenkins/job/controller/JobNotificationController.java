@@ -51,6 +51,16 @@ public class JobNotificationController {
                 .body(BaseResponse.success(dto));
     }
 
+    @PostMapping("/update")
+    public ResponseEntity<?> updateNotification(
+            @RequestBody JobNotificationRequestDto.JobNotificationUpdateRequestDto dto,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        UUID userId = userDetails.getUser().getId();
+        jobNotificationService.updateNotification(dto, userId);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("update jenkins notification credential success"));
+    }
+
     @PostMapping("/createNotifyScript")
     public ResponseEntity<BaseResponse<String>> sendNotification(@RequestBody JobNotificationRequestDto.SendJobNotificationRequestDto dto) {
         UUID currentUserId = getCurrentUserId();
