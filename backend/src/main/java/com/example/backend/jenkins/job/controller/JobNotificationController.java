@@ -4,16 +4,15 @@ import com.example.backend.auth.user.service.CustomUserDetails;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.job.model.JobNotification;
 import com.example.backend.jenkins.job.model.dto.JobNotificationRequestDto;
+import com.example.backend.jenkins.job.model.dto.JobNotificationResponseDto;
 import com.example.backend.jenkins.job.service.JobNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -28,6 +27,18 @@ public class JobNotificationController {
         jobNotificationService.createJobNotification(dto, user.getUser().getId());
         return ResponseEntity.ok()
                 .body(BaseResponse.success("create jenkins notification credential success"));
+    }
+
+    @PostMapping("/list")
+    public ResponseEntity<BaseResponse<List<JobNotificationResponseDto.JobNotificationListResponseDto>>> getNotificationsForUser(
+            @RequestBody JobNotificationRequestDto.NotificationListRequestDto request
+    ) {
+        UUID userId = getCurrentUserId();
+        List<JobNotificationResponseDto.JobNotificationListResponseDto> notifications =
+                jobNotificationService.getUserJobNotifications(userId, request.getJobId());
+
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(notifications));
     }
 
     @PostMapping("/createNotifyScript")

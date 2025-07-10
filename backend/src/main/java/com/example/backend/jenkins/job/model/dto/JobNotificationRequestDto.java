@@ -40,4 +40,9 @@ public class JobNotificationRequestDto {
     public static class SendJobNotificationRequestDto {
         private UUID jobId;
     }
+
+    @Data
+    public static class NotificationListRequestDto {
+        private UUID jobId;
+    }
 }

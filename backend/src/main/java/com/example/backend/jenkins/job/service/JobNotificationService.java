@@ -8,6 +8,7 @@ import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.jenkins.job.model.FreeStyle;
 import com.example.backend.jenkins.job.model.JobNotification;
 import com.example.backend.jenkins.job.model.dto.JobNotificationRequestDto;
+import com.example.backend.jenkins.job.model.dto.JobNotificationResponseDto;
 import com.example.backend.jenkins.job.model.pipeline.Pipeline;
 import com.example.backend.jenkins.job.repository.FreeStyleRepository;
 import com.example.backend.jenkins.job.repository.JobNotificationRepository;
@@ -65,6 +66,15 @@ public class JobNotificationService {
         return saved;
     }
 
+    public List<JobNotificationResponseDto.JobNotificationListResponseDto> getUserJobNotifications(UUID userId, UUID jobId) {
+        List<JobNotification> notifications = notificationRepository
+                .findByPipeline_JenkinsInfo_User_IdAndPipeline_Id(userId, jobId);
+
+        return notifications.stream()
+                .map(JobNotificationResponseDto.JobNotificationListResponseDto::fromEntity)
+                .toList();
+    }
+
     @Transactional
     public void createNotifyScript(UUID userId, UUID jobId) {
         JenkinsInfo jenkinsInfo = jenkinsInfoRepository.findByUserId(userId)
@@ -85,8 +95,8 @@ public class JobNotificationService {
 
         String script = createNotificationScript(jobName, notifications);
 
-        JenkinsClientFactory.JenkinsClient client = jenkinsClientFactory.createClientForUser(userId);
-        client.runNotificationScript(script).block();
+//        JenkinsClientFactory.JenkinsClient client = jenkinsClientFactory.createClientForUser(userId);
+//        client.runNotificationScript(script).block();
     }
 
     private String createNotificationScript(String jobName, List<JobNotification> notifications) {
