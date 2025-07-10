@@ -3,6 +3,7 @@ package com.example.backend.jenkins.job.model.dto;
 import com.example.backend.jenkins.job.model.FreeStyle;
 import com.example.backend.jenkins.job.model.Job;
 import com.example.backend.jenkins.job.model.JobNotification;
+import com.example.backend.jenkins.job.model.pipeline.Pipeline;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -20,9 +21,9 @@ public class JobNotificationRequestDto {
         private String webhookUrl;
         private Boolean shouldNotify;
 
-        public JobNotification toEntity(FreeStyle freeStyle, String credentialName) {
+        public JobNotification toEntity(Pipeline pipeline, String credentialName) {
             return JobNotification.builder()
-                    .id(freeStyle.getId())
+                    .id(pipeline.getId())
                     .name(this.name)
                     .createdAt(LocalDateTime.now())
                     .shouldNotify(this.shouldNotify)
@@ -30,7 +31,7 @@ public class JobNotificationRequestDto {
                     .webhookUrl(this.webhookUrl)
                     .eventType(this.eventType)
                     .credentialName(credentialName)
-                    .freeStyle(freeStyle)
+                    .pipeline(pipeline)
                     .build();
         }
     }

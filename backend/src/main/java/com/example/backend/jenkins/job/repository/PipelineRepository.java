@@ -20,4 +20,5 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
             """)
     Optional<Pipeline> findPipelineById(@Param("pipelineId") UUID pipelineId);
 
+    Optional<Pipeline> findByJenkinsInfoIdAndId(UUID id, UUID jobId);
 }

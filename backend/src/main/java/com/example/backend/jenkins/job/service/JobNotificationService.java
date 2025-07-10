@@ -8,8 +8,10 @@ import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.jenkins.job.model.FreeStyle;
 import com.example.backend.jenkins.job.model.JobNotification;
 import com.example.backend.jenkins.job.model.dto.JobNotificationRequestDto;
+import com.example.backend.jenkins.job.model.pipeline.Pipeline;
 import com.example.backend.jenkins.job.repository.FreeStyleRepository;
 import com.example.backend.jenkins.job.repository.JobNotificationRepository;
+import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
 import jakarta.transaction.Transactional;
@@ -30,7 +32,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class JobNotificationService {
 
-    private final FreeStyleRepository freeStyleRepository;
+    private final PipelineRepository pipelineRepository;
     private final JobNotificationRepository notificationRepository;
     private final JenkinsClientFactory jenkinsClientFactory;
     private final JenkinsInfoRepository jenkinsInfoRepository;
@@ -38,17 +40,21 @@ public class JobNotificationService {
 
     @Transactional
     public JobNotification createJobNotification(JobNotificationRequestDto.createCredential dto, UUID userId) {
-        FreeStyle freeStyle = freeStyleRepository.findById(dto.getJobId())
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND));
+        Pipeline pipeline = pipelineRepository.findById(dto.getJobId())
+                .orElseThrow(() -> new IllegalArgumentException("Jenkins Pipeline 정보를 찾을 수 없습니다."));
 
-        long count = notificationRepository.countByChannelAndEventType(dto.getChannel(), dto.getEventType());
-        String credentialName = String.format("%s_%s_%s_%03d",
+        // UUID 생성 후 앞 8자리 추출
+        String uuidSuffix = UUID.randomUUID().toString().substring(0, 8);
+
+        // Credential 이름 생성
+        String credentialName = String.format("%s_%s_%s_%s",
                 dto.getChannel().toUpperCase(),
-                freeStyle.getJobName(),
+                pipeline.getJobName(),
                 dto.getEventType().toUpperCase(),
-                count + 1);
+                uuidSuffix
+        );
 
-        JobNotification notification = dto.toEntity(freeStyle, credentialName);
+        JobNotification notification = dto.toEntity(pipeline, credentialName);
         JobNotification saved = notificationRepository.save(notification);
 
         if (Boolean.TRUE.equals(dto.getShouldNotify())) {
@@ -64,10 +70,10 @@ public class JobNotificationService {
         JenkinsInfo jenkinsInfo = jenkinsInfoRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
 
-        FreeStyle freeStyle = freeStyleRepository.findByJenkinsInfoIdAndId(jenkinsInfo.getId(), jobId)
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND));
+        Pipeline pipeline = pipelineRepository.findByJenkinsInfoIdAndId(jenkinsInfo.getId(), jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Jenkins Pipeline 정보를 찾을 수 없습니다."));
 
-        String jobName = freeStyle.getJobName();
+        String jobName = pipeline.getJobName();
 
         List<JobNotification> notifications = notificationRepository
                 .findByIdAndShouldNotify(jobId, true);
