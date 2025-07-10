@@ -7,10 +7,9 @@ import com.example.backend.jenkins.job.service.ScriptService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,5 +26,13 @@ public class ScriptController {
                 .body(BaseResponse.success(scriptService.generateScript(requestDto)));
     }
 
+    @DeleteMapping
+    public ResponseEntity<BaseResponse<String>> deleteScript(
+            @RequestParam UUID scriptId
+    ) {
+        scriptService.deleteScript(scriptId);
 
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("Script deleted success"));
+    }
 }
