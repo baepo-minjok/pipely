@@ -1,11 +1,13 @@
 package com.example.backend.jenkins.job.model.dto;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
-import com.example.backend.jenkins.job.model.Job;
+import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.Script;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -16,27 +18,50 @@ public class RequestDto {
         return CreateDto.builder()
                 .name(requestDto.getName())
                 .description(requestDto.getDescription())
-                .githubUrl(requestDto.getGithubUrl())
-                .branch(requestDto.getBranch())
                 .trigger(requestDto.getTrigger())
-                .isBuildSelected(requestDto.getIsBuildSelected())
-                .isTestSelected(requestDto.getIsTestSelected())
                 .build();
     }
 
-    public static Job toEntity(CreateDto requestDto, JenkinsInfo info) {
-        return Job.builder()
+    public static Pipeline toEntity(CreateDto requestDto, JenkinsInfo info, Script script, String config) {
+
+        return Pipeline.builder()
                 .name(requestDto.getName())
                 .description(requestDto.getDescription())
-                .githubUrl(requestDto.getGithubUrl())
-                .branch(requestDto.getBranch())
-                .trigger(requestDto.getTrigger())
-                .isBuildSelected(requestDto.getIsBuildSelected())
-                .isTestSelected(requestDto.getIsTestSelected())
+                .isTriggered(requestDto.getTrigger())
                 .jenkinsInfo(info)
                 .createdAt(LocalDateTime.now())
                 .isDeleted(false)
+                .script(script)
+                .config(config)
                 .build();
+    }
+
+
+    @Data
+    @SuperBuilder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ScriptBaseDto {
+
+        private UUID scriptId;
+        private String githubUrl;
+        private String branch;
+        private Boolean isBuildSelected;
+        private Boolean isTestSelected;
+        private Boolean isK8sDeploy;
+        private String tag;
+        private String sshKeyPath;
+        private String sshPort;
+        private String deployTarget;
+        private String k8sPath;
+        private String deploymentName;
+        private String namespace;
+        private String appName;
+        private String containerName;
+        private String imageRepo;
+        private String port;
+        private String springProfile;
+        private String replicas;
     }
 
     @Data
@@ -48,49 +73,18 @@ public class RequestDto {
         // jenkins 정보 id
         private UUID infoId;
 
+        private UUID scriptId;
+
         // job 이름
         private String name;
 
         // job 설명
         private String description;
 
-        // 연동된 git 주소
-        private String githubUrl;
-
         // git webhook trigger 설정 여부
         private Boolean trigger;
-
-        private String script;
-
-        // clone할 branch 이름
-        private String branch;
-
-        // Build Stage가 선택되었는지 여부
-        private Boolean isBuildSelected;
-
-        // Test Stage가 선택되었는지 여부
-        private Boolean isTestSelected;
-
     }
 
-    @Data
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class GenerateScriptDto {
-
-        // 연동된 git 주소
-        private String githubUrl;
-
-        // clone할 branch 이름
-        private String branch;
-
-        // Build Stage가 선택되었는지 여부
-        private Boolean isBuildSelected;
-
-        // Test Stage가 선택되었는지 여부
-        private Boolean isTestSelected;
-    }
 
     @Data
     @Builder
@@ -99,7 +93,7 @@ public class RequestDto {
     public static class UpdateDto {
 
         // job 고유id
-        private UUID jobId;
+        private UUID pipelineId;
 
         // job 이름
         private String name;
@@ -107,23 +101,8 @@ public class RequestDto {
         // job 설명
         private String description;
 
-        // 연동된 git 주소
-        private String githubUrl;
-
         // git webhook trigger 설정 여부
         private Boolean trigger;
-
-        private String script;
-
-        // clone할 branch 이름
-        private String branch;
-
-        // Build Stage가 선택되었는지 여부
-        private Boolean isBuildSelected;
-
-        // Test Stage가 선택되었는지 여부
-        private Boolean isTestSelected;
-
 
     }
 }

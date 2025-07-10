@@ -11,13 +11,15 @@ import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuild;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuildSummary;
 import com.example.backend.jenkins.error.service.ErrorService;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
-import com.example.backend.jenkins.job.repository.FreeStyleRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -110,7 +112,7 @@ public class ErrorController {
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
-    @Operation(
+    /*@Operation(
             summary = "빌드 실패 롤백 재시도 (파이프라인)",
             description = "Pipeline Job에서 가장 최근 실패 빌드를 마지막 성공 버전으로 롤백 후 재시도합니다."
     )
@@ -123,4 +125,13 @@ public class ErrorController {
         return ResponseEntity.ok(BaseResponse.success("Retry with rollback triggered."));
     }
 
+
+    @PostMapping("/retry/pipeline")
+    public ResponseEntity<BaseResponse<String>> retryWithRollbackByPipeline(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestBody RetryReqDto request
+    ) {
+        errorService.retryWithRollbackByPipeline(request.getJobId(), user.getId());
+        return ResponseEntity.ok(BaseResponse.success("Retry with rollback triggered."));
+    }*/
 }

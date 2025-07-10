@@ -64,7 +64,7 @@ public enum ErrorCode {
     JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR_500", "time out"),
     JENKINS_SECRET_ENCRYPTION_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_SECRET_ENCRYPTION_FAIL_500", "암호화 실패 오류"),
     JENKINS_SECRET_DECRYPTION_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_SECRET_DECRYPTION_FAIL_500", "복호화 실패 오류"),
-    JENKINS_XML_UPDATE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "XML_UPDATE_FAIL_500", "CRON 스케줄 XML 수정 중 오류가 발생했습니다." ),
+    JENKINS_XML_UPDATE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "XML_UPDATE_FAIL_500", "CRON 스케줄 XML 수정 중 오류가 발생했습니다."),
 
     /**
      * Jenkins/error 도메인에서 사용하는 ErrorCode
@@ -84,13 +84,12 @@ public enum ErrorCode {
     JENKINS_PIPELINE_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_PIPELINE_HISTORY_NOT_FOUND_404", "지정한 파이프라인 버전 이력을 찾을 수 없습니다."),
 
 
-
     /**
      * Jenkins/Job 도메인에서 사용하는 ErrorCode
      */
     JENKINS_FREESTYLE_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_FREESTYLE_HISTORY_NOT_FOUND_404", "해당 freestyle history가 존재하지 않습니다."),
     JENKINS_NOT_SUPPORTED_TOOL(HttpStatus.BAD_REQUEST, "JENKINS_NOT_SUPPORTED_TOOL_400", "지원하지 않는 tool이거나 존재하지 않습니다."),
-
+    JENKINS_SCRIPT_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_SCRIPT_NOT_FOUND_400", "Script 정보가 존재하지않습니다."),
     /**
      * Jenkins/build 도메인에서 사용하는 ErrorCode
      */
