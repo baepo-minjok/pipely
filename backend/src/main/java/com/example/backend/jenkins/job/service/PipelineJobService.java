@@ -4,7 +4,6 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
-import com.example.backend.jenkins.job.model.FreeStyle;
 import com.example.backend.jenkins.job.model.dto.pipeline.PipelineRequestDto.CreatePipelineDto;
 import com.example.backend.jenkins.job.model.pipeline.Pipeline;
 import com.example.backend.jenkins.job.model.pipeline.PipelineHistory;
@@ -104,7 +103,7 @@ public class PipelineJobService {
 
 
         return scriptRepository.findPipelineById(id)
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
 
 
     }

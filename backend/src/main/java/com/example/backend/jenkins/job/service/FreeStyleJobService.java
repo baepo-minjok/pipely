@@ -116,7 +116,6 @@ public class FreeStyleJobService {
                 .script(dto.getScript())
                 .build();
         freeStyleRepository.save(job);
-        info.getFreeStyleList().add(job);
 
         Integer maxVersion = historyRepository.findMaxVersionByFreeStyle(job);
         int nextVersion = (maxVersion == null ? 1 : maxVersion + 1);
@@ -297,7 +296,7 @@ public class FreeStyleJobService {
     public FreeStyle getFreeStyleById(UUID id) {
 
         return freeStyleRepository.findFreeStyleById(id)
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_FREESTYLE_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
 
     }
 

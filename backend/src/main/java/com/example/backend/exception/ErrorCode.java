@@ -17,8 +17,8 @@ public enum ErrorCode {
     UNKNOWN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "UNKNOWN_ERROR_500", "서버 오류입니다."),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED_400", "올바른 값이 아닙니다."),
     MISSING_PARAMETER(HttpStatus.BAD_REQUEST, "MISSING_PARAMETER_400", "파라미터가 존재하지 않습니다."),
-
-
+    IOEXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, "IOEXCEPTION_500", "파일 처리 오류입니다."),
+    GIT_CLONE_FAILED(HttpStatus.BAD_REQUEST, "GIT_CLONE_FAILED_400", "Git clone에 실패했습니다."),
     /**
      * Cookie 관련 ErrorCode
      */
@@ -85,12 +85,11 @@ public enum ErrorCode {
 
 
 
-
     /**
-     * Jenkins/Job/FreeStyle 도메인에서 사용하는 ErrorCode
+     * Jenkins/Job 도메인에서 사용하는 ErrorCode
      */
-    JENKINS_FREESTYLE_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_FREESTYLE_NOT_FOUND_404", "해당 freestyle job이 존재하지 않습니다."),
     JENKINS_FREESTYLE_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_FREESTYLE_HISTORY_NOT_FOUND_404", "해당 freestyle history가 존재하지 않습니다."),
+    JENKINS_NOT_SUPPORTED_TOOL(HttpStatus.BAD_REQUEST, "JENKINS_NOT_SUPPORTED_TOOL_400", "지원하지 않는 tool이거나 존재하지 않습니다."),
 
     /**
      * Jenkins/build 도메인에서 사용하는 ErrorCode

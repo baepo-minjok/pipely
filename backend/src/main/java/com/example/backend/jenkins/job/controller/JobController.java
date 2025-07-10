@@ -1,7 +1,6 @@
 package com.example.backend.jenkins.job.controller;
 
 import com.example.backend.exception.BaseResponse;
-import com.example.backend.jenkins.job.model.dto.FreeStyleRequestDto.UpdateFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailFreeStyleDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailHistoryDto;
 import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.LightFreeStyleDto;
@@ -50,21 +49,31 @@ public class JobController {
                 .body(BaseResponse.success("create job success"));
     }
 
+    @PostMapping("/generate/script")
+    public ResponseEntity<BaseResponse<String>> generateScript(
+            @RequestBody @Valid RequestDto.GenerateScriptDto dto
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(jobService.generateScript(dto)));
+    }
+
     @Operation(
-            summary = "기존 FreeStyle 잡 수정",
-            description = "기존 Freestyle 잡을 UpdateFreeStyleDto에 따라 업데이트합니다."
+            summary = "기존 Job 수정",
+            description = "사용자가 지정한 설정(UpdateDto)을 기반으로 Jenkins에 Freestyle 잡을 수정합니다."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "FreeStyle Job 수정 성공"),
+            @ApiResponse(responseCode = "200", description = "Job 수정 성공"),
             @ApiResponse(responseCode = "400", description = "Dto 검증 오류"),
-            @ApiResponse(responseCode = "404", description = "잘못된 FreeStyle Id"),
+            @ApiResponse(responseCode = "404", description = "잘못된 job Id"),
             @ApiResponse(responseCode = "500", description = "Jenkins 서버 문제로 인한 실패")
     })
-    @PutMapping("/freeStyle")
-    public ResponseEntity<BaseResponse<String>> updateFreeStyle(
-            @RequestBody @Valid UpdateFreeStyleDto dto
+    @PutMapping
+    public ResponseEntity<BaseResponse<String>> update(
+            @RequestBody @Valid RequestDto.UpdateDto requestDto
     ) {
-        freeStyleJobService.updateFreestyleJob(dto);
+
+        jobService.updateJob(requestDto);
+
         return ResponseEntity.ok()
                 .body(BaseResponse.success("update freestyle success"));
     }
