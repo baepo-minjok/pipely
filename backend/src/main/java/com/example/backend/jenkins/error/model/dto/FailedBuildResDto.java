@@ -1,5 +1,6 @@
 package com.example.backend.jenkins.error.model.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,15 +15,20 @@ import java.time.format.DateTimeFormatter;
 @AllArgsConstructor
 @Builder
 public class FailedBuildResDto {
-    // 잡 이름
+
+    @Schema(description = "잡 이름", example = "my-job")
     private String jobName;
-    // 빌드 번호
+
+    @Schema(description = "빌드 번호", example = "42")
     private int buildNumber;
-    // 빌드 결과 상태
+
+    @Schema(description = "빌드 결과 상태", example = "FAILURE")
     private String result;
-    // 빌드 시작 시각(밀리초 단위)
+
+    @Schema(description = "빌드 시작 시각 (yyyy-MM-dd HH:mm:ss)", example = "2025-07-09 17:23:10")
     private String timestamp;
-    // 빌드 수행 시간(ms 단위)
+
+    @Schema(description = "빌드 수행 시간", example = "1분 12초")
     private String duration;
 
     // timestamp -> yyyy-MM-dd HH:mm:ss
