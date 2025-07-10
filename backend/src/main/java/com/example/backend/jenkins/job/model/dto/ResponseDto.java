@@ -1,6 +1,7 @@
 package com.example.backend.jenkins.job.model.dto;
 
-import com.example.backend.jenkins.job.model.Job;
+import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.Script;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,28 +12,30 @@ import java.util.UUID;
 
 public class ResponseDto {
 
-    public static LightJobDto entityToLightJobDto(Job job) {
+    public static LightJobDto entityToLightJobDto(Pipeline pipeline) {
         return LightJobDto.builder()
-                .jobId(job.getId())
-                .name(job.getName())
-                .description(job.getDescription())
-                .githubUrl(job.getGithubUrl())
+                .pipelineId(pipeline.getId())
+                .name(pipeline.getName())
+                .description(pipeline.getDescription())
                 .build();
     }
 
-    public static DetailJobDto entityToDetailJobDto(Job job) {
+    public static DetailJobDto entityToDetailJobDto(Pipeline pipeline) {
         return DetailJobDto.builder()
-                .jobId(job.getId())
-                .name(job.getName())
-                .description(job.getDescription())
-                .githubUrl(job.getGithubUrl())
-                .branch(job.getBranch())
-                .trigger(job.getTrigger())
-                .isBuildSelected(job.getIsBuildSelected())
-                .isTestSelected(job.getIsTestSelected())
-                .createdAt(job.getCreatedAt())
-                .updatedAt(job.getUpdatedAt())
-                .deletedAt(job.getDeletedAt())
+                .pipelineId(pipeline.getId())
+                .name(pipeline.getName())
+                .description(pipeline.getDescription())
+                .trigger(pipeline.getIsTriggered())
+                .createdAt(pipeline.getCreatedAt())
+                .updatedAt(pipeline.getUpdatedAt())
+                .deletedAt(pipeline.getDeletedAt())
+                .build();
+    }
+
+    public static LightScriptDto entityToLightScriptDto(Script script) {
+        return LightScriptDto.builder()
+                .scriptId(script.getId())
+                .script(script.getScript())
                 .build();
     }
 
@@ -42,7 +45,7 @@ public class ResponseDto {
     @AllArgsConstructor
     public static class LightJobDto {
 
-        private UUID jobId;
+        private UUID pipelineId;
 
         private String name;
 
@@ -57,7 +60,7 @@ public class ResponseDto {
     @AllArgsConstructor
     public static class DetailJobDto {
 
-        private UUID jobId;
+        private UUID pipelineId;
 
         // job 이름
         private String name;
@@ -88,5 +91,17 @@ public class ResponseDto {
 
         private LocalDateTime deletedAt;
 
+        private String script;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LightScriptDto {
+
+        private UUID scriptId;
+
+        private String script;
     }
 }

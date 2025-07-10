@@ -2,6 +2,7 @@ package com.example.backend.jenkins.job.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
@@ -70,7 +71,7 @@ public class ConfigService {
     }
 
     // script 템플릿에 사용되는 context Map 만드는 함수
-    public Map<String, Object> buildScriptContext(RequestDto.GenerateScriptDto scriptDto) {
+    public Map<String, Object> buildScriptContext(RequestDto.ScriptBaseDto scriptDto) {
 
         Map<String, Object> context = new HashMap<>();
 
@@ -92,18 +93,21 @@ public class ConfigService {
     }
 
     // config 템플릿에 사용되는 context Map 만드는 함수
-    public Map<String, Object> buildConfigContext(RequestDto.CreateDto createDto) {
-
-
-        String githubUrl = createDto.getGithubUrl() == null ? "" : createDto.getGithubUrl();
-        String script = createDto.getScript() == null ? "" : createDto.getScript();
+    public Map<String, Object> buildConfigContext(RequestDto.CreateDto createDto, Script script) {
 
         Map<String, Object> context = new HashMap<>();
 
         context.put("description", createDto.getDescription());
-        context.put("githubUrl", githubUrl);
-        context.put("script", script);
         context.put("trigger", createDto.getTrigger());
+
+        if (script != null) {
+
+            String githubUrl = script.getGithubUrl() == null ? "" : script.getGithubUrl();
+            String sc = script.getScript() == null ? "" : script.getScript();
+
+            context.put("githubUrl", githubUrl);
+            context.put("script", sc);
+        }
 
         return context;
     }

@@ -7,40 +7,34 @@ import com.example.backend.jenkins.error.model.dto.FailedBuildSummaryResDto;
 import com.example.backend.jenkins.error.model.dto.JobSummaryReqDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
-import com.example.backend.jenkins.job.model.FreeStyle;
-import com.example.backend.jenkins.job.model.pipeline.Pipeline;
-import com.example.backend.jenkins.job.model.FreeStyleHistory;
-import com.example.backend.jenkins.job.model.pipeline.PipelineHistory;
-import com.example.backend.jenkins.job.repository.FreeStyleHistoryRepository;
-import com.example.backend.jenkins.job.repository.PipelineHistoryRepository;
+import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
-import com.example.backend.jenkins.job.service.FreeStyleJobService;
-import com.example.backend.jenkins.job.service.PipelineJobService;
+import com.example.backend.jenkins.job.service.PipelineService;
 import com.example.backend.service.HttpClientService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import java.util.logging.Logger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ErrorService {
     private final JenkinsInfoRepository jenkinsInfoRepository;
-    private final FreeStyleJobService freeStyleJobService;
-    private final FreeStyleHistoryRepository freeStyleHistoryRepository;
     private final HttpClientService httpClientService;
     private final LlmService llmService;
 
     private final int maxRetryCount = 3;
     private final int retryIntervalSeconds = 120;
-    private final PipelineHistoryRepository pipelineHistoryRepository;
     private final PipelineRepository pipelineRepository;
-    private final PipelineJobService pipelineJobService;
+    private final PipelineService pipelineService;
 
     public JenkinsInfo getJenkinsInfoByIdAndUser(UUID infoId, UUID userId) {
         return jenkinsInfoRepository.findById(infoId)
@@ -48,8 +42,8 @@ public class ErrorService {
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
     }
 
-    public FreeStyle getVerifiedJob(UUID jobId, UUID userId) {
-        FreeStyle job = freeStyleJobService.getFreeStyleById(jobId);
+    public Pipeline getVerifiedJob(UUID jobId, UUID userId) {
+        Pipeline job = pipelineService.getPipelineById(jobId);
 
         if (!job.getJenkinsInfo().getUser().getId().equals(userId)) {
             throw new CustomException(ErrorCode.USER_NOT_FOUND);
@@ -59,7 +53,7 @@ public class ErrorService {
     }
 
     public Pipeline getVerifiedJobWithPipeline(UUID pipelineId, UUID userId) {
-        Pipeline job = pipelineJobService.getPipelineById(pipelineId);
+        Pipeline job = pipelineService.getPipelineById(pipelineId);
 
         if (!job.getJenkinsInfo().getUser().getId().equals(userId)) {
             throw new CustomException(ErrorCode.USER_NOT_FOUND);
@@ -88,8 +82,8 @@ public class ErrorService {
     }
 
     public FailedBuildResDto getRecentBuildByJob(UUID jobId, UUID userId) {
-        FreeStyle job = getVerifiedJob(jobId, userId);
-        return getRecentBuild(job.getJenkinsInfo(), job.getJobName());
+        Pipeline job = getVerifiedJob(jobId, userId);
+        return getRecentBuild(job.getJenkinsInfo(), job.getName());
     }
 
 
@@ -118,8 +112,8 @@ public class ErrorService {
     }
 
     public List<FailedBuildResDto> getBuildsForJobByUser(UUID jobId, UUID userId) {
-        FreeStyle job = getVerifiedJob(jobId, userId);
-        return getBuildsForJob(job.getJenkinsInfo(), job.getJobName());
+        Pipeline job = getVerifiedJob(jobId, userId);
+        return getBuildsForJob(job.getJenkinsInfo(), job.getName());
     }
 
 
@@ -155,8 +149,8 @@ public class ErrorService {
     }
 
     public List<FailedBuildResDto> getFailedBuildsForJobByUser(UUID jobId, UUID userId) {
-        FreeStyle job = getVerifiedJob(jobId, userId); // 사용자 소유 확인 포함
-        return getFailedBuildsForJob(job.getJenkinsInfo(), job.getJobName());
+        Pipeline job = getVerifiedJob(jobId, userId); // 사용자 소유 확인 포함
+        return getFailedBuildsForJob(job.getJenkinsInfo(), job.getName());
     }
 
 
@@ -183,8 +177,8 @@ public class ErrorService {
     }
 
     public FailedBuildSummaryResDto summarizeBuildByJob(JobSummaryReqDto dto, UUID userId) {
-        FreeStyle job = getVerifiedJob(dto.getJobId(), userId);
-        return summarizeBuild(job.getJenkinsInfo(), job.getJobName(), dto.getBuildNumber());
+        Pipeline job = getVerifiedJob(dto.getJobId(), userId);
+        return summarizeBuild(job.getJenkinsInfo(), job.getName(), dto.getBuildNumber());
     }
 
 
@@ -233,10 +227,10 @@ public class ErrorService {
         return failedBuilds;
     }
 
-    public void retryWithRollback(UUID FreeStyleId, UUID userId) {
-        FreeStyle job = getVerifiedJob(FreeStyleId, userId);
+    /*public void retryWithRollback(UUID PipelineId, UUID userId) {
+        Pipeline job = getVerifiedJob(PipelineId, userId);
         JenkinsInfo info = job.getJenkinsInfo();
-        String jobName = job.getJobName();
+        String jobName = job.getName();
 
         // 1. 최근 빌드 실패 여부 확인
         FailedBuildResDto latestBuild = getRecentBuild(info, jobName);
@@ -263,18 +257,18 @@ public class ErrorService {
 
         int versionNum = Integer.parseInt(version);  // ex. "1"
 
-        // 4. FreeStyleHistory에서 해당 설정 가져오기
-        FreeStyleHistory freeStyleHistory = freeStyleHistoryRepository
-                .findAllWithFreeStyleAndJenkinsInfoByFreeStyleIdAndVersion(FreeStyleId, versionNum)
+        // 4. PipelineHistory에서 해당 설정 가져오기
+        PipelineHistory PipelineHistory = PipelineHistoryRepository
+                .findAllWithPipelineAndJenkinsInfoByPipelineIdAndVersion(PipelineId, versionNum)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
 
         log.info("[⏪ ROLLBACK CONFIG] jobName={}, version={}, config.xml=\n{}",
                 jobName,
                 versionNum,
-                freeStyleHistory.getConfig());
+                PipelineHistory.getConfig());
 
         // 5. 설정 롤백 적용
-        applyJenkinsConfig(info, jobName, freeStyleHistory.getConfig());
+        applyJenkinsConfig(info, jobName, PipelineHistory.getConfig());
 
         try {
             Thread.sleep(5000); // 2초 정도 Jenkins가 config를 반영할 시간
@@ -285,7 +279,7 @@ public class ErrorService {
         // 6. 빌드 재시도 트리거
         String triggerUrl = info.getUri() + "/job/" + jobName + "/build";
         httpClientService.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
-    }
+    }*/
 
     String extractVersionFromLog(String buildLog) {
         for (String line : buildLog.split("\n")) {
@@ -305,19 +299,18 @@ public class ErrorService {
     }
 
 
-
     private void applyJenkinsConfig(JenkinsInfo info, String jobName, String configXml) {
         String configUrl = info.getUri() + "/job/" + jobName + "/config.xml";
         HttpEntity<String> postReq = new HttpEntity<>(configXml, httpClientService.buildHeaders(info, MediaType.APPLICATION_XML));
         httpClientService.exchange(configUrl, HttpMethod.POST, postReq, String.class);
     }
 
-    public void retryWithRollbackByPipeline(UUID pipelineId, UUID userId) {
+    /*public void retryWithRollbackByPipeline(UUID pipelineId, UUID userId) {
 
         // 1. 유저 권한 검증
         Pipeline pipeline = getVerifiedJobWithPipeline(pipelineId, userId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
-        String jobName = pipeline.getJobName();
+        String jobName = pipeline.getName();
 
         // 2. 최근 빌드 실패 여부 확인
         FailedBuildResDto latestBuild = getRecentBuild(info, jobName);
@@ -363,8 +356,7 @@ public class ErrorService {
         // 7. 빌드 재시도 트리거
         String triggerUrl = info.getUri() + "/job/" + jobName + "/build";
         httpClientService.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
-    }
-
+    }*/
 
 
 }
