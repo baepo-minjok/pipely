@@ -1,16 +1,15 @@
 package com.example.backend.jenkins.job.repository;
 
-import com.example.backend.jenkins.job.model.FreeStyle;
-import com.example.backend.jenkins.job.model.pipeline.Pipeline;
+import com.example.backend.jenkins.job.model.Pipeline;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
-
 
     @Query("""
             SELECT pl
@@ -20,4 +19,7 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
             """)
     Optional<Pipeline> findPipelineById(@Param("pipelineId") UUID pipelineId);
 
+    List<Pipeline> findAllByJenkinsInfoIdAndIsDeletedFalse(UUID jenkinsInfoId);
+
+    List<Pipeline> findAllByJenkinsInfoIdAndIsDeletedTrue(UUID jenkinsInfoId);
 }

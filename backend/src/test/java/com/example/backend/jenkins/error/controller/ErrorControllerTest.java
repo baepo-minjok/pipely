@@ -5,32 +5,29 @@ import com.example.backend.config.jwt.JwtAuthenticationFilter;
 import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.jenkins.error.model.dto.*;
 import com.example.backend.jenkins.error.service.ErrorService;
-import com.example.backend.jenkins.job.repository.FreeStyleRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = ErrorController.class,
         excludeAutoConfiguration = {
@@ -42,18 +39,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class ErrorControllerTest {
 
-    @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
+    @Autowired
+    MockMvc mockMvc;
+    @Autowired
+    ObjectMapper objectMapper;
 
     @MockitoBean
     ErrorService errorService;
-    @MockitoBean private FreeStyleRepository freeStyleRepository;
-    @MockitoBean private JwtAuthenticationFilter jwtAuthenticationFilter; // 필요 시
-    @MockitoBean private JwtTokenProvider jwtTokenProvider;
-
     Users testUser;
     UUID jobId = UUID.randomUUID();
     UUID infoId = UUID.randomUUID();
+    @MockitoBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter; // 필요 시
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
 
     @BeforeEach
     void setup() {
@@ -170,7 +169,7 @@ class ErrorControllerTest {
                 .andExpect(jsonPath("$.data.naturalResponse").value("에러는 ~ 때문입니다"));
     }
 
-    @Test
+    /*@Test
     @DisplayName("FreeStyle 리트라이")
     void retryWithRollbackTest() throws Exception {
         doNothing().when(errorService).retryWithRollback(eq(jobId), any());
@@ -185,9 +184,9 @@ class ErrorControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value("Retry with rollback triggered."));
-    }
+    }*/
 
-    @Test
+    /*@Test
     @DisplayName("Pipeline 리트라이")
     void retryWithRollbackByPipelineTest() throws Exception {
         doNothing().when(errorService).retryWithRollbackByPipeline(eq(jobId), any());
@@ -202,5 +201,5 @@ class ErrorControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value("Retry with rollback triggered."));
-    }
+    }*/
 }

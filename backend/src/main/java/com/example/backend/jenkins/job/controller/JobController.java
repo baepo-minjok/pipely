@@ -3,8 +3,7 @@ package com.example.backend.jenkins.job.controller;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
-import com.example.backend.jenkins.job.service.FreeStyleJobService;
-import com.example.backend.jenkins.job.service.JobService;
+import com.example.backend.jenkins.job.service.PipelineService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -24,8 +23,7 @@ import java.util.UUID;
 @RequestMapping("/api/jenkins/job")
 public class JobController {
 
-    private final FreeStyleJobService freeStyleJobService;
-    private final JobService jobService;
+    private final PipelineService pipelineService;
 
     @Operation(
             summary = "새 Job 생성",
@@ -39,19 +37,11 @@ public class JobController {
     })
     @PostMapping("/create")
     public ResponseEntity<BaseResponse<String>> create(
-            @RequestBody @Valid RequestDto.CreateDto dto
+            @RequestBody @Valid RequestDto.CreateDto requestDto
     ) {
-        jobService.createJob(dto);
+        pipelineService.createJob(requestDto);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("create job success"));
-    }
-
-    @PostMapping("/generate/script")
-    public ResponseEntity<BaseResponse<String>> generateScript(
-            @RequestBody @Valid RequestDto.GenerateScriptDto dto
-    ) {
-        return ResponseEntity.ok()
-                .body(BaseResponse.success(jobService.generateScript(dto)));
     }
 
     @Operation(
@@ -69,7 +59,7 @@ public class JobController {
             @RequestBody @Valid RequestDto.UpdateDto requestDto
     ) {
 
-        jobService.updateJob(requestDto);
+        pipelineService.updateJob(requestDto);
 
         return ResponseEntity.ok()
                 .body(BaseResponse.success("update freestyle success"));
@@ -88,7 +78,7 @@ public class JobController {
             @Parameter(description = "삭제할 Job의 UUID", required = true)
             @RequestParam UUID jobId
     ) {
-        jobService.softDeleteJobById(jobId);
+        pipelineService.softDeletePipelineById(jobId);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("delete freestyle success"));
     }
@@ -106,7 +96,7 @@ public class JobController {
             @Parameter(description = "삭제할 Job의 UUID", required = true)
             @RequestParam UUID jobId
     ) {
-        jobService.hardDeleteJobById(jobId);
+        pipelineService.hardDeletePipelineById(jobId);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("delete freestyle success"));
     }
@@ -117,7 +107,7 @@ public class JobController {
             @RequestParam UUID jenkinsInfoId
     ) {
         return ResponseEntity.ok()
-                .body(BaseResponse.success(jobService.getLightJobs(jenkinsInfoId)));
+                .body(BaseResponse.success(pipelineService.getLightJobs(jenkinsInfoId)));
     }
 
     @GetMapping("/detail")
@@ -126,7 +116,7 @@ public class JobController {
             @RequestParam UUID jobId
     ) {
         return ResponseEntity.ok()
-                .body(BaseResponse.success(jobService.getDetailJob(jobId)));
+                .body(BaseResponse.success(pipelineService.getDetailJob(jobId)));
     }
 
     @GetMapping("/deleted")
@@ -135,10 +125,16 @@ public class JobController {
             @RequestParam UUID jenkinsInfoId
     ) {
         return ResponseEntity.ok()
-                .body(BaseResponse.success(jobService.getDeletedLightJobs(jenkinsInfoId)));
+                .body(BaseResponse.success(pipelineService.getDeletedLightJobs(jenkinsInfoId)));
     }
 
-
+    @PostMapping("/generate/script")
+    public ResponseEntity<BaseResponse<ResponseDto.LightScriptDto>> generateScript(
+            @RequestBody @Valid RequestDto.ScriptBaseDto requestDto
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(pipelineService.generateScript(requestDto)));
+    }
    /* @GetMapping
     public ResponseEntity<BaseResponse<List<LightFreeStyleDto>>> getAllFreeStyle(
             @Parameter(description = "JenkinsInfo의 UUID", required = true)

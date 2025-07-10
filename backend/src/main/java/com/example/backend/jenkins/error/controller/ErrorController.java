@@ -5,11 +5,13 @@ import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.error.model.dto.*;
 import com.example.backend.jenkins.error.service.ErrorService;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
-import com.example.backend.jenkins.job.repository.FreeStyleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -19,7 +21,6 @@ import java.util.List;
 public class ErrorController {
 
     private final ErrorService errorService;
-    private final FreeStyleRepository freeStyleRepository;
 
     // 특정 Job의 최근 빌드 1건 조회 API
     @PostMapping("/recent")
@@ -30,7 +31,6 @@ public class ErrorController {
         FailedBuildResDto build = errorService.getRecentBuildByJob(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success(build));
     }
-
 
     // 특정 Job의 전체 빌드 내역 조회 API (성공/실패 모두 포함)
     @PostMapping("/history")
@@ -85,7 +85,7 @@ public class ErrorController {
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
-    @PostMapping("/retry")
+   /* @PostMapping("/retry")
     public ResponseEntity<BaseResponse<String>> retryWithRollback(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody RetryReqDto request
@@ -101,6 +101,6 @@ public class ErrorController {
     ) {
         errorService.retryWithRollbackByPipeline(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success("Retry with rollback triggered."));
-    }
+    }*/
 
 }

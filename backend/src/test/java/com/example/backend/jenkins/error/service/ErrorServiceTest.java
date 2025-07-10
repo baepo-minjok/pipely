@@ -1,21 +1,12 @@
 package com.example.backend.jenkins.error.service;
 
-import com.example.backend.exception.CustomException;
-import com.example.backend.exception.ErrorCode;
+import com.example.backend.auth.user.model.Users;
 import com.example.backend.jenkins.error.model.dto.FailedBuildResDto;
 import com.example.backend.jenkins.error.model.dto.FailedBuildSummaryResDto;
-import com.example.backend.jenkins.error.model.dto.JobSummaryReqDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
-import com.example.backend.jenkins.job.model.FreeStyle;
-import com.example.backend.jenkins.job.model.FreeStyleHistory;
-import com.example.backend.jenkins.job.repository.FreeStyleHistoryRepository;
-import com.example.backend.jenkins.job.repository.PipelineHistoryRepository;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
-import com.example.backend.jenkins.job.service.FreeStyleJobService;
-import com.example.backend.jenkins.job.service.PipelineJobService;
 import com.example.backend.service.HttpClientService;
-import com.example.backend.auth.user.model.Users;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -28,7 +19,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
-import java.util.*;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -39,19 +31,18 @@ class ErrorServiceTest {
     @InjectMocks
     private ErrorService errorService;
 
-    @Mock private JenkinsInfoRepository jenkinsInfoRepository;
-    @Mock private FreeStyleJobService freeStyleJobService;
-    @Mock private FreeStyleHistoryRepository freeStyleHistoryRepository;
-    @Mock private PipelineHistoryRepository pipelineHistoryRepository;
-    @Mock private PipelineRepository pipelineRepository;
-    @Mock private PipelineJobService pipelineJobService;
-    @Mock private HttpClientService httpClientService;
-    @Mock private LlmService llmService;
+    @Mock
+    private JenkinsInfoRepository jenkinsInfoRepository;
+    @Mock
+    private PipelineRepository pipelineRepository;
+    @Mock
+    private HttpClientService httpClientService;
+    @Mock
+    private LlmService llmService;
 
     private UUID userId;
     private UUID jobId;
     private JenkinsInfo mockInfo;
-    private FreeStyle mockJob;
 
     @BeforeEach
     void setUp() {
@@ -59,18 +50,17 @@ class ErrorServiceTest {
         jobId = UUID.randomUUID();
         Users user = Users.builder().id(userId).build();
         mockInfo = JenkinsInfo.builder().uri("http://jenkins.local").user(user).build();
-        mockJob = FreeStyle.builder().id(jobId).jobName("test-job").jenkinsInfo(mockInfo).build();
     }
 
-    @Test
+    /*@Test
     @DisplayName("getVerifiedJob - 소유자이면 정상 반환")
     void getVerifiedJob_success() {
         when(freeStyleJobService.getFreeStyleById(jobId)).thenReturn(mockJob);
         FreeStyle result = errorService.getVerifiedJob(jobId, userId);
         assertEquals(mockJob, result);
-    }
+    }*/
 
-    @Test
+    /*@Test
     @DisplayName("getVerifiedJob - 소유자 아님이면 예외 발생")
     void getVerifiedJob_unauthorized() {
         Users otherUser = Users.builder().id(UUID.randomUUID()).build();
@@ -80,7 +70,7 @@ class ErrorServiceTest {
         when(freeStyleJobService.getFreeStyleById(jobId)).thenReturn(job);
 
         assertThrows(CustomException.class, () -> errorService.getVerifiedJob(jobId, userId));
-    }
+    }*/
 
     @Test
     @DisplayName("getRecentBuild - 정상 Jenkins 응답이면 DTO 반환")
