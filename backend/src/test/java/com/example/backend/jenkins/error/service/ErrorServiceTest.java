@@ -2,6 +2,7 @@ package com.example.backend.jenkins.error.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.error.model.dto.ErrorResponseDto;
 import com.example.backend.jenkins.error.model.dto.FailedBuildResDto;
 import com.example.backend.jenkins.error.model.dto.FailedBuildSummaryResDto;
 import com.example.backend.jenkins.error.model.dto.JobSummaryReqDto;
@@ -9,6 +10,7 @@ import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.jenkins.job.model.FreeStyle;
 import com.example.backend.jenkins.job.model.FreeStyleHistory;
+import com.example.backend.jenkins.job.model.pipeline.Pipeline;
 import com.example.backend.jenkins.job.repository.FreeStyleHistoryRepository;
 import com.example.backend.jenkins.job.repository.PipelineHistoryRepository;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
@@ -28,6 +30,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
+import java.nio.channels.Pipe;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -51,7 +54,7 @@ class ErrorServiceTest {
     private UUID userId;
     private UUID jobId;
     private JenkinsInfo mockInfo;
-    private FreeStyle mockJob;
+    private Pipeline mockJob;
 
     @BeforeEach
     void setUp() {
@@ -59,14 +62,14 @@ class ErrorServiceTest {
         jobId = UUID.randomUUID();
         Users user = Users.builder().id(userId).build();
         mockInfo = JenkinsInfo.builder().uri("http://jenkins.local").user(user).build();
-        mockJob = FreeStyle.builder().id(jobId).jobName("test-job").jenkinsInfo(mockInfo).build();
+        mockJob = Pipeline.builder().id(jobId).jobName("test-job").jenkinsInfo(mockInfo).build();
     }
 
     @Test
     @DisplayName("getVerifiedJob - 소유자이면 정상 반환")
     void getVerifiedJob_success() {
-        when(freeStyleJobService.getFreeStyleById(jobId)).thenReturn(mockJob);
-        FreeStyle result = errorService.getVerifiedJob(jobId, userId);
+        when(pipelineJobService.getPipelineById(jobId)).thenReturn(mockJob);
+        Pipeline result = errorService.getVerifiedJobWithPipeline(jobId, userId);
         assertEquals(mockJob, result);
     }
 
@@ -75,11 +78,11 @@ class ErrorServiceTest {
     void getVerifiedJob_unauthorized() {
         Users otherUser = Users.builder().id(UUID.randomUUID()).build();
         JenkinsInfo otherInfo = JenkinsInfo.builder().user(otherUser).build();
-        FreeStyle job = FreeStyle.builder().jenkinsInfo(otherInfo).build();
+        Pipeline job = Pipeline.builder().jenkinsInfo(otherInfo).build();
 
-        when(freeStyleJobService.getFreeStyleById(jobId)).thenReturn(job);
+        when(pipelineJobService.getPipelineById(jobId)).thenReturn(job);
 
-        assertThrows(CustomException.class, () -> errorService.getVerifiedJob(jobId, userId));
+        assertThrows(CustomException.class, () -> errorService.getVerifiedJobWithPipeline(jobId, userId));
     }
 
     @Test
@@ -96,7 +99,7 @@ class ErrorServiceTest {
         when(httpClientService.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Map.class)))
                 .thenReturn(mockResponse);
 
-        FailedBuildResDto result = errorService.getRecentBuild(mockInfo, "test-job");
+        ErrorResponseDto.FailedBuild result = errorService.getRecentBuild(mockInfo, "test-job");
 
         assertEquals("FAILURE", result.getResult());
         assertEquals(10, result.getBuildNumber());
@@ -111,7 +114,7 @@ class ErrorServiceTest {
                 .thenReturn(buildLog);
         when(llmService.summarizeBuildLog(anyString())).thenReturn("에러는 ~ 때문입니다.");
 
-        FailedBuildSummaryResDto result = errorService.summarizeBuild(mockInfo, "test-job", 11);
+        ErrorResponseDto.FailedBuildSummary result = errorService.summarizeBuild(mockInfo, "test-job", 11);
 
         assertEquals("에러는 ~ 때문입니다.", result.getNaturalResponse());
         assertEquals("test-job", result.getJobName());
@@ -125,7 +128,7 @@ class ErrorServiceTest {
                 .thenReturn(log);
         when(httpClientService.buildHeaders(any(), eq(MediaType.TEXT_PLAIN))).thenReturn(new HttpHeaders());
 
-        FailedBuildSummaryResDto result = errorService.summarizeBuild(mockInfo, "jobA", 2);
+        ErrorResponseDto.FailedBuildSummary result = errorService.summarizeBuild(mockInfo, "jobA", 2);
 
         assertTrue(result.getNaturalResponse().contains("정상적으로 완료"));
     }

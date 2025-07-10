@@ -45,9 +45,7 @@ class ErrorControllerTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
 
-    @MockitoBean
-    ErrorService errorService;
-    @MockitoBean private FreeStyleRepository freeStyleRepository;
+    @MockitoBean ErrorService errorService;
     @MockitoBean private JwtAuthenticationFilter jwtAuthenticationFilter; // 필요 시
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
 
@@ -63,7 +61,7 @@ class ErrorControllerTest {
     @Test
     @DisplayName("최근 빌드 1건 조회")
     void getRecentBuildTest() throws Exception {
-        FailedBuildResDto mockRes = FailedBuildResDto.of("JobA", 1, "FAILURE", 1000L, 100L);
+        ErrorResponseDto.FailedBuild mockRes = ErrorResponseDto.FailedBuild.of("JobA", 1, "FAILURE", 1000L, 100L);
         when(errorService.getRecentBuildByJob(eq(jobId), any())).thenReturn(mockRes);
 
         JobReqDto reqDto = new JobReqDto(jobId, "JobA");
@@ -82,7 +80,7 @@ class ErrorControllerTest {
     @DisplayName("전체 빌드 조회")
     void getBuildsByJobTest() throws Exception {
         when(errorService.getBuildsForJobByUser(eq(jobId), any()))
-                .thenReturn(List.of(FailedBuildResDto.of("JobA", 1, "FAILURE", 1000L, 100L)));
+                .thenReturn(List.of(ErrorResponseDto.FailedBuild.of("JobA", 1, "FAILURE", 1000L, 100L)));
 
         JobReqDto reqDto = new JobReqDto(jobId, "JobA");
 
@@ -100,7 +98,7 @@ class ErrorControllerTest {
     @DisplayName("실패한 빌드만 조회")
     void getFailedBuildsByJobTest() throws Exception {
         when(errorService.getFailedBuildsForJobByUser(eq(jobId), any()))
-                .thenReturn(List.of(FailedBuildResDto.of("JobA", 2, "FAILURE", 2000L, 200L)));
+                .thenReturn(List.of(ErrorResponseDto.FailedBuild.of("JobA", 2, "FAILURE", 2000L, 200L)));
 
         JobReqDto reqDto = new JobReqDto(jobId, "JobA");
 
@@ -152,7 +150,7 @@ class ErrorControllerTest {
     @DisplayName("GPT 빌드 요약 응답")
     void getBuildSummaryWithSolutionTest() throws Exception {
         when(errorService.summarizeBuildByJob(any(), any()))
-                .thenReturn(FailedBuildSummaryResDto.builder()
+                .thenReturn(ErrorResponseDto.FailedBuildSummary.builder()
                         .jobName("JobA")
                         .buildNumber(1)
                         .naturalResponse("에러는 ~ 때문입니다")
