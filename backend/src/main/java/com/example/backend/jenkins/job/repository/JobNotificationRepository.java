@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface JobNotificationRepository extends JpaRepository<JobNotification, JobNotificationId> {
@@ -14,4 +15,6 @@ public interface JobNotificationRepository extends JpaRepository<JobNotification
     List<JobNotification> findByIdAndShouldNotify(UUID jobId, boolean b);
 
     List<JobNotification> findByPipeline_JenkinsInfo_User_IdAndPipeline_Id(UUID userId, UUID jobId);
+
+    Optional<JobNotification> findByCredentialName(String credentialName);
 }

@@ -96,7 +96,12 @@ public enum ErrorCode {
     JENKINS_CONFIG_XML_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_CONFIG_XML_UPDATE_FAILED_500", "config.xml 업데이트에 실패했습니다."),
     JENKINS_XML_CRON_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_XML_CRON_PARSE_ERROR_500", "cron 설정 XML 파싱에 실패했습니다."),
     JENKINS_TRIGGER_SETTING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_TRIGGER_SETTING_FAILED_500", "Jenkins 트리거 셋팅 중 오류가 발생했습니다."),
-    JENKINS_JOB_TYPE_FAILED(HttpStatus.BAD_REQUEST, "JENKINS_JOB_TYPE_FAILED_400", "freestyle 또는 pipeline 파라미터가 필요합니다");
+    JENKINS_JOB_TYPE_FAILED(HttpStatus.BAD_REQUEST, "JENKINS_JOB_TYPE_FAILED_400", "freestyle 또는 pipeline 파라미터가 필요합니다"),
+
+    /**
+     * Jenkins/Job/Notification 도메인에서 사용하는 ErrorCode
+     */
+    JENKINS_NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_NOTIFICATION_NOT_FOUND_404", "해당 notification이 존재하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

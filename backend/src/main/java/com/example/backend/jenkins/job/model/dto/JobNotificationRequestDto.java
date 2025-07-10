@@ -45,4 +45,9 @@ public class JobNotificationRequestDto {
     public static class NotificationListRequestDto {
         private UUID jobId;
     }
+
+    @Data
+    public static class NotificationDetailRequestDto {
+        private String credentialName;
+    }
 }

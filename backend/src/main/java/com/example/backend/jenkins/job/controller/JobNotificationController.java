@@ -41,6 +41,16 @@ public class JobNotificationController {
                 .body(BaseResponse.success(notifications));
     }
 
+    @PostMapping("/detail")
+    public ResponseEntity<BaseResponse<JobNotificationResponseDto.JobNotificationDetailResponseDto>> getNotificationDetail(
+            @RequestBody JobNotificationRequestDto.NotificationDetailRequestDto requestDto
+    ) {
+        JobNotificationResponseDto.JobNotificationDetailResponseDto dto =
+                jobNotificationService.getNotificationDetail(requestDto.getCredentialName());
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(dto));
+    }
+
     @PostMapping("/createNotifyScript")
     public ResponseEntity<BaseResponse<String>> sendNotification(@RequestBody JobNotificationRequestDto.SendJobNotificationRequestDto dto) {
         UUID currentUserId = getCurrentUserId();

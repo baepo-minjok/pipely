@@ -30,4 +30,26 @@ public class JobNotificationResponseDto {
                     .build();
         }
     }
+
+    @Builder
+    @Data
+    public static class JobNotificationDetailResponseDto {
+        private UUID jobId;
+        private String jobName;
+        private String eventType;
+        private String credentialName;
+        private String webhookUrl;
+        private Boolean shouldNotify;
+
+        public static JobNotificationDetailResponseDto fromEntity(JobNotification notification) {
+            return JobNotificationDetailResponseDto.builder()
+                    .jobId(notification.getPipeline().getId())
+                    .jobName(notification.getPipeline().getJobName())
+                    .eventType(notification.getEventType())
+                    .credentialName(notification.getCredentialName())
+                    .webhookUrl(notification.getWebhookUrl())
+                    .shouldNotify(notification.getShouldNotify())
+                    .build();
+        }
+    }
 }

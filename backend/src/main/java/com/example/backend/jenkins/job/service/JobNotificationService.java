@@ -75,6 +75,13 @@ public class JobNotificationService {
                 .toList();
     }
 
+    public JobNotificationResponseDto.JobNotificationDetailResponseDto getNotificationDetail(String credentialName) {
+        JobNotification notification = notificationRepository.findByCredentialName(credentialName)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_NOTIFICATION_NOT_FOUND));
+
+        return JobNotificationResponseDto.JobNotificationDetailResponseDto.fromEntity(notification);
+    }
+
     @Transactional
     public void createNotifyScript(UUID userId, UUID jobId) {
         JenkinsInfo jenkinsInfo = jenkinsInfoRepository.findByUserId(userId)
