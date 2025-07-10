@@ -171,30 +171,13 @@ class ErrorControllerTest {
     }
 
     @Test
-    @DisplayName("FreeStyle 리트라이")
-    void retryWithRollbackTest() throws Exception {
+    @DisplayName("Pipeline 리트라이")
+    void retryWithRollbackByTest() throws Exception {
         doNothing().when(errorService).retryWithRollback(eq(jobId), any());
 
         RetryReqDto reqDto = new RetryReqDto(jobId);
 
         mockMvc.perform(post("/api/jenkins-error/retry")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reqDto))
-                        .with(SecurityMockMvcRequestPostProcessors.authentication(
-                                new UsernamePasswordAuthenticationToken(testUser, null)))
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("Retry with rollback triggered."));
-    }
-
-    @Test
-    @DisplayName("Pipeline 리트라이")
-    void retryWithRollbackByPipelineTest() throws Exception {
-        doNothing().when(errorService).retryWithRollbackByPipeline(eq(jobId), any());
-
-        RetryReqDto reqDto = new RetryReqDto(jobId);
-
-        mockMvc.perform(post("/api/jenkins-error/retry/pipeline")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reqDto))
                         .with(SecurityMockMvcRequestPostProcessors.authentication(

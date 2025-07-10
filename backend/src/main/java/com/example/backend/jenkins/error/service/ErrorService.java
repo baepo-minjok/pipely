@@ -233,86 +233,7 @@ public class ErrorService {
         return failedBuilds;
     }
 
-    public void retryWithRollback(UUID FreeStyleId, UUID userId) {
-        FreeStyle job = getVerifiedJob(FreeStyleId, userId);
-        JenkinsInfo info = job.getJenkinsInfo();
-        String jobName = job.getJobName();
-
-        // 1. 최근 빌드 실패 여부 확인
-        FailedBuildResDto latestBuild = getRecentBuild(info, jobName);
-        if (!"FAILURE".equals(latestBuild.getResult())) {
-            throw new CustomException(ErrorCode.JENKINS_BUILD_NOT_FAILED);
-        }
-
-        // 2. 최근 성공 빌드 찾기
-        List<FailedBuildResDto> history = getBuildsForJob(info, jobName);
-        FailedBuildResDto lastSuccess = history.stream()
-                .filter(b -> "SUCCESS".equals(b.getResult()))
-                .max(Comparator.comparing(FailedBuildResDto::getBuildNumber))
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SUCCESS_BUILD_NOT_FOUND));
-
-        // 3. 해당 빌드의 로그에서 설정 버전 추출
-        String logUrl = info.getUri() + "/job/" + jobName + "/" + lastSuccess.getBuildNumber() + "/consoleText";
-        HttpEntity<?> entity = new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.TEXT_PLAIN));
-        String log1 = httpClientService.exchange(logUrl, HttpMethod.GET, entity, String.class);
-
-        String version = extractVersionFromLog(log1);
-        if (version == null) {
-            throw new CustomException(ErrorCode.JENKINS_VERSION_NOT_FOUND_IN_LOG);
-        }
-
-        int versionNum = Integer.parseInt(version);  // ex. "1"
-
-        // 4. FreeStyleHistory에서 해당 설정 가져오기
-        FreeStyleHistory freeStyleHistory = freeStyleHistoryRepository
-                .findAllWithFreeStyleAndJenkinsInfoByFreeStyleIdAndVersion(FreeStyleId, versionNum)
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
-
-        log.info("[⏪ ROLLBACK CONFIG] jobName={}, version={}, config.xml=\n{}",
-                jobName,
-                versionNum,
-                freeStyleHistory.getConfig());
-
-        // 5. 설정 롤백 적용
-        applyJenkinsConfig(info, jobName, freeStyleHistory.getConfig());
-
-        try {
-            Thread.sleep(5000); // 2초 정도 Jenkins가 config를 반영할 시간
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        // 6. 빌드 재시도 트리거
-        String triggerUrl = info.getUri() + "/job/" + jobName + "/build";
-        httpClientService.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
-    }
-
-    String extractVersionFromLog(String buildLog) {
-        for (String line : buildLog.split("\n")) {
-            String trimmed = line.trim();
-            int idx = trimmed.indexOf("#VERSION:");
-            if (idx != -1) {
-                String versionLine = trimmed.substring(idx).trim();
-                String[] parts = versionLine.split(":");
-                if (parts.length > 1) {
-                    String version = parts[1].trim();
-                    log.info("[버전 추출] 추출된 VERSION: {}", version); // 이제 정상 작동
-                    return version.replaceAll("\"", "").trim();
-                }
-            }
-        }
-        return null;
-    }
-
-
-
-    private void applyJenkinsConfig(JenkinsInfo info, String jobName, String configXml) {
-        String configUrl = info.getUri() + "/job/" + jobName + "/config.xml";
-        HttpEntity<String> postReq = new HttpEntity<>(configXml, httpClientService.buildHeaders(info, MediaType.APPLICATION_XML));
-        httpClientService.exchange(configUrl, HttpMethod.POST, postReq, String.class);
-    }
-
-    public void retryWithRollbackByPipeline(UUID pipelineId, UUID userId) {
+    public void retryWithRollback(UUID pipelineId, UUID userId) {
 
         // 1. 유저 권한 검증
         Pipeline pipeline = getVerifiedJobWithPipeline(pipelineId, userId);
@@ -365,6 +286,29 @@ public class ErrorService {
         httpClientService.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
     }
 
+    String extractVersionFromLog(String buildLog) {
+        for (String line : buildLog.split("\n")) {
+            String trimmed = line.trim();
+            int idx = trimmed.indexOf("#VERSION:");
+            if (idx != -1) {
+                String versionLine = trimmed.substring(idx).trim();
+                String[] parts = versionLine.split(":");
+                if (parts.length > 1) {
+                    String version = parts[1].trim();
+                    log.info("[버전 추출] 추출된 VERSION: {}", version); // 이제 정상 작동
+                    return version.replaceAll("\"", "").trim();
+                }
+            }
+        }
+        return null;
+    }
 
+
+
+    private void applyJenkinsConfig(JenkinsInfo info, String jobName, String configXml) {
+        String configUrl = info.getUri() + "/job/" + jobName + "/config.xml";
+        HttpEntity<String> postReq = new HttpEntity<>(configXml, httpClientService.buildHeaders(info, MediaType.APPLICATION_XML));
+        httpClientService.exchange(configUrl, HttpMethod.POST, postReq, String.class);
+    }
 
 }
