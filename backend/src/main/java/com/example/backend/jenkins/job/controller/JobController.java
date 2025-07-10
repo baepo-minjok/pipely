@@ -129,6 +129,16 @@ public class JobController {
                 .body(BaseResponse.success(jobService.getDetailJob(jobId)));
     }
 
+    @GetMapping("/deleted")
+    public ResponseEntity<BaseResponse<List<ResponseDto.LightJobDto>>> getAllDeleted(
+            @Parameter(description = "조회할 jenkins info의 UUID", required = true)
+            @RequestParam UUID jenkinsInfoId
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(jobService.getDeletedLightJobs(jenkinsInfoId)));
+    }
+
+
    /* @GetMapping
     public ResponseEntity<BaseResponse<List<LightFreeStyleDto>>> getAllFreeStyle(
             @Parameter(description = "JenkinsInfo의 UUID", required = true)

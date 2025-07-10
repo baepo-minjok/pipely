@@ -32,6 +32,7 @@ public class ResponseDto {
                 .isTestSelected(job.getIsTestSelected())
                 .createdAt(job.getCreatedAt())
                 .updatedAt(job.getUpdatedAt())
+                .deletedAt(job.getDeletedAt())
                 .build();
     }
 
@@ -84,6 +85,8 @@ public class ResponseDto {
 
         // 수정 시간
         private LocalDateTime updatedAt;
+
+        private LocalDateTime deletedAt;
 
     }
 }

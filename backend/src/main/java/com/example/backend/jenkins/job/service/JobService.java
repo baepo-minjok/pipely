@@ -103,6 +103,11 @@ public class JobService {
                 .stream().map(ResponseDto::entityToLightJobDto).toList();
     }
 
+    public List<ResponseDto.LightJobDto> getDeletedLightJobs(UUID jenkinsInfoId) {
+        return jobRepository.findAllByJenkinsInfoIdAndIsDeletedTrue(jenkinsInfoId)
+                .stream().map(ResponseDto::entityToLightJobDto).toList();
+    }
+
     public ResponseDto.DetailJobDto getDetailJob(UUID jobId) {
 
         return ResponseDto.entityToDetailJobDto(getJobById(jobId));
