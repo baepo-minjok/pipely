@@ -44,33 +44,9 @@ public class BuildRequestDto {
         private UUID pipelineId;
     }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Schema(description = "빌드 조회용 요청 DTO")
-    public static class BuildQueryRequestDto {
 
-        @Schema(description = "Jenkins Job 이름", example = "sample-job")
-        private String jobName;
 
-        @Schema(description = "Job 유형", example = "FREESTYLE")
-        private JobType jobType;
-    }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Schema(description = "빌드 로그 요청 DTO")
-    public static class BuildLogRequestDto {
-
-        @Schema(description = "Jenkins Job 이름", example = "sample-job")
-        private String jobName;
-
-        @Schema(description = "빌드 번호", example = "42")
-        private String buildNumber;
-    }
 
     @Getter
     @Setter

@@ -1,9 +1,7 @@
 package com.example.backend.jenkins.build.model.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.*;
 import org.jsoup.nodes.Element;
 
 import java.time.Instant;
@@ -18,14 +16,31 @@ public class BuildResponseDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @Schema(description = "Jenkins 빌드 정보 응답 DTO")
     public static class BuildInfo {
+
+        @Schema(description = "Job 이름", example = "sample-job")
         private String jobName;
+
+        @Schema(description = "빌드 번호", example = "42")
         private int buildNumber;
+
+        @Schema(description = "빌드 상태", example = "SUCCESS")
         private String status;
+
+        @Schema(description = "현재 빌드 중 여부", example = "false")
         private boolean building;
+
+        @Schema(description = "빌드 소요 시간 문자열", example = "12.3초")
         private String durationStr;
+
+        @Schema(description = "시작 시간 (한국시간 기준)", example = "2025-07-10 13:30:00")
         private String startedAt;
+
+        @Schema(description = "빌드 트리거 사용자", example = "admin")
         private String triggeredBy;
+
+        @Schema(description = "빌드 URL", example = "http://jenkins.example.com/job/sample-job/42/")
         private String buildUrl;
 
         public static BuildInfo from(Map<String, Object> build) {
@@ -92,14 +107,15 @@ public class BuildResponseDto {
         }
     }
 
-
     @AllArgsConstructor
     @NoArgsConstructor
     @Getter
     @Builder
+    @Schema(description = "실시간 로그 응답 DTO")
     public static class BuildStreamLogDto {
-        private List<String> log;
 
+        @Schema(description = "로그 라인 리스트", example = "[\"Started by user admin\", \"Building...\"]")
+        private List<String> log;
 
         public static BuildStreamLogDto getStreamLog(String body) {
             List<String> lines = Arrays.asList(body.split("\\r?\\n"));
@@ -107,18 +123,17 @@ public class BuildResponseDto {
                     .log(lines)
                     .build();
         }
-
-
     }
-
 
     @AllArgsConstructor
     @NoArgsConstructor
     @Getter
     @Builder
+    @Schema(description = "빌드 로그 응답 DTO")
     public static class BuildLogDto {
-        private List<String> log;
 
+        @Schema(description = "로그 라인 리스트", example = "[\"Compiling...\", \"Build finished successfully.\"]")
+        private List<String> log;
 
         public static BuildLogDto getLog(Element pre) {
             String rawLog = pre.text();
@@ -127,25 +142,20 @@ public class BuildResponseDto {
                     .log(lines)
                     .build();
         }
-
-
     }
 
     @AllArgsConstructor
     @NoArgsConstructor
     @Getter
     @Builder
+    @Schema(description = "Job의 스테이지 목록 응답 DTO")
     public static class Stage {
 
-        List<String> stage = new ArrayList<>();
+        @Schema(description = "스테이지 목록", example = "[\"BUILD\", \"TEST\", \"DEPLOY\"]")
+        private List<String> stage = new ArrayList<>();
 
         public static Stage getStage(List<String> body) {
-
             return Stage.builder().stage(body).build();
-
         }
-
-
     }
-
 }
