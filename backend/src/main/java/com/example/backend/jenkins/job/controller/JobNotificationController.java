@@ -52,13 +52,24 @@ public class JobNotificationController {
     }
 
     @PostMapping("/update")
-    public ResponseEntity<?> updateNotification(
+    public ResponseEntity<BaseResponse<String>> updateNotification(
             @RequestBody JobNotificationRequestDto.JobNotificationUpdateRequestDto dto,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         UUID userId = userDetails.getUser().getId();
         jobNotificationService.updateNotification(dto, userId);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("update jenkins notification credential success"));
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<BaseResponse<String>> deleteJobNotification(
+            @RequestBody JobNotificationRequestDto.JobNotificationDeleteRequestDto dto) {
+
+        UUID userId = getCurrentUserId();
+        jobNotificationService.deleteNotification(dto, userId);
+
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("delete jenkins notification credential success"));
     }
 
     @PostMapping("/createNotifyScript")

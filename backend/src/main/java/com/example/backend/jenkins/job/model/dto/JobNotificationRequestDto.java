@@ -72,4 +72,9 @@ public class JobNotificationRequestDto {
                     .build();
         }
     }
+
+    @Data
+    public static class JobNotificationDeleteRequestDto {
+        private String credentialName;
+    }
 }

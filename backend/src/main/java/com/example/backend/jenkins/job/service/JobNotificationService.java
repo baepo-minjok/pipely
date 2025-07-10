@@ -95,6 +95,17 @@ public class JobNotificationService {
     }
 
     @Transactional
+    public void deleteNotification(JobNotificationRequestDto.JobNotificationDeleteRequestDto dto, UUID userId) {
+        JobNotification notification = notificationRepository.findByCredentialName(dto.getCredentialName())
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_NOTIFICATION_NOT_FOUND));
+
+        notificationRepository.delete(notification);
+
+        UUID jobId = notification.getPipeline().getId();
+        createNotifyScript(userId, jobId);
+    }
+
+    @Transactional
     public void createNotifyScript(UUID userId, UUID jobId) {
         JenkinsInfo jenkinsInfo = jenkinsInfoRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
