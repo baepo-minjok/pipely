@@ -26,9 +26,8 @@ public class JobTriggerConfigurer {
 
 
 
-    public void setupFreestyleStage(BuildRequestDto.StageSettingRequestDto req, UUID JobStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
-        String configUrl = info.getUri() + "/job/" + req.getJobName() + "/config.xml";
+    public void setupFreestyleStage(BuildRequestDto.StageSettingRequestDto req, JenkinsInfo info) {
+         String configUrl = info.getUri() + "/job/" + req.getJobName() + "/config.xml";
 
 
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
