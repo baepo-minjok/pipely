@@ -3,6 +3,12 @@ package com.example.backend.jenkins.error.service;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.error.model.dto.*;
+import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JobSummaryDto;
+import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JobDto;
+import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.RetryDto;
+import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JenkinsInfoDto;
+import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuild;
+import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuildSummary;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.jenkins.job.model.pipeline.Pipeline;
@@ -132,19 +138,19 @@ public class ErrorService {
         return builds;
     }
 
-    public List<ErrorResponseDto.FailedBuild> getFailedBuildsForJobByUser(UUID jobId, UUID userId) {
+    public List<FailedBuild> getFailedBuildsForJobByUser(UUID jobId, UUID userId) {
         Pipeline job = getVerifiedJobWithPipeline(jobId, userId); // 사용자 소유 확인 포함
         return getFailedBuildsForJob(job.getJenkinsInfo(), job.getJobName());
     }
 
 
-    public ErrorResponseDto.FailedBuildSummary summarizeBuild(JenkinsInfo info, String jobName, int buildNumber) {
+    public FailedBuildSummary summarizeBuild(JenkinsInfo info, String jobName, int buildNumber) {
         String url = info.getUri() + "/job/" + jobName + "/" + buildNumber + "/consoleText";
         HttpEntity<?> entity = new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.TEXT_PLAIN));
         String log = httpClientService.exchange(url, HttpMethod.GET, entity, String.class);
 
         if (!log.contains("Exception") && !log.contains("FAILURE") && !log.contains("Caused by")) {
-            return ErrorResponseDto.FailedBuildSummary.builder()
+            return FailedBuildSummary.builder()
                     .jobName(jobName)
                     .buildNumber(buildNumber)
                     .naturalResponse("이 빌드는 에러 없이 정상적으로 완료된 것으로 보입니다.")
@@ -153,21 +159,21 @@ public class ErrorService {
 
         String response = llmService.summarizeBuildLog(log);
 
-        return ErrorResponseDto.FailedBuildSummary.builder()
+        return FailedBuildSummary.builder()
                 .jobName(jobName)
                 .buildNumber(buildNumber)
                 .naturalResponse(response)
                 .build();
     }
 
-    public ErrorResponseDto.FailedBuildSummary summarizeBuildByJob(ErrorRequestDto.JobSummaryDto dto, UUID userId) {
+    public FailedBuildSummary summarizeBuildByJob(JobSummaryDto dto, UUID userId) {
         Pipeline job = getVerifiedJobWithPipeline(dto.getJobId(), userId);
         return summarizeBuild(job.getJenkinsInfo(), job.getJobName(), dto.getBuildNumber());
     }
 
 
-    public List<ErrorResponseDto.FailedBuild> getRecentBuilds(JenkinsInfo info) {
-        List<ErrorResponseDto.FailedBuild> builds = new ArrayList<>();
+    public List<FailedBuild> getRecentBuilds(JenkinsInfo info) {
+        List<FailedBuild> builds = new ArrayList<>();
 
         String jobListUrl = info.getUri() + "/api/json?tree=jobs[name]";
         HttpEntity<?> entity = new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON));
@@ -180,7 +186,7 @@ public class ErrorService {
             String jobName = (String) job.get("name");
 
             try {
-                ErrorResponseDto.FailedBuild build = getRecentBuild(info, jobName);
+                FailedBuild build = getRecentBuild(info, jobName);
                 if (build != null) {
                     builds.add(build);
                 }
@@ -194,8 +200,8 @@ public class ErrorService {
         return builds;
     }
 
-    public List<ErrorResponseDto.FailedBuild> getFailedBuilds(JenkinsInfo info) {
-        List<ErrorResponseDto.FailedBuild> failedBuilds = new ArrayList<>();
+    public List<FailedBuild> getFailedBuilds(JenkinsInfo info) {
+        List<FailedBuild> failedBuilds = new ArrayList<>();
 
         String jobListUrl = info.getUri() + "/api/json?tree=jobs[name]";
         HttpEntity<?> entity = new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON));
@@ -251,16 +257,16 @@ public class ErrorService {
         String jobName = pipeline.getJobName();
 
         // 2. 최근 빌드 실패 여부 확인
-        ErrorResponseDto.FailedBuild latestBuild = getRecentBuild(info, jobName);
+        FailedBuild latestBuild = getRecentBuild(info, jobName);
         if (!"FAILURE".equals(latestBuild.getResult())) {
             throw new CustomException(ErrorCode.JENKINS_BUILD_NOT_FAILED);
         }
 
         // 3. 최근 성공 빌드 중 가장 마지막 빌드 찾기
-        List<ErrorResponseDto.FailedBuild> history = getBuildsForJob(info, jobName);
-        ErrorResponseDto.FailedBuild lastSuccess = history.stream()
+        List<FailedBuild> history = getBuildsForJob(info, jobName);
+        FailedBuild lastSuccess = history.stream()
                 .filter(b -> "SUCCESS".equals(b.getResult()))
-                .max(Comparator.comparing(ErrorResponseDto.FailedBuild::getBuildNumber))
+                .max(Comparator.comparing(FailedBuild::getBuildNumber))
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SUCCESS_BUILD_NOT_FOUND));
 
         // 4. 해당 빌드의 로그에서 version 추출

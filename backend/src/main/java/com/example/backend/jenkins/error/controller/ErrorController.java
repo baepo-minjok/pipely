@@ -3,6 +3,12 @@ package com.example.backend.jenkins.error.controller;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.error.model.dto.*;
+import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JobSummaryDto;
+import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JobDto;
+import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.RetryDto;
+import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JenkinsInfoDto;
+import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuild;
+import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuildSummary;
 import com.example.backend.jenkins.error.service.ErrorService;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.repository.FreeStyleRepository;
@@ -27,11 +33,11 @@ public class ErrorController {
             description = "선택한 Job의 가장 최근 빌드 정보를 반환합니다."
     )
     @PostMapping("/recent")
-    public ResponseEntity<BaseResponse<ErrorResponseDto.FailedBuild>> getRecentBuild(
+    public ResponseEntity<BaseResponse<FailedBuild>> getRecentBuild(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid ErrorRequestDto.JobDto request
+            @RequestBody @Valid JobDto request
     ) {
-        ErrorResponseDto.FailedBuild build = errorService.getRecentBuildByJob(request.getJobId(), user.getId());
+        FailedBuild build = errorService.getRecentBuildByJob(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success(build));
     }
 
@@ -41,11 +47,11 @@ public class ErrorController {
             description = "선택한 Job의 전체 빌드 기록(성공/실패 포함)을 반환합니다."
     )
     @PostMapping("/history")
-    public ResponseEntity<BaseResponse<List<ErrorResponseDto.FailedBuild>>> getBuildsByJob(
+    public ResponseEntity<BaseResponse<List<FailedBuild>>> getBuildsByJob(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid ErrorRequestDto.JobDto request
+            @RequestBody @Valid JobDto request
     ) {
-        List<ErrorResponseDto.FailedBuild> builds = errorService.getBuildsForJobByUser(request.getJobId(), user.getId());
+        List<FailedBuild> builds = errorService.getBuildsForJobByUser(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
@@ -54,11 +60,11 @@ public class ErrorController {
             description = "선택한 Job에서 실패한 빌드 기록만 반환합니다."
     )
     @PostMapping("/history/failed")
-    public ResponseEntity<BaseResponse<List<ErrorResponseDto.FailedBuild>>> getFailedBuildsByJob(
+    public ResponseEntity<BaseResponse<List<FailedBuild>>> getFailedBuildsByJob(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid ErrorRequestDto.JobDto request
+            @RequestBody @Valid JobDto request
     ) {
-        List<ErrorResponseDto.FailedBuild> builds = errorService.getFailedBuildsForJobByUser(request.getJobId(), user.getId());
+        List<FailedBuild> builds = errorService.getFailedBuildsForJobByUser(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
@@ -68,12 +74,12 @@ public class ErrorController {
             description = "Jenkins 서버 내 전체 Job의 가장 최근 빌드 정보를 반환합니다."
     )
     @PostMapping("/recent/all")
-    public ResponseEntity<BaseResponse<List<ErrorResponseDto.FailedBuild>>> getAllRecentBuilds(
+    public ResponseEntity<BaseResponse<List<FailedBuild>>> getAllRecentBuilds(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid ErrorRequestDto.JenkinsInfoDto request
+            @RequestBody @Valid JenkinsInfoDto request
     ) {
         JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
-        List<ErrorResponseDto.FailedBuild> builds = errorService.getRecentBuilds(info);
+        List<FailedBuild> builds = errorService.getRecentBuilds(info);
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
@@ -82,12 +88,12 @@ public class ErrorController {
             description = "Jenkins 서버 내 전체 Job 중 실패한 빌드 기록만 반환합니다."
     )
     @PostMapping("/failed/all")
-    public ResponseEntity<BaseResponse<List<ErrorResponseDto.FailedBuild>>> getFailedBuilds(
+    public ResponseEntity<BaseResponse<List<FailedBuild>>> getFailedBuilds(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid ErrorRequestDto.JenkinsInfoDto request
+            @RequestBody @Valid JenkinsInfoDto request
     ) {
         JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
-        List<ErrorResponseDto.FailedBuild> builds = errorService.getFailedBuilds(info);
+        List<FailedBuild> builds = errorService.getFailedBuilds(info);
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
@@ -96,11 +102,11 @@ public class ErrorController {
             description = "특정 Job의 실패한 빌드에 대해 LLM(GPT)을 통해 자연어 요약 및 해결 방안을 제공합니다."
     )
     @PostMapping("/summary")
-    public ResponseEntity<BaseResponse<ErrorResponseDto.FailedBuildSummary>> getBuildSummaryWithSolution(
+    public ResponseEntity<BaseResponse<FailedBuildSummary>> getBuildSummaryWithSolution(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid ErrorRequestDto.JobSummaryDto request
+            @RequestBody @Valid JobSummaryDto request
     ) {
-        ErrorResponseDto.FailedBuildSummary builds = errorService.summarizeBuildByJob(request, user.getId());
+        FailedBuildSummary builds = errorService.summarizeBuildByJob(request, user.getId());
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
@@ -111,7 +117,7 @@ public class ErrorController {
     @PostMapping("/retry")
     public ResponseEntity<BaseResponse<String>> retryWithRollback(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid ErrorRequestDto.RetryDto request
+            @RequestBody @Valid RetryDto request
     ) {
         errorService.retryWithRollback(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success("Retry with rollback triggered."));
