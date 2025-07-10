@@ -2,11 +2,8 @@ package com.example.backend.jenkins.error.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
-import com.example.backend.jenkins.error.model.dto.*;
 import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JobSummaryDto;
-import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JobDto;
-import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.RetryDto;
-import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JenkinsInfoDto;
+import com.example.backend.jenkins.error.model.dto.ErrorResponseDto;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuild;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuildSummary;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
@@ -22,7 +19,10 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -42,7 +42,7 @@ public class ErrorService {
                 .filter(i -> i.getUser().getId().equals(userId))
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
     }
-  
+
     public Pipeline getVerifiedJobWithPipeline(UUID pipelineId, UUID userId) {
         Pipeline job = pipelineService.getPipelineById(pipelineId);
 
@@ -74,7 +74,7 @@ public class ErrorService {
 
     public ErrorResponseDto.FailedBuild getRecentBuildByJob(UUID jobId, UUID userId) {
         Pipeline job = getVerifiedJobWithPipeline(jobId, userId);
-        return getRecentBuild(job.getJenkinsInfo(), job.getJobName());
+        return getRecentBuild(job.getJenkinsInfo(), job.getName());
     }
 
 
@@ -104,7 +104,7 @@ public class ErrorService {
 
     public List<ErrorResponseDto.FailedBuild> getBuildsForJobByUser(UUID jobId, UUID userId) {
         Pipeline job = getVerifiedJobWithPipeline(jobId, userId);
-        return getBuildsForJob(job.getJenkinsInfo(), job.getJobName());
+        return getBuildsForJob(job.getJenkinsInfo(), job.getName());
     }
 
 
@@ -141,7 +141,7 @@ public class ErrorService {
 
     public List<FailedBuild> getFailedBuildsForJobByUser(UUID jobId, UUID userId) {
         Pipeline job = getVerifiedJobWithPipeline(jobId, userId); // 사용자 소유 확인 포함
-        return getFailedBuildsForJob(job.getJenkinsInfo(), job.getJobName());
+        return getFailedBuildsForJob(job.getJenkinsInfo(), job.getName());
     }
 
 
@@ -169,7 +169,7 @@ public class ErrorService {
 
     public FailedBuildSummary summarizeBuildByJob(JobSummaryDto dto, UUID userId) {
         Pipeline job = getVerifiedJobWithPipeline(dto.getJobId(), userId);
-        return summarizeBuild(job.getJenkinsInfo(), job.getJobName(), dto.getBuildNumber());
+        return summarizeBuild(job.getJenkinsInfo(), job.getName(), dto.getBuildNumber());
     }
 
 

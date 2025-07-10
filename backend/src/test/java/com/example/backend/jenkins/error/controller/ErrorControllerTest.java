@@ -3,7 +3,8 @@ package com.example.backend.jenkins.error.controller;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.config.jwt.JwtAuthenticationFilter;
 import com.example.backend.config.jwt.JwtTokenProvider;
-import com.example.backend.jenkins.error.model.dto.*;
+import com.example.backend.jenkins.error.model.dto.ErrorRequestDto;
+import com.example.backend.jenkins.error.model.dto.ErrorResponseDto;
 import com.example.backend.jenkins.error.service.ErrorService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,10 +15,6 @@ import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2Clien
 import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.web.error.Error;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -48,10 +45,8 @@ class ErrorControllerTest {
     @Autowired
     ObjectMapper objectMapper;
 
-    @MockitoBean ErrorService errorService;
-    @MockitoBean private JwtAuthenticationFilter jwtAuthenticationFilter; // 필요 시
-    @MockitoBean private JwtTokenProvider jwtTokenProvider;
-
+    @MockitoBean
+    ErrorService errorService;
     Users testUser;
     UUID jobId = UUID.randomUUID();
     UUID infoId = UUID.randomUUID();

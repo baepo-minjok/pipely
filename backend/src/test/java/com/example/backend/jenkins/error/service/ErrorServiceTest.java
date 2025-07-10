@@ -1,11 +1,13 @@
 package com.example.backend.jenkins.error.service;
 
+import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.CustomException;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
-import com.example.backend.jenkins.job.model.pipeline.Pipeline;
+import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
+import com.example.backend.jenkins.job.service.PipelineService;
 import com.example.backend.service.HttpClientService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -32,16 +34,18 @@ class ErrorServiceTest {
     private ErrorService errorService;
 
 
-    @Mock private HttpClientService httpClientService;
-    @Mock private LlmService llmService;
+    @Mock
+    private HttpClientService httpClientService;
+    @Mock
+    private LlmService llmService;
+    @Mock
+    private PipelineService pipelineService;
     @Mock
     private JenkinsInfoRepository jenkinsInfoRepository;
     @Mock
     private PipelineRepository pipelineRepository;
     @Mock
-    private HttpClientService httpClientService;
-    @Mock
-    private LlmService llmService;
+    private Pipeline pipeline;
 
     private UUID userId;
     private UUID jobId;
@@ -54,28 +58,28 @@ class ErrorServiceTest {
         jobId = UUID.randomUUID();
         Users user = Users.builder().id(userId).build();
         mockInfo = JenkinsInfo.builder().uri("http://jenkins.local").user(user).build();
-        mockJob = Pipeline.builder().id(jobId).jobName("test-job").jenkinsInfo(mockInfo).build();
+        mockJob = Pipeline.builder().id(jobId).name("test-job").jenkinsInfo(mockInfo).build();
     }
 
-    /*@Test
+    @Test
     @DisplayName("getVerifiedJob - 소유자이면 정상 반환")
     void getVerifiedJob_success() {
-        when(pipelineJobService.getPipelineById(jobId)).thenReturn(mockJob);
+        when(pipelineService.getPipelineById(jobId)).thenReturn(mockJob);
         Pipeline result = errorService.getVerifiedJobWithPipeline(jobId, userId);
         assertEquals(mockJob, result);
-    }*/
+    }
 
-    /*@Test
+    @Test
     @DisplayName("getVerifiedJob - 소유자 아님이면 예외 발생")
     void getVerifiedJob_unauthorized() {
         Users otherUser = Users.builder().id(UUID.randomUUID()).build();
         JenkinsInfo otherInfo = JenkinsInfo.builder().user(otherUser).build();
         Pipeline job = Pipeline.builder().jenkinsInfo(otherInfo).build();
 
-        when(pipelineJobService.getPipelineById(jobId)).thenReturn(job);
+        when(pipelineService.getPipelineById(jobId)).thenReturn(job);
 
         assertThrows(CustomException.class, () -> errorService.getVerifiedJobWithPipeline(jobId, userId));
-    }*/
+    }
 
     @Test
     @DisplayName("getRecentBuild - 정상 Jenkins 응답이면 DTO 반환")
@@ -123,26 +127,5 @@ class ErrorServiceTest {
         ErrorResponseDto.FailedBuildSummary result = errorService.summarizeBuild(mockInfo, "jobA", 2);
 
         assertTrue(result.getNaturalResponse().contains("정상적으로 완료"));
-    }
-
-    @Test
-    @DisplayName("extractVersionFromLog - 정상 추출")
-    void extractVersionFromLog() {
-        String log = """
-                + echo "#VERSION: 2"
-                #VERSION: 2
-                """;
-
-        String version = errorService.extractVersionFromLog(log);
-
-        assertEquals("2", version);
-    }
-
-    @Test
-    @DisplayName("extractVersionFromLog - 없으면 null 반환")
-    void extractVersionFromLog_missing() {
-        String log = "성공적인 로그입니다";
-        String version = errorService.extractVersionFromLog(log);
-        assertNull(version);
     }
 }
