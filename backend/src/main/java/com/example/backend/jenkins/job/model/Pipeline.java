@@ -36,7 +36,7 @@ public class Pipeline {
     private Boolean isTriggered;
 
     // 스케줄 설정
-    private String cronExpression;
+    private String schedule;
 
     // 삭제 여부
     private Boolean isDeleted;

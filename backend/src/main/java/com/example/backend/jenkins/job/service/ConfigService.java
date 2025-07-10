@@ -4,6 +4,7 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
+import com.example.backend.util.CronExpressionUtil;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
 import lombok.RequiredArgsConstructor;
@@ -107,6 +108,14 @@ public class ConfigService {
 
             context.put("githubUrl", githubUrl);
             context.put("script", sc);
+        }
+
+        if (createDto.getSchedule() != null) {
+
+            // 받은 스케줄로 cron식 생성
+            String cronExpression = CronExpressionUtil.toCron(createDto.getSchedule());
+
+            context.put("cronExpression", cronExpression);
         }
 
         return context;

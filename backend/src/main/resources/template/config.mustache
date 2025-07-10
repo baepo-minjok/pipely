@@ -23,6 +23,11 @@
                     <spec></spec>
                 </com.cloudbees.jenkins.GitHubPushTrigger>
         {{/trigger}}
+        {{#cronExpression}}
+              <hudson.triggers.TimerTrigger>
+                  <spec>{{cronExpression}}</spec>
+              </hudson.triggers.TimerTrigger>
+        {{/cronExpression}}
     </triggers>
     <disabled>false</disabled>
 </flow-definition>
