@@ -6,6 +6,7 @@ import com.example.backend.jenkins.error.model.dto.*;
 import com.example.backend.jenkins.error.service.ErrorService;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.repository.FreeStyleRepository;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,7 +22,10 @@ public class ErrorController {
     private final ErrorService errorService;
     private final FreeStyleRepository freeStyleRepository;
 
-    // 특정 Job의 최근 빌드 1건 조회 API
+    @Operation(
+            summary = "특정 Job의 최근 빌드 조회",
+            description = "선택한 Job의 가장 최근 빌드 정보를 반환합니다."
+    )
     @PostMapping("/recent")
     public ResponseEntity<BaseResponse<FailedBuildResDto>> getRecentBuild(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
@@ -32,7 +36,10 @@ public class ErrorController {
     }
 
 
-    // 특정 Job의 전체 빌드 내역 조회 API (성공/실패 모두 포함)
+    @Operation(
+            summary = "특정 Job의 전체 빌드 조회",
+            description = "선택한 Job의 전체 빌드 기록(성공/실패 포함)을 반환합니다."
+    )
     @PostMapping("/history")
     public ResponseEntity<BaseResponse<List<FailedBuildResDto>>> getBuildsByJob(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
@@ -42,7 +49,10 @@ public class ErrorController {
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
-    // 특정 Job의 실패한 빌드 내역만 조회 API
+    @Operation(
+            summary = "특정 Job의 실패한 빌드 조회",
+            description = "선택한 Job에서 실패한 빌드 기록만 반환합니다."
+    )
     @PostMapping("/history/failed")
     public ResponseEntity<BaseResponse<List<FailedBuildResDto>>> getFailedBuildsByJob(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
@@ -53,7 +63,10 @@ public class ErrorController {
     }
 
 
-    // 전체 Job 목록에 대한 최근 빌드 목록 조회 API
+    @Operation(
+            summary = "전체 Job의 최근 빌드 조회",
+            description = "Jenkins 서버 내 전체 Job의 가장 최근 빌드 정보를 반환합니다."
+    )
     @PostMapping("/recent/all")
     public ResponseEntity<BaseResponse<List<FailedBuildResDto>>> getAllRecentBuilds(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
@@ -64,7 +77,10 @@ public class ErrorController {
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
-    // 전체 Job 목록에 대한 실패한 빌드만 조회
+    @Operation(
+            summary = "전체 Job의 실패한 빌드 조회",
+            description = "Jenkins 서버 내 전체 Job 중 실패한 빌드 기록만 반환합니다."
+    )
     @PostMapping("/failed/all")
     public ResponseEntity<BaseResponse<List<FailedBuildResDto>>> getFailedBuilds(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
@@ -75,7 +91,10 @@ public class ErrorController {
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
-    // 특정 Job의 실패한 빌드 1건데 대해 LLM(GPT)으로 자연어 응답 제공
+    @Operation(
+            summary = "실패 빌드에 대한 요약 제공",
+            description = "특정 Job의 실패한 빌드에 대해 LLM(GPT)을 통해 자연어 요약 및 해결 방안을 제공합니다."
+    )
     @PostMapping("/summary")
     public ResponseEntity<BaseResponse<FailedBuildSummaryResDto>> getBuildSummaryWithSolution(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
@@ -85,6 +104,10 @@ public class ErrorController {
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
 
+    @Operation(
+            summary = "빌드 실패 롤백 재시도 (파이프라인)",
+            description = "Pipeline Job에서 가장 최근 실패 빌드를 마지막 성공 버전으로 롤백 후 재시도합니다."
+    )
     @PostMapping("/retry")
     public ResponseEntity<BaseResponse<String>> retryWithRollback(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
