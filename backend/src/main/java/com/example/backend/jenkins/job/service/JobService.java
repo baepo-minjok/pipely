@@ -6,6 +6,7 @@ import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.Job;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
+import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.JobRepository;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
@@ -13,8 +14,11 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -25,7 +29,6 @@ public class JobService {
     private final JenkinsInfoService jenkinsInfoService;
     private final JobRepository jobRepository;
     private final ConfigService configService;
-
 
     public void createJob(RequestDto.CreateDto requestDto) {
 
@@ -49,6 +52,7 @@ public class JobService {
         return configService.createScript(configService.buildScriptContext(requestDto));
     }
 
+    @Transactional
     public void updateJob(RequestDto.UpdateDto requestDto) {
 
         // job 검색 & info 가져오기
@@ -62,12 +66,45 @@ public class JobService {
         httpClientService.exchange(jenkinsUrl, HttpMethod.POST, requestEntity, String.class);
 
         // 수정된 job 저장
-        Job newJob = RequestDto.toExistEntity(createDto, info, requestDto.getJobId());
-        jobRepository.save(newJob);
+        job.setDescription(requestDto.getDescription());
+        job.setGithubUrl(requestDto.getGithubUrl());
+        job.setBranch(requestDto.getBranch());
+        job.setTrigger(requestDto.getTrigger());
+        job.setIsBuildSelected(requestDto.getIsBuildSelected());
+        job.setIsTestSelected(requestDto.getIsTestSelected());
+        job.setUpdatedAt(LocalDateTime.now());
+        jobRepository.save(job);
     }
 
     public Job getJobById(UUID id) {
         return jobRepository.findJenkinsInfoById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
+    }
+
+    @Transactional
+    public void softDeleteJobById(UUID id) {
+        Job job = getJobById(id);
+
+        job.setIsDeleted(true);
+        job.setDeletedAt(LocalDateTime.now());
+
+        jobRepository.save(job);
+    }
+
+    @Transactional
+    public void hardDeleteJobById(UUID id) {
+        Job job = getJobById(id);
+
+        jobRepository.delete(job);
+    }
+
+    public List<ResponseDto.LightJobDto> getLightJobs(UUID jenkinsInfoId) {
+        return jobRepository.findAllByJenkinsInfoIdAndIsDeletedFalse(jenkinsInfoId)
+                .stream().map(ResponseDto::entityToLightJobDto).toList();
+    }
+
+    public ResponseDto.DetailJobDto getDetailJob(UUID jobId) {
+
+        return ResponseDto.entityToDetailJobDto(getJobById(jobId));
     }
 }

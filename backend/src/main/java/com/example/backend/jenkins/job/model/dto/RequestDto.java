@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class RequestDto {
@@ -33,20 +34,8 @@ public class RequestDto {
                 .isBuildSelected(requestDto.getIsBuildSelected())
                 .isTestSelected(requestDto.getIsTestSelected())
                 .jenkinsInfo(info)
-                .build();
-    }
-
-    public static Job toExistEntity(CreateDto requestDto, JenkinsInfo info, UUID id) {
-        return Job.builder()
-                .id(id)
-                .name(requestDto.getName())
-                .description(requestDto.getDescription())
-                .githubUrl(requestDto.getGithubUrl())
-                .branch(requestDto.getBranch())
-                .trigger(requestDto.getTrigger())
-                .isBuildSelected(requestDto.getIsBuildSelected())
-                .isTestSelected(requestDto.getIsTestSelected())
-                .jenkinsInfo(info)
+                .createdAt(LocalDateTime.now())
+                .isDeleted(false)
                 .build();
     }
 

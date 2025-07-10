@@ -4,13 +4,14 @@ import com.example.backend.jenkins.info.model.JenkinsInfo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Getter
+@Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,6 +33,9 @@ public class Job {
     // 연동된 git 주소
     private String githubUrl;
 
+    // 삭제 여부
+    private Boolean isDeleted;
+
     // clone할 branch 이름
     private String branch;
 
@@ -43,6 +47,15 @@ public class Job {
 
     // Test Stage가 선택되었는지 여부
     private Boolean isTestSelected;
+
+    // 생성 시간
+    private LocalDateTime createdAt;
+
+    // 수정 시간
+    private LocalDateTime updatedAt;
+
+    // 삭제 시간
+    private LocalDateTime deletedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "jenkins_info_id", nullable = false)

@@ -1,11 +1,8 @@
 package com.example.backend.jenkins.job.controller;
 
 import com.example.backend.exception.BaseResponse;
-import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailFreeStyleDto;
-import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.DetailHistoryDto;
-import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.LightFreeStyleDto;
-import com.example.backend.jenkins.job.model.dto.FreeStyleResponseDto.LightHistoryDto;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
+import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.service.FreeStyleJobService;
 import com.example.backend.jenkins.job.service.JobService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -79,24 +76,60 @@ public class JobController {
     }
 
     @Operation(
-            summary = "FreeStyle 잡 삭제",
-            description = "지정된 ID의 Freestyle 잡을 소프트 삭제 처리합니다."
+            summary = " Job soft-delete",
+            description = "지정된 ID의 Job을 soft-delete 처리합니다."
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "FreeStyle Job 삭제 성공"),
-            @ApiResponse(responseCode = "404", description = "잘못된 FreeStyle Id")
+            @ApiResponse(responseCode = "200", description = "Job 삭제 성공"),
+            @ApiResponse(responseCode = "404", description = "잘못된 Job Id")
     })
-    @DeleteMapping("/freeStyle")
-    public ResponseEntity<BaseResponse<String>> deleteFreeStyle(
-            @Parameter(description = "삭제할 FreeStyle 잡의 UUID", required = true)
-            @RequestParam UUID id
+    @DeleteMapping
+    public ResponseEntity<BaseResponse<String>> delete(
+            @Parameter(description = "삭제할 Job의 UUID", required = true)
+            @RequestParam UUID jobId
     ) {
-        freeStyleJobService.deleteById(id);
+        jobService.softDeleteJobById(jobId);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("delete freestyle success"));
+    }
+
+    @Operation(
+            summary = " Job hard-delete",
+            description = "지정된 ID의 Job을 hard-delete 처리합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Job 삭제 성공"),
+            @ApiResponse(responseCode = "404", description = "잘못된 Job Id")
+    })
+    @DeleteMapping("/hard")
+    public ResponseEntity<BaseResponse<String>> hardDelete(
+            @Parameter(description = "삭제할 Job의 UUID", required = true)
+            @RequestParam UUID jobId
+    ) {
+        jobService.hardDeleteJobById(jobId);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("delete freestyle success"));
     }
 
     @GetMapping
+    public ResponseEntity<BaseResponse<List<ResponseDto.LightJobDto>>> getAll(
+            @Parameter(description = "조회할 jenkins info의 UUID", required = true)
+            @RequestParam UUID jenkinsInfoId
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(jobService.getLightJobs(jenkinsInfoId)));
+    }
+
+    @GetMapping("/detail")
+    public ResponseEntity<BaseResponse<ResponseDto.DetailJobDto>> getDetail(
+            @Parameter(description = "조회할 job의 UUID", required = true)
+            @RequestParam UUID jobId
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(jobService.getDetailJob(jobId)));
+    }
+
+   /* @GetMapping
     public ResponseEntity<BaseResponse<List<LightFreeStyleDto>>> getAllFreeStyle(
             @Parameter(description = "JenkinsInfo의 UUID", required = true)
             @RequestParam UUID infoId
@@ -164,5 +197,5 @@ public class JobController {
         freeStyleJobService.rollBack(id);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("roll back success"));
-    }
+    }*/
 }
