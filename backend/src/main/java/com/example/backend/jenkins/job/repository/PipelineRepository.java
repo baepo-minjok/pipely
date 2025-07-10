@@ -15,6 +15,7 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
             SELECT pl
                 FROM Pipeline pl
                 JOIN FETCH pl.jenkinsInfo
+                JOIN FETCH pl.script
                 WHERE pl.id = :pipelineId
             """)
     Optional<Pipeline> findPipelineById(@Param("pipelineId") UUID pipelineId);

@@ -27,7 +27,13 @@ public class ScriptService {
         }
         return script;
     }
-    
+
+    /**
+     * Script 만들어서 LightScriptDto로 반환
+     *
+     * @param requestDto SCriptBaseDto 타입
+     * @return
+     */
     public ResponseDto.LightScriptDto generateScript(RequestDto.ScriptBaseDto requestDto) {
         UUID scriptId = requestDto.getScriptId();
         Script newScript = null;
@@ -48,4 +54,5 @@ public class ScriptService {
 
         return ResponseDto.entityToLightScriptDto(newScript);
     }
+
 }

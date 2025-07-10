@@ -36,6 +36,21 @@ public class Script {
     // Test Stage가 선택되었는지 여부
     private Boolean isTestSelected;
 
+    private Boolean isK8sDeploy;
+    private String tag;
+    private String sshKeyPath;
+    private String sshPort;
+    private String deployTarget;
+    private String k8sPath;
+    private String deploymentName;
+    private String namespace;
+    private String appName;
+    private String containerName;
+    private String imageRepo;
+    private String port;
+    private String springProfile;
+    private String replicas;
+
     @Lob
     private String script;
 

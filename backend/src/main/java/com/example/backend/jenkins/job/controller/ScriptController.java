@@ -19,11 +19,13 @@ public class ScriptController {
 
     private final ScriptService scriptService;
 
-    @PostMapping("/generate/script")
+    @PostMapping("/generate")
     public ResponseEntity<BaseResponse<ResponseDto.LightScriptDto>> generateScript(
             @RequestBody @Valid RequestDto.ScriptBaseDto requestDto
     ) {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(scriptService.generateScript(requestDto)));
     }
+
+
 }
