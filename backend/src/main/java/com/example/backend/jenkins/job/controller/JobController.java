@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "FreeStyle Job API", description = "Jenkins Freestyle 잡 생성, 수정, 삭제 및 이력 조회 API")
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/jenkins/job")
@@ -128,80 +127,4 @@ public class JobController {
                 .body(BaseResponse.success(pipelineService.getDeletedLightJobs(jenkinsInfoId)));
     }
 
-    @PostMapping("/generate/script")
-    public ResponseEntity<BaseResponse<ResponseDto.LightScriptDto>> generateScript(
-            @RequestBody @Valid RequestDto.ScriptBaseDto requestDto
-    ) {
-        return ResponseEntity.ok()
-                .body(BaseResponse.success(pipelineService.generateScript(requestDto)));
-    }
-   /* @GetMapping
-    public ResponseEntity<BaseResponse<List<LightFreeStyleDto>>> getAllFreeStyle(
-            @Parameter(description = "JenkinsInfo의 UUID", required = true)
-            @RequestParam UUID infoId
-    ) {
-        return ResponseEntity.ok()
-                .body(BaseResponse.success(freeStyleJobService.getAllLightFreeStyle(infoId)));
-    }
-
-    @PostMapping("/{id}")
-    public ResponseEntity<BaseResponse<DetailFreeStyleDto>> getFreeStyleById(
-            @PathVariable UUID id
-    ) {
-        return ResponseEntity.ok()
-                .body(BaseResponse.success(freeStyleJobService.getDetailFreeStyleById(id)));
-    }
-
-    @Operation(
-            summary = "Freestyle 잡 이력 목록 조회",
-            description = "지정된 FreeStyle 잡의 이력 목록(LightHistoryDto)을 반환합니다."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "FreeStyle 이력 목록 조회 성공"),
-            @ApiResponse(responseCode = "404", description = "잘못된 FreeStyle Id")
-    })
-    @GetMapping("/freeStyle/history")
-    public ResponseEntity<BaseResponse<List<LightHistoryDto>>> getFreeStyleHistory(
-            @Parameter(description = "조회할 FreeStyle 잡의 UUID", required = true)
-            @RequestParam UUID id
-    ) {
-        return ResponseEntity.ok()
-                .body(BaseResponse.success(freeStyleJobService.getLightHistory(id)));
-    }
-
-    @Operation(
-            summary = "단일 FreeStyle 이력 상세 조회",
-            description = "이력 ID를 통해 해당 FreeStyleHistory의 상세 정보를 반환합니다."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "단일 FreeStyleHistory 상세 조회 성공"),
-            @ApiResponse(responseCode = "404", description = "잘못된 FreeStyleHistory Id")
-    })
-    @GetMapping("/freeStyle/history/{id}")
-    public ResponseEntity<BaseResponse<DetailHistoryDto>> getFreeStyleHistoryById(
-            @Parameter(description = "조회할 FreeStyleHistory의 UUID", required = true)
-            @PathVariable UUID id
-    ) {
-        return ResponseEntity.ok()
-                .body(BaseResponse.success(freeStyleJobService.getFreeStyleHistoryById(id)));
-    }
-
-    @Operation(
-            summary = "Freestyle 잡 롤백",
-            description = "지정된 이력 ID를 기반으로 Freestyle 잡을 해당 버전으로 롤백합니다."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "단일 FreeStyleHistory 상세 조회 성공"),
-            @ApiResponse(responseCode = "404", description = "잘못된 FreeStyleHistory Id 또는 연결 실패"),
-            @ApiResponse(responseCode = "500", description = "Jenkins 서버 문제로 인한 실패")
-    })
-    @GetMapping("/freeStyle/rollBack")
-    public ResponseEntity<BaseResponse<String>> rollBack(
-            @Parameter(description = "롤백할 FreeStyleHistory의 UUID", required = true)
-            @RequestParam UUID id
-    ) {
-        freeStyleJobService.rollBack(id);
-        return ResponseEntity.ok()
-                .body(BaseResponse.success("roll back success"));
-    }*/
 }

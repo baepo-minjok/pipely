@@ -9,7 +9,6 @@ import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
-import com.example.backend.jenkins.job.repository.ScriptRepository;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
@@ -21,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -31,12 +29,12 @@ public class PipelineService {
     private final HttpClientService httpClientService;
     private final JenkinsInfoService jenkinsInfoService;
     private final ConfigService configService;
+    private final ScriptService scriptService;
     private final PipelineRepository pipelineRepository;
-    private final ScriptRepository scriptRepository;
 
     @Transactional
     public void createJob(RequestDto.CreateDto requestDto) {
-        Script script = getScriptById(requestDto.getScriptId());
+        Script script = scriptService.getScriptById(requestDto.getScriptId());
         // jenkins info 확인
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
 
@@ -108,36 +106,6 @@ public class PipelineService {
     public ResponseDto.DetailJobDto getDetailJob(UUID jobId) {
 
         return ResponseDto.entityToDetailJobDto(getPipelineById(jobId));
-    }
-
-    public Script getScriptById(UUID scriptId) {
-        Optional<Script> optionalScript = scriptRepository.findById(scriptId);
-        Script script = null;
-        if (optionalScript.isPresent()) {
-            script = optionalScript.get();
-        }
-        return script;
-    }
-
-    public ResponseDto.LightScriptDto generateScript(RequestDto.ScriptBaseDto requestDto) {
-        UUID scriptId = requestDto.getScriptId();
-        Script newScript = null;
-        if (scriptId != null) {
-            if (!scriptRepository.existsById(scriptId)) {
-                throw new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND);
-            }
-            String script = configService.createScript(configService.buildScriptContext(requestDto));
-            newScript = Script.toEntity(requestDto, script);
-            newScript.setId(scriptId);
-
-            newScript = scriptRepository.save(newScript);
-        } else {
-            String script = configService.createScript(configService.buildScriptContext(requestDto));
-
-            newScript = scriptRepository.save(Script.toEntity(requestDto, script));
-        }
-
-        return ResponseDto.entityToLightScriptDto(newScript);
     }
 
 }
