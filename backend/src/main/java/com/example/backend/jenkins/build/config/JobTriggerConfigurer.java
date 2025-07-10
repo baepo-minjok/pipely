@@ -21,24 +21,10 @@ import java.util.regex.Matcher;
 @RequiredArgsConstructor
 public class JobTriggerConfigurer {
 
-    private final FreeStyleJobService freeStyleJobService;
-    private final HttpClientService httpClientService;
 
 
 
-    public void setupFreestyleStage(BuildRequestDto.StageSettingRequestDto req, UUID JobStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
-        String configUrl = info.getUri() + "/job/" + req.getJobName() + "/config.xml";
 
-
-        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
-        headers.setAccept(List.of(MediaType.APPLICATION_XML));
-
-        String xml = httpClientService.exchange(configUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-        xml = injectShellScriptBlock(injectParameterBlock(resetBuilderBlock(removeOldParametersBlock(xml)),req.getStage()), req.getStage());
-
-        httpClientService.exchange(configUrl, HttpMethod.POST, new HttpEntity<>(xml, headers), String.class);
-    }
 
 
     /*
