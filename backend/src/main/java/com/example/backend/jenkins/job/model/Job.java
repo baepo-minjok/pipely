@@ -2,10 +2,18 @@ package com.example.backend.jenkins.job.model;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.util.UUID;
 
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 public class Job {
 
@@ -27,17 +35,14 @@ public class Job {
     // clone할 branch 이름
     private String branch;
 
-    // 빌드를 실행할 폴더 경로
-    private String directory;
-
     // git webhook trigger 설정 여부
     private Boolean trigger;
 
     // Build Stage가 선택되었는지 여부
     private Boolean isBuildSelected;
 
-    // 선택한 Build 도구
-    private String buildTool;
+    // Test Stage가 선택되었는지 여부
+    private Boolean isTestSelected;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "jenkins_info_id", nullable = false)
