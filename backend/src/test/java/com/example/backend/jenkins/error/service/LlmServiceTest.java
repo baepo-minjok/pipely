@@ -1,6 +1,5 @@
 package com.example.backend.jenkins.error.service;
 
-import com.example.backend.service.HttpClientService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,7 +22,7 @@ class LlmServiceTest {
     private LlmService llmService;
 
     @Mock
-    private HttpClientService httpClientService;
+    private RestTemplate restTemplate;
 
     @BeforeEach
     void setUp() {
@@ -43,12 +42,16 @@ class LlmServiceTest {
                 )
         );
 
-        when(httpClientService.exchange(
+        Map<String, Object> mockChoice = Map.of("message", openAiResponse);
+        Map<String, Object> mockResponseBody = Map.of("choices", List.of(mockChoice));
+
+        ResponseEntity<Map> mockResponse = new ResponseEntity<>(mockResponseBody, HttpStatus.OK);
+
+        when(restTemplate.postForEntity(
                 eq("https://api.openai.com/v1/chat/completions"),
-                eq(HttpMethod.POST),
                 any(HttpEntity.class),
                 eq(Map.class)
-        )).thenReturn(openAiResponse);
+        )).thenReturn(mockResponse);
 
         // when
         String result = llmService.summarizeBuildLog(mockLog);

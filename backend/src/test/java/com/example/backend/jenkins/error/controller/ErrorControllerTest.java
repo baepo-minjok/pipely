@@ -15,6 +15,7 @@ import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.O
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.web.error.Error;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
@@ -64,7 +65,7 @@ class ErrorControllerTest {
         ErrorResponseDto.FailedBuild mockRes = ErrorResponseDto.FailedBuild.of("JobA", 1, "FAILURE", 1000L, 100L);
         when(errorService.getRecentBuildByJob(eq(jobId), any())).thenReturn(mockRes);
 
-        JobReqDto reqDto = new JobReqDto(jobId, "JobA");
+        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId, "JobA");
 
         mockMvc.perform(post("/api/jenkins-error/recent")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -82,7 +83,7 @@ class ErrorControllerTest {
         when(errorService.getBuildsForJobByUser(eq(jobId), any()))
                 .thenReturn(List.of(ErrorResponseDto.FailedBuild.of("JobA", 1, "FAILURE", 1000L, 100L)));
 
-        JobReqDto reqDto = new JobReqDto(jobId, "JobA");
+        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId, "JobA");
 
         mockMvc.perform(post("/api/jenkins-error/history")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -100,7 +101,7 @@ class ErrorControllerTest {
         when(errorService.getFailedBuildsForJobByUser(eq(jobId), any()))
                 .thenReturn(List.of(ErrorResponseDto.FailedBuild.of("JobA", 2, "FAILURE", 2000L, 200L)));
 
-        JobReqDto reqDto = new JobReqDto(jobId, "JobA");
+        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId, "JobA");
 
         mockMvc.perform(post("/api/jenkins-error/history/failed")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -118,7 +119,7 @@ class ErrorControllerTest {
         when(errorService.getJenkinsInfoByIdAndUser(eq(infoId), any())).thenReturn(null);
         when(errorService.getRecentBuilds(any())).thenReturn(List.of());
 
-        JenkinsReqDto reqDto = new JenkinsReqDto(infoId, "JobA");
+        ErrorRequestDto.JenkinsDto reqDto = new ErrorRequestDto.JenkinsDto(infoId, "JobA");
 
         mockMvc.perform(post("/api/jenkins-error/recent/all")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -135,7 +136,7 @@ class ErrorControllerTest {
         when(errorService.getJenkinsInfoByIdAndUser(eq(infoId), any())).thenReturn(null);
         when(errorService.getFailedBuilds(any())).thenReturn(List.of());
 
-        JenkinsReqDto reqDto = new JenkinsReqDto(infoId, "JobA");
+        ErrorRequestDto.JenkinsDto reqDto = new ErrorRequestDto.JenkinsDto(infoId, "JobA");
 
         mockMvc.perform(post("/api/jenkins-error/failed/all")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -156,7 +157,7 @@ class ErrorControllerTest {
                         .naturalResponse("에러는 ~ 때문입니다")
                         .build());
 
-        JobSummaryReqDto reqDto = JobSummaryReqDto.builder().jobId(jobId).buildNumber(1).build();
+        ErrorRequestDto.JobSummaryDto reqDto = ErrorRequestDto.JobSummaryDto.builder().jobId(jobId).buildNumber(1).build();
 
         mockMvc.perform(post("/api/jenkins-error/summary")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -173,7 +174,7 @@ class ErrorControllerTest {
     void retryWithRollbackByTest() throws Exception {
         doNothing().when(errorService).retryWithRollback(eq(jobId), any());
 
-        RetryReqDto reqDto = new RetryReqDto(jobId);
+        ErrorRequestDto.RetryDto reqDto = new ErrorRequestDto.RetryDto(jobId);
 
         mockMvc.perform(post("/api/jenkins-error/retry")
                         .contentType(MediaType.APPLICATION_JSON)

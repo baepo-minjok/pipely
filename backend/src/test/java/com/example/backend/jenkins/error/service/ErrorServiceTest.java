@@ -1,15 +1,9 @@
 package com.example.backend.jenkins.error.service;
 
 import com.example.backend.exception.CustomException;
-import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto;
-import com.example.backend.jenkins.error.model.dto.FailedBuildResDto;
-import com.example.backend.jenkins.error.model.dto.FailedBuildSummaryResDto;
-import com.example.backend.jenkins.error.model.dto.JobSummaryReqDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
-import com.example.backend.jenkins.job.model.FreeStyle;
-import com.example.backend.jenkins.job.model.FreeStyleHistory;
 import com.example.backend.jenkins.job.model.pipeline.Pipeline;
 import com.example.backend.jenkins.job.repository.FreeStyleHistoryRepository;
 import com.example.backend.jenkins.job.repository.PipelineHistoryRepository;
@@ -30,7 +24,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
-import java.nio.channels.Pipe;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -42,11 +35,7 @@ class ErrorServiceTest {
     @InjectMocks
     private ErrorService errorService;
 
-    @Mock private JenkinsInfoRepository jenkinsInfoRepository;
-    @Mock private FreeStyleJobService freeStyleJobService;
-    @Mock private FreeStyleHistoryRepository freeStyleHistoryRepository;
-    @Mock private PipelineHistoryRepository pipelineHistoryRepository;
-    @Mock private PipelineRepository pipelineRepository;
+
     @Mock private PipelineJobService pipelineJobService;
     @Mock private HttpClientService httpClientService;
     @Mock private LlmService llmService;
