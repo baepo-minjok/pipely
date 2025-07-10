@@ -1,23 +1,25 @@
 package com.example.backend.jenkins.error.service;
 
-import com.example.backend.service.HttpClientService;
-import lombok.RequiredArgsConstructor;
+
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class LlmService {
 
-    private final HttpClientService httpClientService;
+    private final RestTemplate restTemplate;
+
+    public LlmService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     @Value("${openai.api-key}")
     private String apiKey;
@@ -54,15 +56,14 @@ public class LlmService {
         );
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-        Map response = httpClientService.exchange(
+        ResponseEntity<Map> response = restTemplate.postForEntity(
                 "https://api.openai.com/v1/chat/completions",
-                HttpMethod.POST,
                 request,
                 Map.class
         );
 
         // 응답에서 실제 메시지 추출
-        return ((Map)((List)response.get("choices")).get(0)).get("message").toString();
+        return ((Map)((List)response.getBody().get("choices")).get(0)).get("message").toString();
     }
 }
 

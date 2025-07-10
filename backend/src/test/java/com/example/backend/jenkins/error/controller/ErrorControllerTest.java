@@ -14,6 +14,10 @@ import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2Clien
 import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.web.error.Error;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -44,8 +48,10 @@ class ErrorControllerTest {
     @Autowired
     ObjectMapper objectMapper;
 
-    @MockitoBean
-    ErrorService errorService;
+    @MockitoBean ErrorService errorService;
+    @MockitoBean private JwtAuthenticationFilter jwtAuthenticationFilter; // 필요 시
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
+
     Users testUser;
     UUID jobId = UUID.randomUUID();
     UUID infoId = UUID.randomUUID();
@@ -62,10 +68,10 @@ class ErrorControllerTest {
     @Test
     @DisplayName("최근 빌드 1건 조회")
     void getRecentBuildTest() throws Exception {
-        FailedBuildResDto mockRes = FailedBuildResDto.of("JobA", 1, "FAILURE", 1000L, 100L);
+        ErrorResponseDto.FailedBuild mockRes = ErrorResponseDto.FailedBuild.of("JobA", 1, "FAILURE", 1000L, 100L);
         when(errorService.getRecentBuildByJob(eq(jobId), any())).thenReturn(mockRes);
 
-        JobReqDto reqDto = new JobReqDto(jobId, "JobA");
+        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId, "JobA");
 
         mockMvc.perform(post("/api/jenkins-error/recent")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -81,9 +87,9 @@ class ErrorControllerTest {
     @DisplayName("전체 빌드 조회")
     void getBuildsByJobTest() throws Exception {
         when(errorService.getBuildsForJobByUser(eq(jobId), any()))
-                .thenReturn(List.of(FailedBuildResDto.of("JobA", 1, "FAILURE", 1000L, 100L)));
+                .thenReturn(List.of(ErrorResponseDto.FailedBuild.of("JobA", 1, "FAILURE", 1000L, 100L)));
 
-        JobReqDto reqDto = new JobReqDto(jobId, "JobA");
+        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId, "JobA");
 
         mockMvc.perform(post("/api/jenkins-error/history")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -99,9 +105,9 @@ class ErrorControllerTest {
     @DisplayName("실패한 빌드만 조회")
     void getFailedBuildsByJobTest() throws Exception {
         when(errorService.getFailedBuildsForJobByUser(eq(jobId), any()))
-                .thenReturn(List.of(FailedBuildResDto.of("JobA", 2, "FAILURE", 2000L, 200L)));
+                .thenReturn(List.of(ErrorResponseDto.FailedBuild.of("JobA", 2, "FAILURE", 2000L, 200L)));
 
-        JobReqDto reqDto = new JobReqDto(jobId, "JobA");
+        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId, "JobA");
 
         mockMvc.perform(post("/api/jenkins-error/history/failed")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -119,7 +125,7 @@ class ErrorControllerTest {
         when(errorService.getJenkinsInfoByIdAndUser(eq(infoId), any())).thenReturn(null);
         when(errorService.getRecentBuilds(any())).thenReturn(List.of());
 
-        JenkinsReqDto reqDto = new JenkinsReqDto(infoId, "JobA");
+        ErrorRequestDto.JenkinsDto reqDto = new ErrorRequestDto.JenkinsDto(infoId, "JobA");
 
         mockMvc.perform(post("/api/jenkins-error/recent/all")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -136,7 +142,7 @@ class ErrorControllerTest {
         when(errorService.getJenkinsInfoByIdAndUser(eq(infoId), any())).thenReturn(null);
         when(errorService.getFailedBuilds(any())).thenReturn(List.of());
 
-        JenkinsReqDto reqDto = new JenkinsReqDto(infoId, "JobA");
+        ErrorRequestDto.JenkinsDto reqDto = new ErrorRequestDto.JenkinsDto(infoId, "JobA");
 
         mockMvc.perform(post("/api/jenkins-error/failed/all")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -151,13 +157,13 @@ class ErrorControllerTest {
     @DisplayName("GPT 빌드 요약 응답")
     void getBuildSummaryWithSolutionTest() throws Exception {
         when(errorService.summarizeBuildByJob(any(), any()))
-                .thenReturn(FailedBuildSummaryResDto.builder()
+                .thenReturn(ErrorResponseDto.FailedBuildSummary.builder()
                         .jobName("JobA")
                         .buildNumber(1)
                         .naturalResponse("에러는 ~ 때문입니다")
                         .build());
 
-        JobSummaryReqDto reqDto = JobSummaryReqDto.builder().jobId(jobId).buildNumber(1).build();
+        ErrorRequestDto.JobSummaryDto reqDto = ErrorRequestDto.JobSummaryDto.builder().jobId(jobId).buildNumber(1).build();
 
         mockMvc.perform(post("/api/jenkins-error/summary")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -169,31 +175,15 @@ class ErrorControllerTest {
                 .andExpect(jsonPath("$.data.naturalResponse").value("에러는 ~ 때문입니다"));
     }
 
-    /*@Test
-    @DisplayName("FreeStyle 리트라이")
-    void retryWithRollbackTest() throws Exception {
-        doNothing().when(errorService).retryWithRollback(eq(jobId), any());
-
-        RetryReqDto reqDto = new RetryReqDto(jobId);
-
-        mockMvc.perform(post("/api/jenkins-error/retry")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reqDto))
-                        .with(SecurityMockMvcRequestPostProcessors.authentication(
-                                new UsernamePasswordAuthenticationToken(testUser, null)))
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("Retry with rollback triggered."));
-    }*/
 
     /*@Test
     @DisplayName("Pipeline 리트라이")
-    void retryWithRollbackByPipelineTest() throws Exception {
-        doNothing().when(errorService).retryWithRollbackByPipeline(eq(jobId), any());
+    void retryWithRollbackByTest() throws Exception {
+        doNothing().when(errorService).retryWithRollback(eq(jobId), any());
 
-        RetryReqDto reqDto = new RetryReqDto(jobId);
+        ErrorRequestDto.RetryDto reqDto = new ErrorRequestDto.RetryDto(jobId);
 
-        mockMvc.perform(post("/api/jenkins-error/retry/pipeline")
+        mockMvc.perform(post("/api/jenkins-error/retry")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reqDto))
                         .with(SecurityMockMvcRequestPostProcessors.authentication(
