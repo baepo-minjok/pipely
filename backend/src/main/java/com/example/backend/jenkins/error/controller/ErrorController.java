@@ -7,6 +7,7 @@ import com.example.backend.jenkins.error.service.ErrorService;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.repository.FreeStyleRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,7 +30,7 @@ public class ErrorController {
     @PostMapping("/recent")
     public ResponseEntity<BaseResponse<FailedBuildResDto>> getRecentBuild(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JobReqDto request
+            @RequestBody @Valid JobReqDto request
     ) {
         FailedBuildResDto build = errorService.getRecentBuildByJob(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success(build));
@@ -43,7 +44,7 @@ public class ErrorController {
     @PostMapping("/history")
     public ResponseEntity<BaseResponse<List<FailedBuildResDto>>> getBuildsByJob(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JobReqDto request
+            @RequestBody @Valid JobReqDto request
     ) {
         List<FailedBuildResDto> builds = errorService.getBuildsForJobByUser(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success(builds));
@@ -56,7 +57,7 @@ public class ErrorController {
     @PostMapping("/history/failed")
     public ResponseEntity<BaseResponse<List<FailedBuildResDto>>> getFailedBuildsByJob(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JobReqDto request
+            @RequestBody @Valid JobReqDto request
     ) {
         List<FailedBuildResDto> builds = errorService.getFailedBuildsForJobByUser(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success(builds));
@@ -70,7 +71,7 @@ public class ErrorController {
     @PostMapping("/recent/all")
     public ResponseEntity<BaseResponse<List<FailedBuildResDto>>> getAllRecentBuilds(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JenkinsReqDto request
+            @RequestBody @Valid JenkinsReqDto request
     ) {
         JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
         List<FailedBuildResDto> builds = errorService.getRecentBuilds(info);
@@ -84,7 +85,7 @@ public class ErrorController {
     @PostMapping("/failed/all")
     public ResponseEntity<BaseResponse<List<FailedBuildResDto>>> getFailedBuilds(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JenkinsReqDto request
+            @RequestBody @Valid JenkinsReqDto request
     ) {
         JenkinsInfo info = errorService.getJenkinsInfoByIdAndUser(request.getInfoId(), user.getId());
         List<FailedBuildResDto> builds = errorService.getFailedBuilds(info);
@@ -98,7 +99,7 @@ public class ErrorController {
     @PostMapping("/summary")
     public ResponseEntity<BaseResponse<FailedBuildSummaryResDto>> getBuildSummaryWithSolution(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody JobSummaryReqDto request
+            @RequestBody @Valid JobSummaryReqDto request
     ) {
         FailedBuildSummaryResDto builds = errorService.summarizeBuildByJob(request, user.getId());
         return ResponseEntity.ok(BaseResponse.success(builds));
@@ -111,7 +112,7 @@ public class ErrorController {
     @PostMapping("/retry")
     public ResponseEntity<BaseResponse<String>> retryWithRollback(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody RetryReqDto request
+            @RequestBody @Valid RetryReqDto request
     ) {
         errorService.retryWithRollback(request.getJobId(), user.getId());
         return ResponseEntity.ok(BaseResponse.success("Retry with rollback triggered."));
