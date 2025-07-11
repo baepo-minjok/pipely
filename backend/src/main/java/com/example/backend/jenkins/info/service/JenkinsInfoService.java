@@ -141,7 +141,7 @@ public class JenkinsInfoService {
     }
 
     public JenkinsInfo getJenkinsInfo(UUID infoId) {
-        return jenkinsInfoRepository.findById(infoId)
+        return jenkinsInfoRepository.findWithUserById(infoId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
     }
 

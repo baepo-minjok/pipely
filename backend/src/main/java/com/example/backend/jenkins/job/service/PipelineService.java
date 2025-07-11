@@ -95,7 +95,7 @@ public class PipelineService {
     }
 
     public Pipeline getPipelineById(UUID id) {
-        return pipelineRepository.findById(id)
+        return pipelineRepository.findWithInfoAndScriptById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
     }
 
@@ -117,12 +117,12 @@ public class PipelineService {
     }
 
     public List<ResponseDto.LightJobDto> getLightJobs(UUID jenkinsInfoId) {
-        return pipelineRepository.findAllByJenkinsInfoIdAndIsDeletedFalse(jenkinsInfoId)
+        return pipelineRepository.findActiveWithScriptByJenkinsInfoId(jenkinsInfoId)
                 .stream().map(ResponseDto::entityToLightJobDto).toList();
     }
 
     public List<ResponseDto.LightJobDto> getDeletedLightJobs(UUID jenkinsInfoId) {
-        return pipelineRepository.findAllByJenkinsInfoIdAndIsDeletedTrue(jenkinsInfoId)
+        return pipelineRepository.findDeletedWithScriptByJenkinsInfoId(jenkinsInfoId)
                 .stream().map(ResponseDto::entityToLightJobDto).toList();
     }
 
@@ -134,7 +134,8 @@ public class PipelineService {
     // Pipeline 권한 확인하는 AOP
     public boolean isOwner(Users user, UUID pipelineId) {
 
-        Pipeline pipeline = getPipelineById(pipelineId);
+        Pipeline pipeline = pipelineRepository.findWithInfoAndScriptAndUserById(pipelineId)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
         JenkinsInfo info = pipeline.getJenkinsInfo();
         UUID userId = user.getId();
         UUID confirmUserId = info.getUser().getId();
