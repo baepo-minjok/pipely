@@ -38,14 +38,14 @@ public class BuildController {
         buildService.StageJenkinsBuild(dto);
         return ResponseEntity.ok(BaseResponse.success("특정 Steps 실행"));
     }
-
-    @Operation(summary = "스테이지 설정", description = "Jenkins Job의 스테이지 정보를 config.xml에 설정합니다.")
-    @PostMapping("/stagesetting")
-    public ResponseEntity<BaseResponse<String>> triggerSetting(
-            @RequestBody BuildRequestDto.StageSettingRequestDto dto) {
-        buildService.stagePipeline1(dto);
-        return ResponseEntity.ok(BaseResponse.success("Steps 설정 완료"));
-    }
+//
+//    @Operation(summary = "스테이지 설정", description = "Jenkins Job의 스테이지 정보를 config.xml에 설정합니다.")
+//    @PostMapping("/stagesetting")
+//    public ResponseEntity<BaseResponse<String>> triggerSetting(
+//            @RequestBody BuildRequestDto.StageSettingRequestDto dto) {
+//        buildService.stagePipeline1(dto);
+//        return ResponseEntity.ok(BaseResponse.success("Steps 설정 완료"));
+//    }
 
 
     @Operation(summary = "빌드 이력 조회", description = "특정 Job의 빌드 이력을 조회합니다.")
@@ -63,9 +63,9 @@ public class BuildController {
     }
 
     @Operation(summary = "빌드 실시간 로그 조회", description = "빌드 로그를 실시간으로 조회합니다.")
-    @PostMapping(value = "/streamlog")
+    @GetMapping(value = "/streamlog")
     public ResponseEntity<BaseResponse<BuildResponseDto.BuildStreamLogDto>> streamLog(
-            @RequestBody BuildRequestDto.GetLogRequestDto dto) {
-        return ResponseEntity.ok(BaseResponse.success(buildService.getStreamLog(dto)));
+            @RequestParam UUID pipeLine) {
+        return ResponseEntity.ok(BaseResponse.success(buildService.getStreamLog(pipeLine)));
     }
 }
