@@ -99,20 +99,5 @@ public class CronExpressionUtil {
         throw new IllegalArgumentException("시간을 파싱할 수 없습니다: " + input);
     }
 
-    // 테스트
-    public static void main(String[] args) {
-        String[] samples = {
-                "매일 9:30",
-                "매주 3:00",
-                "매주 월,수, 목, 금 오후 12시 35분"
-        };
-        for (String s : samples) {
-            try {
-                System.out.printf("%s -> %s%n", s, toCron(s));
-            } catch (Exception e) {
-                System.err.printf("파싱 실패: %s (%s)%n", s, e.getMessage());
-            }
-        }
-    }
 }
 
