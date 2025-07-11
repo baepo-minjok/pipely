@@ -1,6 +1,8 @@
 package com.example.backend.jenkins.job.controller;
 
+import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
+import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.service.PipelineService;
@@ -11,6 +13,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +27,7 @@ import java.util.UUID;
 public class JobController {
 
     private final PipelineService pipelineService;
+    private final JenkinsInfoService jenkinsInfoService;
 
     @Operation(
             summary = "새 Job 생성",
@@ -30,12 +35,14 @@ public class JobController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "FreeStyle Job 생성 성공"),
-            @ApiResponse(responseCode = "400", description = "Dto 검증 오류"),
+            @ApiResponse(responseCode = "400", description = "Dto 검증 오류 혹은 이미 존재하는 이름입니다."),
             @ApiResponse(responseCode = "404", description = "잘못된 JenkinsInfo Id"),
             @ApiResponse(responseCode = "500", description = "Jenkins 서버 문제로 인한 실패")
     })
+    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #requestDto.infoId)")
     @PostMapping("/create")
     public ResponseEntity<BaseResponse<String>> create(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid RequestDto.CreateDto requestDto
     ) {
         pipelineService.createJob(requestDto);
@@ -53,8 +60,10 @@ public class JobController {
             @ApiResponse(responseCode = "404", description = "잘못된 job Id"),
             @ApiResponse(responseCode = "500", description = "Jenkins 서버 문제로 인한 실패")
     })
+    @PreAuthorize("@pipelineService.isOwner(#user, #requestDto.pipelineId)")
     @PutMapping
     public ResponseEntity<BaseResponse<String>> update(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid RequestDto.UpdateDto requestDto
     ) {
 
@@ -72,8 +81,10 @@ public class JobController {
             @ApiResponse(responseCode = "200", description = "Job 삭제 성공"),
             @ApiResponse(responseCode = "404", description = "잘못된 Job Id")
     })
+    @PreAuthorize("@pipelineService.isOwner(#user, #jobId)")
     @DeleteMapping
     public ResponseEntity<BaseResponse<String>> delete(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @Parameter(description = "삭제할 Job의 UUID", required = true)
             @RequestParam UUID jobId
     ) {
@@ -90,8 +101,10 @@ public class JobController {
             @ApiResponse(responseCode = "200", description = "Job 삭제 성공"),
             @ApiResponse(responseCode = "404", description = "잘못된 Job Id")
     })
+    @PreAuthorize("@pipelineService.isOwner(#user, #jobId)")
     @DeleteMapping("/hard")
     public ResponseEntity<BaseResponse<String>> hardDelete(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @Parameter(description = "삭제할 Job의 UUID", required = true)
             @RequestParam UUID jobId
     ) {
@@ -100,8 +113,10 @@ public class JobController {
                 .body(BaseResponse.success("delete freestyle success"));
     }
 
+    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #jenkinsInfoId)")
     @GetMapping
     public ResponseEntity<BaseResponse<List<ResponseDto.LightJobDto>>> getAll(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @Parameter(description = "조회할 jenkins info의 UUID", required = true)
             @RequestParam UUID jenkinsInfoId
     ) {
@@ -109,8 +124,10 @@ public class JobController {
                 .body(BaseResponse.success(pipelineService.getLightJobs(jenkinsInfoId)));
     }
 
+    @PreAuthorize("@pipelineService.isOwner(#user, #jobId)")
     @GetMapping("/detail")
     public ResponseEntity<BaseResponse<ResponseDto.DetailJobDto>> getDetail(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @Parameter(description = "조회할 job의 UUID", required = true)
             @RequestParam UUID jobId
     ) {
@@ -118,8 +135,10 @@ public class JobController {
                 .body(BaseResponse.success(pipelineService.getDetailJob(jobId)));
     }
 
+    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #jenkinsInfoId)")
     @GetMapping("/deleted")
     public ResponseEntity<BaseResponse<List<ResponseDto.LightJobDto>>> getAllDeleted(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @Parameter(description = "조회할 jenkins info의 UUID", required = true)
             @RequestParam UUID jenkinsInfoId
     ) {

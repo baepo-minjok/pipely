@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -21,12 +20,9 @@ public class ScriptService {
     private final ScriptRepository scriptRepository;
 
     public Script getScriptById(UUID scriptId) {
-        Optional<Script> optionalScript = scriptRepository.findById(scriptId);
-        Script script = null;
-        if (optionalScript.isPresent()) {
-            script = optionalScript.get();
-        }
-        return script;
+
+        return scriptRepository.findById(scriptId)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND));
     }
 
     /**

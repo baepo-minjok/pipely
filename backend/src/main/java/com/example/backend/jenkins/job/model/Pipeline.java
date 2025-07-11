@@ -7,18 +7,20 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "pipeline_job",
-        uniqueConstraints = @UniqueConstraint(name = "uq_pipeline_job", columnNames = {"jenkins_info_id", "job_name"}))
+@Table(name = "pipeline",
+        uniqueConstraints = @UniqueConstraint(name = "uq_pipeline", columnNames = {"jenkins_info_id", "name"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@DynamicInsert
 public class Pipeline {
 
     @Id
@@ -53,8 +55,8 @@ public class Pipeline {
     @Lob
     private String config;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JoinColumn(name = "script_id", nullable = false)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "script_id", nullable = true)
     private Script script;
 
     @ManyToOne(fetch = FetchType.LAZY)

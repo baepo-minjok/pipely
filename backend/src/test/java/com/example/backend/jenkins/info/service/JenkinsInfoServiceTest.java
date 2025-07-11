@@ -190,7 +190,7 @@ class JenkinsInfoServiceTest {
     @Test
     @DisplayName("getJenkinsInfo: 존재하지 않으면 예외")
     void getJenkinsInfo_notFound() {
-        when(jenkinsInfoRepository.findById(infoId)).thenReturn(Optional.empty());
+        when(jenkinsInfoRepository.findWithUserById(infoId)).thenReturn(Optional.empty());
 
         assertThrows(CustomException.class,
                 () -> jenkinsInfoService.getJenkinsInfo(infoId));
@@ -199,7 +199,7 @@ class JenkinsInfoServiceTest {
     @Test
     @DisplayName("getJenkinsInfo: 존재 시 리턴")
     void getJenkinsInfo_success() {
-        when(jenkinsInfoRepository.findById(infoId)).thenReturn(Optional.of(existingInfo));
+        when(jenkinsInfoRepository.findWithUserById(infoId)).thenReturn(Optional.of(existingInfo));
 
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(infoId);
 
