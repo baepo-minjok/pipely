@@ -35,6 +35,9 @@ public class ResponseDto {
     }
 
     public static LightScriptDto entityToLightScriptDto(Script script) {
+        if (script == null) {
+            return null;
+        }
         return LightScriptDto.builder()
                 .scriptId(script.getId())
                 .githubUrl(script.getGithubUrl())
@@ -86,16 +89,8 @@ public class ResponseDto {
         private String name;
         // job 설명
         private String description;
-        // 연동된 git 주소
-        private String githubUrl;
-        // clone할 branch 이름
-        private String branch;
         // git webhook trigger 설정 여부
         private Boolean trigger;
-        // Build Stage가 선택되었는지 여부
-        private Boolean isBuildSelected;
-        // Test Stage가 선택되었는지 여부
-        private Boolean isTestSelected;
         // 생성 시간
         private LocalDateTime createdAt;
         // 수정 시간

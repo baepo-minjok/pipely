@@ -141,7 +141,14 @@ public class JenkinsInfoService {
     }
 
     public JenkinsInfo getJenkinsInfo(UUID infoId) {
-        return jenkinsInfoRepository.findById(infoId)
+        return jenkinsInfoRepository.findWithUserById(infoId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
+    }
+
+    public boolean isOwner(Users user, UUID infoId) {
+        JenkinsInfo info = getJenkinsInfo(infoId);
+        UUID userId = user.getId();
+        UUID confirmUserId = info.getUser().getId();
+        return userId.equals(confirmUserId);
     }
 }
