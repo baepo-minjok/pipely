@@ -25,10 +25,10 @@ public class BuildController {
 
     @Operation(summary = "Job의 스테이지 목록 조회", description = "특정 Job에 설정된 Jenkins 스테이지 목록을 조회합니다.")
     @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = BuildResponseDto.Stage.class)))
-    @PostMapping("/stage")
+    @GetMapping("/stage")
     public ResponseEntity<BaseResponse<BuildResponseDto.Stage>> getScript(
-            @RequestBody BuildRequestDto.GetJobNameJobRequestDto dto) {
-        return ResponseEntity.ok(BaseResponse.success(buildService.getJobPipelineStage(dto)));
+            @RequestParam UUID pipeLine) {
+        return ResponseEntity.ok(BaseResponse.success(buildService.getJobPipelineStage(pipeLine)));
     }
 
     @Operation(summary = "특정 스테이지 실행", description = "파라미터에 해당하는 Jenkins 스테이지만 실행합니다.")
@@ -47,21 +47,6 @@ public class BuildController {
         return ResponseEntity.ok(BaseResponse.success("Steps 설정 완료"));
     }
 
-    @Operation(summary = "Job 스케줄 조회", description = "Job 이름과 pipeline ID로 스케줄 정보를 조회합니다.")
-    @GetMapping("/schedule")
-    public ResponseEntity<BaseResponse<String>> scheduleJob(
-            @Parameter(description = "Job 이름") @RequestParam String jobName,
-            @Parameter(description = "Pipeline UUID") @RequestParam UUID pipelineId) {
-        return ResponseEntity.ok(BaseResponse.success(buildService.getSchedule(jobName, pipelineId)));
-    }
-
-    @Operation(summary = "Job 스케줄 설정", description = "CRON 표현식을 사용하여 Jenkins Job의 스케줄을 설정합니다.")
-    @PostMapping("/setSchedule")
-    public ResponseEntity<BaseResponse<String>> getscheduleJob(
-            @RequestBody BuildRequestDto.SetScheduleJob req) {
-        buildService.setSchedule(req);
-        return ResponseEntity.ok(BaseResponse.success("스케줄 설정이 완료되었습니다."));
-    }
 
     @Operation(summary = "빌드 이력 조회", description = "특정 Job의 빌드 이력을 조회합니다.")
     @PostMapping("/builds")
