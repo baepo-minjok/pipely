@@ -13,22 +13,18 @@ pipeline {
     stage('Build') {
       steps {
         dir('{{#directory}}{{directory}}{{/directory}}{{^directory}}.{{/directory}}') {
-          {{#gradle}}
+          {{#Gradle}}
           sh 'chmod +x gradlew'
           sh './gradlew clean build -x test'
-          {{/gradle}}
-          {{#maven}}
+          {{/Gradle}}
+          {{#Maven}}
           sh 'chmod +x mvn'
           sh 'mvn clean install'
-          {{/maven}}
-          {{#maven_wrapper}}
+          {{/Maven}}
+          {{#Maven_Wrapper}}
           sh 'chmod +x mvnw'
           sh './mvnw clean install'
-          {{/maven_wrapper}}
-          {{#npm}}
-          sh 'npm ci'
-          sh 'npm run build'
-          {{/npm}}
+          {{/Maven_Wrapper}}
          }
        }
      }
@@ -37,17 +33,15 @@ pipeline {
     stage('Test') {
       steps {
         dir('{{#directory}}{{directory}}{{/directory}}{{^directory}}.{{/directory}}') {
-          {{#gradle}}
+          {{#Gradle}}
           sh './gradlew test'
-          {{/gradle}}
-          {{#maven}}
+          {{/Gradle}}
+          {{#Maven}}
           sh 'mvn test'
-          {{/maven}}
-          {{#maven_wrapper}}
+          {{/Maven}}
+          {{#Maven_Wrapper}}
           sh './mvnw test'
-          {{/maven_wrapper}}
-          {{#npm}}
-          {{/npm}}
+          {{/Maven_Wrapper}}
         }
       }
     }

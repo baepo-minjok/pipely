@@ -5,30 +5,52 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.util.CronExpressionUtil;
+import com.example.backend.util.JenkinsStageUtil;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
 import lombok.RequiredArgsConstructor;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.StringWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Comparator;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ConfigService {
 
+    private final RestTemplate restTemplate;
     private final MustacheFactory mf;
+
+    public static String[] parseOwnerAndRepo(String gitUrl) {
+        try {
+            URI uri = new URI(gitUrl);
+            String host = uri.getHost();
+            if (!"github.com".equalsIgnoreCase(host)) {
+                throw new IllegalArgumentException("GitHub URL이 아닙니다: " + gitUrl);
+            }
+            String path = uri.getPath();     // "/ownerName/repoName" 또는 "/ownerName/repoName.git"
+            String[] segments = path.split("/");
+            if (segments.length < 3) {
+                throw new IllegalArgumentException("리포지토리 경로가 올바르지 않습니다: " + path);
+            }
+            String owner = segments[1];
+            String repo = segments[2].endsWith(".git")
+                    ? segments[2].substring(0, segments[2].length() - 4)
+                    : segments[2];
+            return new String[]{owner, repo};
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("잘못된 URL 형식: " + gitUrl, e);
+        }
+    }
 
     // config.xml 파일 템플릿 생성하는 메서드
     public String createConfig(Map<String, Object> context) {
@@ -105,9 +127,11 @@ public class ConfigService {
 
             String githubUrl = script.getGithubUrl() == null ? "" : script.getGithubUrl();
             String sc = script.getScript() == null ? "" : script.getScript();
+            String newSc = JenkinsStageUtil.injectBooleanParams(sc);
+            log.info(newSc);
 
             context.put("githubUrl", githubUrl);
-            context.put("script", sc);
+            context.put("script", newSc);
         }
 
         if (createDto.getSchedule() != null) {
@@ -122,69 +146,99 @@ public class ConfigService {
     }
 
     public Map<String, String> findBuildTool(String repoUrl) {
-        String destDir = "cloned_repo";
-        Path destPath = Paths.get(destDir);
+        String[] parts = parseOwnerAndRepo(repoUrl);
+        String owner = parts[0], repo = parts[1];
 
-        String buildTool;
-        Path toolDir;
-        try {
-            if (Files.exists(destPath)) {
-                System.out.println("Deleting existing directory: " + destPath.toAbsolutePath());
-                Files.walk(destPath)
-                        .sorted(Comparator.reverseOrder())
-                        .map(Path::toFile)
-                        .forEach(File::delete);
-            }
-
-            System.out.println("Cloning " + repoUrl + "...");
-            Git.cloneRepository()
-                    .setURI(repoUrl)
-                    .setDirectory(new File(destDir))
-                    .call();
-
-            Optional<Path> gradlewPath;
-            Optional<Path> pomPath;
-            Optional<Path> mvnwPath;
-            Stream<Path> stream = Files.walk(destPath);
-            gradlewPath = stream.filter(p -> p.getFileName().toString().equals("gradlew")
-                            || p.getFileName().toString().equalsIgnoreCase("gradlew.bat"))
-                    .findFirst();
-
-            stream = Files.walk(destPath);
-            pomPath = stream.filter(p -> p.getFileName().toString().equalsIgnoreCase("pom.xml"))
-                    .findFirst();
-
-            stream = Files.walk(destPath);
-            mvnwPath = stream.filter(p -> p.getFileName().toString().equalsIgnoreCase("mvnw")
-                            || p.getFileName().toString().equalsIgnoreCase("mvnw.cmd"))
-                    .findFirst();
-            if (gradlewPath.isPresent()) {
-                buildTool = "gradle";
-                toolDir = gradlewPath.get().getParent();
-            } else if (pomPath.isPresent() && mvnwPath.isPresent()) {
-                buildTool = "maven_wrapper";
-                toolDir = mvnwPath.get().getParent();
-            } else if (pomPath.isPresent()) {
-                buildTool = "maven";
-                toolDir = pomPath.get().getParent();
-            } else {
-                // 지원하지 않는 build tool 사용중
-                throw new CustomException(ErrorCode.JENKINS_NOT_SUPPORTED_TOOL);
-            }
-        } catch (GitAPIException | IOException e) {
+        // 1) 리포지토리 정보로 default_branch 조회
+        String repoApi = String.format("https://api.github.com/repos/%s/%s", owner, repo);
+        ResponseEntity<JsonNode> repoResp = restTemplate.getForEntity(repoApi, JsonNode.class);
+        if (!repoResp.getStatusCode().is2xxSuccessful() || repoResp.getBody() == null) {
             throw new CustomException(ErrorCode.GIT_CLONE_FAILED);
         }
+        String defaultBranch = repoResp.getBody()
+                .path("default_branch")
+                .asText("main");
 
-        String directory = destPath.relativize(toolDir).toString().replace('\\', '/');
-        if (directory.isEmpty()) {
-            directory = ".";
+        // 2) Git Tree API 호출 (recursive=1)
+        String treeApi = String.format(
+                "https://api.github.com/repos/%s/%s/git/trees/%s?recursive=1",
+                owner, repo, defaultBranch
+        );
+        ResponseEntity<JsonNode> treeResp = restTemplate.getForEntity(treeApi, JsonNode.class);
+        JsonNode tree = Optional.ofNullable(treeResp.getBody())
+                .map(b -> b.get("tree"))
+                .orElseThrow(() -> new CustomException(ErrorCode.GIT_CLONE_FAILED));
+
+        // 3) path별로 매핑
+        String buildTool = "Unknown";
+        String scriptDir = ".";  // 디폴트: 루트
+        boolean hasPom = false, hasMvnw = false;
+        String pomDir = null, mvnwDir = null;
+
+        for (JsonNode node : tree) {
+            String path = node.path("path").asText();
+            if (path.endsWith("/gradlew") || path.endsWith("/gradlew.bat")) {
+                buildTool = "Gradle";
+                scriptDir = parentDir(path);
+                break;
+            }
+            if (path.endsWith("pom.xml")) {
+                hasPom = true;
+                pomDir = parentDir(path);
+            }
+            if (path.endsWith("/mvnw") || path.endsWith("/mvnw.cmd")) {
+                hasMvnw = true;
+                mvnwDir = parentDir(path);
+            }
+            if (path.endsWith("build.gradle") || path.endsWith("build.gradle.kts")) {
+                // Gradle 스크립트만 있는 경우
+                if (!"Gradle".equals(buildTool)) {
+                    buildTool = "Gradle";
+                    scriptDir = parentDir(path);
+                }
+            }
+            if (path.endsWith("build.sbt") && "Unknown".equals(buildTool)) {
+                buildTool = "SBT";
+                scriptDir = parentDir(path);
+            }
+            if ((path.equals("WORKSPACE") || path.equals("BUILD") || path.equals("BUILD.bazel"))
+                    && "Unknown".equals(buildTool)) {
+                buildTool = "Bazel";
+                scriptDir = parentDir(path);
+            }
+            if (path.endsWith("build.xml") && "Unknown".equals(buildTool)) {
+                buildTool = "Ant";
+                scriptDir = parentDir(path);
+            }
         }
 
+        // pom + mvnw 조합이면 Maven Wrapper
+        if ("Unknown".equals(buildTool) && hasPom) {
+            if (hasMvnw) {
+                buildTool = "Maven_Wrapper";
+                scriptDir = mvnwDir != null ? mvnwDir : pomDir;
+            } else {
+                buildTool = "Maven";
+                scriptDir = pomDir;
+            }
+        }
 
-        Map<String, String> map = new HashMap<>();
-        map.put("buildTool", buildTool);
-        map.put("directory", directory);
+        // 최종 디렉터리 보정
+        if (scriptDir == null || scriptDir.isEmpty()) {
+            scriptDir = ".";
+        }
 
-        return map;
+        Map<String, String> result = new HashMap<>();
+        result.put("buildTool", buildTool);
+        result.put("directory", scriptDir.replace('\\', '/'));
+        return result;
+    }
+
+    /**
+     * path가 "foo/bar/baz.ext" 면 "foo/bar" 반환, 단 루트면 "."
+     */
+    private String parentDir(String path) {
+        int idx = path.lastIndexOf('/');
+        return idx > 0 ? path.substring(0, idx) : ".";
     }
 }
