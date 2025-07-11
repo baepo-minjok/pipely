@@ -17,6 +17,24 @@ const cicdItems = ref([
   },
 ]);
 
+const cicdList = ref([
+  {
+    idx: 1,
+    name: '젠킨스 01',
+    url: 'https://jenkins.io/num1',
+  },
+  {
+    idx: 2,
+    name: '젠킨스 02',
+    url: 'https://jenkins.io/num2',
+  },
+  {
+    idx: 3,
+    name: '젠킨스 03',
+    url: 'https://jenkins.io/num3',
+  },
+]);
+
 const selectedItem = ref(cicdItems.value[0]);
 
 const toggleDropdown = () => {
@@ -84,17 +102,9 @@ const selectItem = (item) => {
         />
       </div>
       <div class="cicd_card_list">
-        <div class="cicd_card">
-          <p>젠킨스 01</p>
-          <p>https://jenkins.io/abcdefghehe</p>
-        </div>
-        <div class="cicd_card">
-          <p>젠킨스 01</p>
-          <p>https://jenkins.io/abcdefghehe</p>
-        </div>
-        <div class="cicd_card">
-          <p>젠킨스 01</p>
-          <p>https://jenkins.io/abcdefghehe</p>
+        <div v-for="cicd in cicdList" class="cicd_card" @click="router.push(`/mypage/cicd/${cicd.idx}`)">
+          <p>{{ cicd.name }}</p>
+          <p>{{ cicd.url }}</p>
         </div>
       </div>
     </div>

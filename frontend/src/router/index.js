@@ -5,6 +5,7 @@ import FindPassword from '../pages/users/FindPassword.vue';
 import Main from '../pages/Main.vue';
 import Mypage from '../pages/users/Mypage.vue';
 import CreateCicdInfo from '../pages/users/CreateCicdInfo.vue';
+import CicdInfoDetail from '../pages/users/CicdInfoDetail.vue';
 
 const routes = [
   { path: '/', component: Main },
@@ -13,6 +14,7 @@ const routes = [
   { path: '/user/find/password', component: FindPassword },
   { path: '/mypage', component: Mypage },
   { path: '/mypage/cicd/create', component: CreateCicdInfo },
+  { path: '/mypage/cicd/:id', component: CicdInfoDetail },
 ];
 
 const router = createRouter({
