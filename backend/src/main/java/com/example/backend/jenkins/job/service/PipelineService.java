@@ -13,6 +13,7 @@ import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -30,6 +31,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PipelineService {
 
+    private final ApplicationEventPublisher publisher;
     private final HttpClientService httpClientService;
     private final JenkinsInfoService jenkinsInfoService;
     private final ConfigService configService;
@@ -43,26 +45,30 @@ public class PipelineService {
         if (pipelineRepository.findByJenkinsInfoIdAndName(requestDto.getInfoId(), requestDto.getName()).isPresent()) {
             throw new CustomException(ErrorCode.JENKINS_JOB_EXIST);
         }
-        Script script = null;
-        if (requestDto.getScriptId() != null) {
-            script = scriptService.getScriptById(requestDto.getScriptId());
-        }
+        Script script = requestDto.getScriptId() != null ? scriptService.getScriptById(requestDto.getScriptId()) : null;
+
         // jenkins info 확인
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
 
 
-        String config = configService.createConfig(configService.buildConfigContext(requestDto, script));
+        String config = configService.createConfig(
+                configService.buildConfigContext(requestDto, script));
+
+        Pipeline pipeline = RequestDto.toEntity(requestDto,
+                info,
+                script,
+                config);
 
         // job 저장
-        Pipeline pipeline = RequestDto.toEntity(requestDto, info, script, config);
-        pipelineRepository.save(pipeline);
+        Pipeline saved = pipelineRepository.save(pipeline);
 
         info.getPipelineList().add(pipeline);
-
-        // 새로운 job 생성 요청
+        
+        publisher.publishEvent(new JobCreatedEvent(saved.getId(), saved.getConfig()));
+        /*// 새로운 job 생성 요청
         String jenkinsUrl = info.getUri() + "/createItem?name=" + requestDto.getName();
         HttpEntity<String> requestEntity = new HttpEntity<>(config, httpClientService.buildHeaders(info, new MediaType("application", "xml", StandardCharsets.UTF_8)));
-        httpClientService.exchange(jenkinsUrl, HttpMethod.POST, requestEntity, String.class);
+        httpClientService.exchange(jenkinsUrl, HttpMethod.POST, requestEntity, String.class);*/
     }
 
     @Transactional

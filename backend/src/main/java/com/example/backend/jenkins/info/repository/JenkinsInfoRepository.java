@@ -18,7 +18,7 @@ public interface JenkinsInfoRepository extends JpaRepository<JenkinsInfo, UUID> 
                 SELECT ji
                 FROM JenkinsInfo ji
                 LEFT JOIN ji.user u
-                WHERE ji.id = : id
+                WHERE ji.id = :id
             """)
     Optional<JenkinsInfo> findWithUserById(@Param("id") UUID id);
 
