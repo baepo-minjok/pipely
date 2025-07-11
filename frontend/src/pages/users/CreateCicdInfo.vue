@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const openDropdown = ref(false);
 const cicdItems = ref([
   {
@@ -11,14 +13,23 @@ const cicdItems = ref([
 
 const selectedItem = ref(cicdItems.value[0]);
 
-function toggleDropdown() {
+const toggleDropdown = () => {
   openDropdown.value = !openDropdown.value;
-}
+};
 
-function selectItem(item) {
+const selectItem = (item) => {
   selectedItem.value = item;
   openDropdown.value = false;
-}
+};
+
+const handleCancelClick = () => {
+  router.back();
+};
+
+const handleCreateClick = (event) => {
+  event.preventDefault();
+  console.log('create');
+};
 </script>
 
 <template>
@@ -57,8 +68,8 @@ function selectItem(item) {
         <input type="text" placeholder="ID를 입력해주세요." class="input" />
       </div>
       <div class="btn_box">
-        <button class="cancel_btn" type="button">취소</button>
-        <button class="create_btn" type="submit">생성</button>
+        <button class="cancel_btn" type="button" @click="handleCancelClick">취소</button>
+        <button class="create_btn" type="submit" @click="handleCreateClick">생성</button>
       </div>
     </form>
   </div>
@@ -71,14 +82,14 @@ function selectItem(item) {
 }
 
 .container > h1 {
-  font-size: 22px;
+  font-size: 28px;
 }
 
 .line {
   width: 100%;
   height: 1px;
   background-color: var(--gray200);
-  margin: 18px 0;
+  margin: 18px 0 30px;
 }
 
 /* 드롭다운 */
