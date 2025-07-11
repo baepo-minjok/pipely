@@ -1,5 +1,6 @@
 package com.example.backend.jenkins.job.service;
 
+import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
@@ -11,6 +12,7 @@ import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PipelineService {
@@ -40,22 +43,26 @@ public class PipelineService {
         if (pipelineRepository.findByJenkinsInfoIdAndName(requestDto.getInfoId(), requestDto.getName()).isPresent()) {
             throw new CustomException(ErrorCode.JENKINS_JOB_EXIST);
         }
-
-        Script script = scriptService.getScriptById(requestDto.getScriptId());
+        Script script = null;
+        if (requestDto.getScriptId() != null) {
+            script = scriptService.getScriptById(requestDto.getScriptId());
+        }
         // jenkins info 확인
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
 
-        // 새로운 job 생성 요청
-        String jenkinsUrl = info.getUri() + "/createItem?name=" + requestDto.getName();
+
         String config = configService.createConfig(configService.buildConfigContext(requestDto, script));
-        HttpEntity<String> requestEntity = new HttpEntity<>(config, httpClientService.buildHeaders(info, new MediaType("application", "xml", StandardCharsets.UTF_8)));
-        httpClientService.exchange(jenkinsUrl, HttpMethod.POST, requestEntity, String.class);
 
         // job 저장
         Pipeline pipeline = RequestDto.toEntity(requestDto, info, script, config);
         pipelineRepository.save(pipeline);
 
         info.getPipelineList().add(pipeline);
+
+        // 새로운 job 생성 요청
+        String jenkinsUrl = info.getUri() + "/createItem?name=" + requestDto.getName();
+        HttpEntity<String> requestEntity = new HttpEntity<>(config, httpClientService.buildHeaders(info, new MediaType("application", "xml", StandardCharsets.UTF_8)));
+        httpClientService.exchange(jenkinsUrl, HttpMethod.POST, requestEntity, String.class);
     }
 
     @Transactional
@@ -88,7 +95,7 @@ public class PipelineService {
     }
 
     public Pipeline getPipelineById(UUID id) {
-        return pipelineRepository.findPipelineById(id)
+        return pipelineRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
     }
 
@@ -124,4 +131,15 @@ public class PipelineService {
         return ResponseDto.entityToDetailJobDto(getPipelineById(jobId));
     }
 
+    // Pipeline 권한 확인하는 AOP
+    public boolean isOwner(Users user, UUID pipelineId) {
+
+        Pipeline pipeline = getPipelineById(pipelineId);
+        JenkinsInfo info = pipeline.getJenkinsInfo();
+        UUID userId = user.getId();
+        UUID confirmUserId = info.getUser().getId();
+        log.info(user.getId().toString());
+        log.info(info.getUser().getId().toString());
+        return userId.equals(confirmUserId);
+    }
 }

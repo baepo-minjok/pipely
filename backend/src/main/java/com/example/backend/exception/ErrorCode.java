@@ -19,6 +19,7 @@ public enum ErrorCode {
     MISSING_PARAMETER(HttpStatus.BAD_REQUEST, "MISSING_PARAMETER_400", "파라미터가 존재하지 않습니다."),
     IOEXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, "IOEXCEPTION_500", "파일 처리 오류입니다."),
     GIT_CLONE_FAILED(HttpStatus.BAD_REQUEST, "GIT_CLONE_FAILED_400", "Git clone에 실패했습니다."),
+    METHOD_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "METHOD_UNAUTHORIZED_401", "해당 경로에 대한 권한이 없습니다."),
     /**
      * Cookie 관련 ErrorCode
      */
