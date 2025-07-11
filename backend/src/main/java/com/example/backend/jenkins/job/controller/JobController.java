@@ -30,7 +30,7 @@ public class JobController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "FreeStyle Job 생성 성공"),
-            @ApiResponse(responseCode = "400", description = "Dto 검증 오류"),
+            @ApiResponse(responseCode = "400", description = "Dto 검증 오류 혹은 이미 존재하는 이름입니다."),
             @ApiResponse(responseCode = "404", description = "잘못된 JenkinsInfo Id"),
             @ApiResponse(responseCode = "500", description = "Jenkins 서버 문제로 인한 실패")
     })

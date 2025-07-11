@@ -23,4 +23,6 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
     List<Pipeline> findAllByJenkinsInfoIdAndIsDeletedFalse(UUID jenkinsInfoId);
 
     List<Pipeline> findAllByJenkinsInfoIdAndIsDeletedTrue(UUID jenkinsInfoId);
+
+    Optional<Pipeline> findByJenkinsInfoIdAndName(UUID jenkinsInfoId, String name);
 }

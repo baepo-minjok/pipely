@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -34,6 +35,12 @@ public class PipelineService {
 
     @Transactional
     public void createJob(RequestDto.CreateDto requestDto) {
+
+        // jenkins info에 같은 name이 존재하는지 검증
+        if (pipelineRepository.findByJenkinsInfoIdAndName(requestDto.getInfoId(), requestDto.getName()).isPresent()) {
+            throw new CustomException(ErrorCode.JENKINS_JOB_EXIST);
+        }
+
         Script script = scriptService.getScriptById(requestDto.getScriptId());
         // jenkins info 확인
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
@@ -58,6 +65,15 @@ public class PipelineService {
         Pipeline pipeline = getPipelineById(requestDto.getPipelineId());
         JenkinsInfo info = pipeline.getJenkinsInfo();
         Script script = pipeline.getScript();
+
+        // jenkins info에 같은 name이 존재하는지 검증
+        Optional<Pipeline> pipelineOptional = pipelineRepository.findByJenkinsInfoIdAndName(info.getId(), requestDto.getName());
+        if (pipelineOptional.isPresent()) {
+            Pipeline existing = pipelineOptional.get();
+            if (!existing.equals(pipeline)) {
+                throw new CustomException(ErrorCode.JENKINS_JOB_EXIST);
+            }
+        }
 
         // job 수정 요청
         String jenkinsUrl = info.getUri() + "/job/" + requestDto.getName() + "/config.xml";
