@@ -31,26 +31,44 @@ public class JobCreatedListener {
      * AFTER_COMMIT 단계에서 호출: Jenkins API 요청, 실패 시 보상(compensating) 삭제.
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleJobCreated(JobCreatedEvent evt) {
+    public void handleJobCreated(JobEvent.JobCreatedEvent evt) {
         Pipeline pipeline = pipelineRepository.findById(evt.getPipelineId())
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
 
         JenkinsInfo info = pipeline.getJenkinsInfo();
-        String jenkinsUrl = info.getUri()
-                + "/createItem?name=" + pipeline.getName();
+
+        try {
+            exchange(evt.getConfig(), evt.getUrl(), info);
+        } catch (Exception e) {
+            compensationService.deletePipeline(evt.getPipelineId());
+        }
+    }
+
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleJobUpdate(JobEvent.JobUpdatedEvent evt) {
+        Pipeline pipeline = pipelineRepository.findById(evt.getPipelineId())
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
+
+        JenkinsInfo info = pipeline.getJenkinsInfo();
+
+        try {
+            exchange(evt.getConfig(), evt.getUrl(), info);
+        } catch (Exception e) {
+            //TODO update 실패시 전버전으로 롤백
+        }
+    }
+
+    public void exchange(String config, String url, JenkinsInfo info) {
 
         HttpEntity<String> req = new HttpEntity<>(
-                evt.getConfig(),
+                config,
                 httpClientService.buildHeaders(
                         info,
                         new MediaType("application", "xml", StandardCharsets.UTF_8)
                 )
         );
-        try {
-            httpClientService.exchange(jenkinsUrl, HttpMethod.POST, req, String.class);
-        } catch (Exception e) {
-            compensationService.deletePipeline(evt.getPipelineId());
-        }
+        httpClientService.exchange(url, HttpMethod.POST, req, String.class);
     }
 
 }

@@ -100,6 +100,8 @@ public class RequestDto {
         // job 고유id
         private UUID pipelineId;
 
+        private UUID scriptId;
+
         // job 이름
         private String name;
 
