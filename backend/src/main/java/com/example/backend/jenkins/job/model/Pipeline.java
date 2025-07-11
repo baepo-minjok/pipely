@@ -35,6 +35,9 @@ public class Pipeline {
     // git webhook trigger 설정 여부
     private Boolean isTriggered;
 
+    // 스케줄 설정
+    private String schedule;
+
     // 삭제 여부
     private Boolean isDeleted;
 

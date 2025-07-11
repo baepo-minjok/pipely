@@ -19,6 +19,7 @@ public class RequestDto {
                 .name(requestDto.getName())
                 .description(requestDto.getDescription())
                 .trigger(requestDto.getTrigger())
+                .schedule(requestDto.getSchedule())
                 .build();
     }
 
@@ -28,6 +29,7 @@ public class RequestDto {
                 .name(requestDto.getName())
                 .description(requestDto.getDescription())
                 .isTriggered(requestDto.getTrigger())
+                .schedule(requestDto.getSchedule())
                 .jenkinsInfo(info)
                 .createdAt(LocalDateTime.now())
                 .isDeleted(false)
@@ -83,6 +85,9 @@ public class RequestDto {
 
         // git webhook trigger 설정 여부
         private Boolean trigger;
+
+        // 스케줄 설정
+        private String schedule;
     }
 
 
@@ -104,5 +109,7 @@ public class RequestDto {
         // git webhook trigger 설정 여부
         private Boolean trigger;
 
+        // 스케줄 설정
+        private String schedule;
     }
 }
