@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -63,9 +64,12 @@ public class JenkinsInfoController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 정보"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
+    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #request.infoId)")
     @PutMapping
     public ResponseEntity<BaseResponse<String>> update(
-            @RequestBody @Valid UpdateDto request) {
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestBody @Valid UpdateDto request
+    ) {
         jenkinsInfoService.updateJenkinsInfo(request);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("Jenkins Info update Success"));
@@ -83,7 +87,7 @@ public class JenkinsInfoController {
     })
     @GetMapping
     public ResponseEntity<BaseResponse<List<LightInfoDto>>> getAll(
-            @AuthenticationPrincipal(expression = "user") Users user
+            @AuthenticationPrincipal(expression = "userEntity") Users user
     ) {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(jenkinsInfoService.getAllLightDtoByUser(user)));
@@ -101,8 +105,11 @@ public class JenkinsInfoController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 정보"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
+
+    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #dto.infoId)")
     @PostMapping
     public ResponseEntity<BaseResponse<DetailInfoDto>> getById(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid InfoDto dto
     ) {
         return ResponseEntity.ok()
@@ -120,8 +127,10 @@ public class JenkinsInfoController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 정보"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
+    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #infoId)")
     @DeleteMapping("/{infoId}")
     public ResponseEntity<BaseResponse<String>> delete(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @Parameter(description = "삭제할 Jenkins 정보의 고유 ID", example = "3fa85f64-5717-4562-b3fc-2c963f66afa6", required = true)
             @PathVariable UUID infoId
     ) {
@@ -142,8 +151,10 @@ public class JenkinsInfoController {
             @ApiResponse(responseCode = "404", description = "잘못된 Jenkins 정보로 인한 연결 실패"),
             @ApiResponse(responseCode = "500", description = "Jenkins 서버 오류")
     })
+    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #dto.infoId)")
     @PostMapping("/verification")
     public ResponseEntity<BaseResponse<String>> getVerification(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid InfoDto dto
     ) {
         jenkinsInfoService.verificationJenkinsInfo(dto.getInfoId());

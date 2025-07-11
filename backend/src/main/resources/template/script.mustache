@@ -1,0 +1,65 @@
+pipeline {
+  agent any
+
+  stages {
+    {{#githubUrl}}
+    stage('Git clone') {
+      steps {
+        git branch: '{{branch}}', url: '{{githubUrl}}'
+      }
+    }
+    {{/githubUrl}}
+    {{#isBuildSelected}}
+    stage('Build') {
+      steps {
+        dir('{{#directory}}{{directory}}{{/directory}}{{^directory}}.{{/directory}}') {
+          {{#gradle}}
+          sh 'chmod +x gradlew'
+          sh './gradlew clean build -x test'
+          {{/gradle}}
+          {{#maven}}
+          sh 'chmod +x mvn'
+          sh 'mvn clean install'
+          {{/maven}}
+          {{#maven_wrapper}}
+          sh 'chmod +x mvnw'
+          sh './mvnw clean install'
+          {{/maven_wrapper}}
+          {{#npm}}
+          sh 'npm ci'
+          sh 'npm run build'
+          {{/npm}}
+         }
+       }
+     }
+    {{/isBuildSelected}}
+    {{#isTestSelected}}
+    stage('Test') {
+      steps {
+        dir('{{#directory}}{{directory}}{{/directory}}{{^directory}}.{{/directory}}') {
+          {{#gradle}}
+          sh './gradlew test'
+          {{/gradle}}
+          {{#maven}}
+          sh 'mvn test'
+          {{/maven}}
+          {{#maven_wrapper}}
+          sh './mvnw test'
+          {{/maven_wrapper}}
+          {{#npm}}
+          {{/npm}}
+        }
+      }
+    }
+    {{/isTestSelected}}
+  }
+  // 파이프라인 전체의 성공/실패 후 처리 정의
+  post {
+    success {
+      echo '🎉 빌드가 성공했습니다!'
+    }
+    failure {
+      echo '❌ 빌드가 실패했습니다!'
+    }
+  }
+}

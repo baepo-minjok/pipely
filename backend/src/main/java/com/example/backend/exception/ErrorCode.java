@@ -17,8 +17,9 @@ public enum ErrorCode {
     UNKNOWN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "UNKNOWN_ERROR_500", "서버 오류입니다."),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED_400", "올바른 값이 아닙니다."),
     MISSING_PARAMETER(HttpStatus.BAD_REQUEST, "MISSING_PARAMETER_400", "파라미터가 존재하지 않습니다."),
-
-
+    IOEXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, "IOEXCEPTION_500", "파일 처리 오류입니다."),
+    GIT_CLONE_FAILED(HttpStatus.BAD_REQUEST, "GIT_CLONE_FAILED_400", "Git clone에 실패했습니다."),
+    METHOD_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "METHOD_UNAUTHORIZED_401", "해당 경로에 대한 권한이 없습니다."),
     /**
      * Cookie 관련 ErrorCode
      */
@@ -64,6 +65,7 @@ public enum ErrorCode {
     JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR_500", "time out"),
     JENKINS_SECRET_ENCRYPTION_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_SECRET_ENCRYPTION_FAIL_500", "암호화 실패 오류"),
     JENKINS_SECRET_DECRYPTION_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_SECRET_DECRYPTION_FAIL_500", "복호화 실패 오류"),
+    JENKINS_XML_UPDATE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "XML_UPDATE_FAIL_500", "CRON 스케줄 XML 수정 중 오류가 발생했습니다."),
 
     /**
      * Jenkins/error 도메인에서 사용하는 ErrorCode
@@ -75,15 +77,21 @@ public enum ErrorCode {
     JENKINS_NO_JOBS_FOUND(HttpStatus.NOT_FOUND, "JENKINS_NO_JOBS_FOUND_404", "등록된 Jenkins Job이 존재하지 않습니다."),
     JENKINS_ALL_JOBS_FAILED(HttpStatus.BAD_GATEWAY, "JENKINS_ALL_JOBS_FAILED_502", "전체 Job의 빌드 조회에 실패했습니다."),
     JENKINS_NO_FAILED_BUILDS(HttpStatus.NOT_FOUND, "JENKINS_NO_FAILED_BUILDS_404", "해당 Job에는 실패한 빌드가 없습니다."),
-
+    JENKINS_JOB_VERSION_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_JOB_VERSION_NOT_FOUND_404", "설정 버전에 해당하는 JobVersion이 존재하지 않습니다."),
+    JENKINS_BUILD_NOT_FAILED(HttpStatus.BAD_REQUEST, "JENKINS_BUILD_NOT_FAILED_400", "현재 빌드는 실패 상태가 아닙니다."),
+    JENKINS_VERSION_NOT_FOUND_IN_LOG(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_VERSION_NOT_FOUND_IN_LOG_500", "빌드 로그에서 설정 버전을 찾을 수 없습니다."),
+    JENKINS_SUCCESS_BUILD_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_SUCCESS_BUILD_NOT_FOUND_404", "성공한 빌드 이력을 찾을 수 없습니다."),
+    JENKINS_PIPELINE_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_PIPELINE_NOT_FOUND_404", "해당 파이프라인을 찾을 수 없습니다."),
+    JENKINS_PIPELINE_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_PIPELINE_HISTORY_NOT_FOUND_404", "지정한 파이프라인 버전 이력을 찾을 수 없습니다."),
 
 
     /**
-     * Jenkins/Job/FreeStyle 도메인에서 사용하는 ErrorCode
+     * Jenkins/Job 도메인에서 사용하는 ErrorCode
      */
-    JENKINS_FREESTYLE_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_FREESTYLE_NOT_FOUND_404", "해당 freestyle job이 존재하지 않습니다."),
     JENKINS_FREESTYLE_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_FREESTYLE_HISTORY_NOT_FOUND_404", "해당 freestyle history가 존재하지 않습니다."),
-
+    JENKINS_NOT_SUPPORTED_TOOL(HttpStatus.BAD_REQUEST, "JENKINS_NOT_SUPPORTED_TOOL_400", "지원하지 않는 tool이거나 존재하지 않습니다."),
+    JENKINS_SCRIPT_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_SCRIPT_NOT_FOUND_400", "Script 정보가 존재하지않습니다."),
+    JENKINS_JOB_EXIST(HttpStatus.BAD_REQUEST, "JENKINS_JOB_EXIST_400", "Jenkins에 이미 동일한 이름의 Job이 존재합니다."),
     /**
      * Jenkins/build 도메인에서 사용하는 ErrorCode
      */

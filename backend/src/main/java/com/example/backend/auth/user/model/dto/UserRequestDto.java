@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -14,6 +15,7 @@ public class UserRequestDto {
      * 회원가입 요청을 위한 DTO
      */
     @Data
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(name = "SignupDto", description = "회원가입 요청 DTO")

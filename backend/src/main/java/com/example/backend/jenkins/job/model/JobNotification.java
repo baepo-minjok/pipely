@@ -1,11 +1,13 @@
 package com.example.backend.jenkins.job.model;
 
-import com.example.backend.jenkins.job.model.pipeline.Pipeline;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.util.UUID;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Builder
@@ -46,4 +48,3 @@ public class JobNotification {
     })
     private Pipeline pipeline;
 }
-

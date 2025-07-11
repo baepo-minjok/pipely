@@ -1,5 +1,7 @@
 package com.example.backend.parser;
 
+import com.example.backend.exception.CustomException;
+import com.example.backend.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.*;
@@ -164,7 +166,7 @@ public class XmlConfigParser {
 
         } catch (Exception e) {
             log.error("CRON 스케줄 XML 수정 실패", e);
-            throw new RuntimeException("CRON 스케줄 XML 수정 실패", e);
+            throw new CustomException(ErrorCode.JENKINS_XML_UPDATE_FAIL);
         }
     }
 }

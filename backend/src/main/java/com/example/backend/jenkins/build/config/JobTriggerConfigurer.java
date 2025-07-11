@@ -1,44 +1,14 @@
 package com.example.backend.jenkins.build.config;
 
-import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
-import com.example.backend.jenkins.info.model.JenkinsInfo;
-import com.example.backend.jenkins.info.service.JenkinsInfoService;
-import com.example.backend.jenkins.job.service.FreeStyleJobService;
-import com.example.backend.service.HttpClientService;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.regex.Matcher;
 
 @Component
 @RequiredArgsConstructor
 public class JobTriggerConfigurer {
-
-    private final FreeStyleJobService freeStyleJobService;
-    private final HttpClientService httpClientService;
-
-
-
-    public void setupFreestyleStage(BuildRequestDto.StageSettingRequestDto req, UUID JobStyleId) {
-        JenkinsInfo info = freeStyleJobService.getJenkinsInfoByFreeStyleId(JobStyleId);
-        String configUrl = info.getUri() + "/job/" + req.getJobName() + "/config.xml";
-
-
-        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
-        headers.setAccept(List.of(MediaType.APPLICATION_XML));
-
-        String xml = httpClientService.exchange(configUrl, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-        xml = injectShellScriptBlock(injectParameterBlock(resetBuilderBlock(removeOldParametersBlock(xml)),req.getStage()), req.getStage());
-
-        httpClientService.exchange(configUrl, HttpMethod.POST, new HttpEntity<>(xml, headers), String.class);
-    }
 
 
     /*
@@ -98,7 +68,6 @@ public class JobTriggerConfigurer {
     }
 
 
-
     /*
      * 쉘 스크립트 초기화
      * */
@@ -112,10 +81,6 @@ public class JobTriggerConfigurer {
     private String removeOldParametersBlock(String xml) {
         return xml.replaceAll("<hudson.model.ParametersDefinitionProperty>.*?</hudson.model.ParametersDefinitionProperty>", "");
     }
-
-
-
-
 
 
 }

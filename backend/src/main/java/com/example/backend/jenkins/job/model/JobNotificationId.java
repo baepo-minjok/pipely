@@ -9,4 +9,3 @@ public class JobNotificationId implements Serializable {
     private String name;
     private LocalDateTime createdAt;
 }
-
