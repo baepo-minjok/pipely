@@ -7,10 +7,11 @@ import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.Script;
+import com.example.backend.jenkins.job.model.Stage;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
-import com.example.backend.service.HttpClientService;
+import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,10 +30,10 @@ import java.util.UUID;
 public class PipelineService {
 
     private final ApplicationEventPublisher publisher;
-    private final HttpClientService httpClientService;
     private final JenkinsInfoService jenkinsInfoService;
     private final ConfigService configService;
     private final ScriptService scriptService;
+    private final ScriptEditUtil scriptEditUtil;
     private final PipelineRepository pipelineRepository;
 
     @Transactional
@@ -42,26 +44,36 @@ public class PipelineService {
             throw new CustomException(ErrorCode.JENKINS_JOB_EXIST);
         }
         Script script = requestDto.getScriptId() != null ? scriptService.getScriptById(requestDto.getScriptId()) : null;
+        // 2) 스테이지 이름 추출
+        List<String> stageNames = script != null
+                ? scriptEditUtil.extractStageNames(script.getScript())
+                : Collections.emptyList();
 
         // jenkins info 확인
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
 
-
         String config = configService.createConfig(
                 configService.buildConfigContext(requestDto, script));
 
-        String jenkinsUrl = info.getUri()
-                + "/createItem?name=" + requestDto.getName();
         Pipeline pipeline = RequestDto.toEntity(requestDto,
                 info,
                 script,
                 config);
+        for (int i = 0; i < stageNames.size(); i++) {
+            Stage stage = Stage.builder()
+                    .orderIndex(i)
+                    .name(stageNames.get(i))
+                    .build();
+            pipeline.getStageList().add(stage);
+        }
 
         // job 저장
         Pipeline saved = pipelineRepository.save(pipeline);
 
         info.getPipelineList().add(pipeline);
 
+        String jenkinsUrl = info.getUri()
+                + "/createItem?name=" + requestDto.getName();
         publisher.publishEvent(new JobEvent.JobCreatedEvent(saved.getId(), saved.getConfig(), jenkinsUrl));
     }
 
