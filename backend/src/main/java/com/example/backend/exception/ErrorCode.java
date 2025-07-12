@@ -91,6 +91,7 @@ public enum ErrorCode {
     JENKINS_FREESTYLE_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_FREESTYLE_HISTORY_NOT_FOUND_404", "해당 freestyle history가 존재하지 않습니다."),
     JENKINS_NOT_SUPPORTED_TOOL(HttpStatus.BAD_REQUEST, "JENKINS_NOT_SUPPORTED_TOOL_400", "지원하지 않는 tool이거나 존재하지 않습니다."),
     JENKINS_SCRIPT_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_SCRIPT_NOT_FOUND_400", "Script 정보가 존재하지않습니다."),
+    JENKINS_SCRIPT_NOT_VALID(HttpStatus.BAD_REQUEST, "JENKINS_SCRIPT_NOT_VALID_400", "Script의 문법이 올바르지 않습니다."),
     JENKINS_JOB_EXIST(HttpStatus.BAD_REQUEST, "JENKINS_JOB_EXIST_400", "Jenkins에 이미 동일한 이름의 Job이 존재합니다."),
     /**
      * Jenkins/build 도메인에서 사용하는 ErrorCode

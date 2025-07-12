@@ -11,9 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -40,16 +38,13 @@ public class ScriptEditUtil {
     }
 
     /**
-     * 스크립트에 TARGET_STAGE 파라미터와 when 제어 로직을 삽입합니다.
-     *
-     * @param script 원본 Jenkinsfile 내용
-     * @return 제어 로직이 추가된 새로운 스크립트
+     * 스크립트에 파라미터 블록과 when 제어 로직을 삽입합니다.
      */
     public String injectBooleanParams(String script) {
         List<String> stageNames = extractStageNames(script);
 
-        // 1) booleanParam 블록 생성 (기존 코드와 동일)
-        String paramsBlock = stageNames.stream()
+        // 1) 파라미터 정의 리스트 생성
+        List<String> paramLines = stageNames.stream()
                 .map(name -> {
                     String safe = "RUN_" + name.toUpperCase().replaceAll("\\W+", "_");
                     return String.format(
@@ -57,50 +52,91 @@ public class ScriptEditUtil {
                             safe, name
                     );
                 })
-                .collect(Collectors.joining(",\n"));
-        paramsBlock = "properties([\n  parameters([\n" + paramsBlock + "\n  ])\n])";
+                .collect(Collectors.toList());
 
-        // 2) pipeline { 아래에 삽입
-        String controlled = script.replaceFirst(
-                "(pipeline\\s*\\{)",
-                "$1\n" + paramsBlock + "\n"
-        );
+        // 2) properties 블록 추가 또는 수정
+        script = mergeOrInsertParameters(script, paramLines);
 
-        // 3) 각 stage 에 조건부 삽입
-        for (String name : stageNames) {
-            String safe = "RUN_" + name.toUpperCase().replaceAll("\\W+", "_");
+        // 3) 각 stage에 when 삽입
+        script = insertWhenConditions(script, stageNames);
 
-            // single or double quote 모두 잡는 regex
-            String matchRegex =
-                    "(?m)(stage\\s*\\(\\s*['\\\"]"
-                            + Pattern.quote(name)
-                            + "['\\\"]\\s*\\)\\s*\\{)";
+        return script;
+    }
 
-            // 이미 when 이 있는지 간단히 보기 위해,
-            // 이 스테이지 블록 시작점부터 첫번째 「}」 앞까지 짜르고 contains 검사
-            Pattern p = Pattern.compile(matchRegex);
-            Matcher m = p.matcher(controlled);
-            if (!m.find()) continue;  // 아예 스테이지가 없으면 skip
+    private String mergeOrInsertParameters(String script, List<String> paramLines) {
+        Pattern paramsBlock = Pattern.compile("(?s)parameters\\s*\\{.*?\\}", Pattern.CASE_INSENSITIVE);
+        Matcher m = paramsBlock.matcher(script);
+        if (m.find()) {
+            String block = m.group();
+            String updated = addToExistingParams(block, paramLines);
+            return script.replace(block, updated);
+        } else {
+            String newBlock = buildParamsBlock(paramLines);
+            // pipeline { 다음 줄에 바로 삽입
+            return script.replaceFirst("(?m)(pipeline\\s*\\{)", "$1\n" + newBlock + "\n");
+        }
+    }
 
-            int start = m.start(1);
-            int endOfBlock = controlled.indexOf("\n}", start);
-            String snippet = endOfBlock > 0
-                    ? controlled.substring(start, endOfBlock)
-                    : controlled.substring(start);
+    private String addToExistingParams(String block, List<String> paramLines) {
+        // parameters { (body) }
+        Pattern p = Pattern.compile("(?s)(parameters\\s*\\{)(.*?)(\\})");
+        Matcher m = p.matcher(block);
+        if (!m.find()) return block;
+        String head = m.group(1), body = m.group(2), tail = m.group(3);
 
-            // 이미 when 블록이 있다면 삽입하지 않음
-            if (snippet.contains("when")) continue;
+        // 이미 선언된 이름 수집
+        Set<String> existing = new HashSet<>();
+        Pattern namePat = Pattern.compile("booleanParam\\s*\\(\\s*name\\s*:\\s*'([A-Z0-9_]+)'");
+        Matcher nm = namePat.matcher(body);
+        while (nm.find()) existing.add(nm.group(1));
 
-            // replacement: 그룹(1) 바로 뒤에 when 구문 추가
-            String replacement = ""
-                    + "      when { expression { params." + safe + " } }";
+        // 추가할 라인만 필터
+        List<String> toAdd = paramLines.stream()
+                .filter(line -> {
+                    Matcher mm = namePat.matcher(line);
+                    return mm.find() && !existing.contains(mm.group(1));
+                })
+                .collect(Collectors.toList());
 
-            controlled = controlled.replaceFirst(matchRegex,
-                    Matcher.quoteReplacement(replacement));
+        String newBody = body.trim();
+        if (!toAdd.isEmpty()) {
+            newBody += "\n" + String.join("\n", toAdd) + "\n";
         }
 
-        return controlled;
+        return head + "\n" + newBody + tail;
     }
+
+    private String buildParamsBlock(List<String> paramLines) {
+        String joined = paramLines.stream().collect(Collectors.joining("\n"));
+        return "parameters {\n" + joined + "\n}";
+    }
+
+    private String insertWhenConditions(String script, List<String> stageNames) {
+        String result = script;
+        for (String name : stageNames) {
+            String safe = "RUN_" + name.toUpperCase().replaceAll("\\W+", "_");
+            String regex = "(?m)(stage\\s*\\(\\s*['\"]" + Pattern.quote(name) + "['\"]\\s*\\)\\s*\\{)";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(result);
+            StringBuffer sb = new StringBuffer();
+            while (matcher.find()) {
+                int start = matcher.end(1);
+                int endIdx = result.indexOf('}', start);
+                String between = endIdx > start ? result.substring(start, endIdx) : "";
+                if (Pattern.compile("\\bwhen\\b").matcher(between).find()) {
+                    matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group(1)));
+                } else {
+                    String replacement = matcher.group(1)
+                            + "\n      when { expression { params." + safe + " } }";
+                    matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+                }
+            }
+            matcher.appendTail(sb);
+            result = sb.toString();
+        }
+        return result;
+    }
+
 
     /**
      * Jenkins Declarative Pipeline 스크립트 문법 검증.

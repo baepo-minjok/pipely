@@ -55,8 +55,9 @@ public class ScriptService {
         } else {
             script = configService.createScript(configService.buildScriptContext(requestDto));
 
-            newScript = Script.toEntity(requestDto, script);
-            newScript = scriptRepository.save(Script.toEntity(requestDto, script));
+            String injectedScript = scriptEditUtil.injectBooleanParams(script);
+            //newScript = Script.toEntity(requestDto, injectedScript);
+            newScript = scriptRepository.save(Script.toEntity(requestDto, injectedScript));
         }
 
         return ResponseDto.entityToLightScriptDto(newScript);

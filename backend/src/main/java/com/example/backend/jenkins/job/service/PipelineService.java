@@ -38,6 +38,8 @@ public class PipelineService {
 
     @Transactional
     public void createJob(RequestDto.CreateDto requestDto) {
+        // jenkins info 확인
+        JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
 
         // jenkins info에 같은 name이 존재하는지 검증
         if (pipelineRepository.findByJenkinsInfoIdAndName(requestDto.getInfoId(), requestDto.getName()).isPresent()) {
@@ -49,41 +51,40 @@ public class PipelineService {
                 ? scriptEditUtil.extractStageNames(script.getScript())
                 : Collections.emptyList();
 
-        // jenkins info 확인
-        JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
-
+        // jenkins에 보낼 config 만들기
         String config = configService.createConfig(
                 configService.buildConfigContext(requestDto, script));
 
-        Pipeline pipeline = RequestDto.toEntity(requestDto,
-                info,
-                script,
-                config);
+        // job 저장
+        Pipeline pipeline = RequestDto.toEntity(requestDto, info, script, config);
+        Pipeline saved = pipelineRepository.save(pipeline);
         for (int i = 0; i < stageNames.size(); i++) {
             Stage stage = Stage.builder()
                     .orderIndex(i)
                     .name(stageNames.get(i))
+                    .pipeline(saved)
                     .build();
-            pipeline.getStageList().add(stage);
+            saved.getStageList().add(stage);
         }
+        info.getPipelineList().add(saved);
 
-        // job 저장
-        Pipeline saved = pipelineRepository.save(pipeline);
-
-        info.getPipelineList().add(pipeline);
-
-        String jenkinsUrl = info.getUri()
-                + "/createItem?name=" + requestDto.getName();
+        // jenkins에 http 요청
+        String jenkinsUrl = info.getUri() + "/createItem?name=" + requestDto.getName();
         publisher.publishEvent(new JobEvent.JobCreatedEvent(saved.getId(), saved.getConfig(), jenkinsUrl));
     }
 
     @Transactional
     public void updateJob(RequestDto.UpdateDto requestDto) {
 
-        // job 검색 & info 가져오기
+        // job 검색 & info 가져오기stage 추출
         Pipeline pipeline = getPipelineById(requestDto.getPipelineId());
         JenkinsInfo info = pipeline.getJenkinsInfo();
+
+        // script 정보 가져오기 & stage 추출
         Script script = requestDto.getScriptId() != null ? scriptService.getScriptById(requestDto.getScriptId()) : null;
+        List<String> stageNames = script != null
+                ? scriptEditUtil.extractStageNames(script.getScript())
+                : Collections.emptyList();
 
         // jenkins info에 같은 name이 존재하는지 검증
         Optional<Pipeline> pipelineOptional = pipelineRepository.findByJenkinsInfoIdAndName(info.getId(), requestDto.getName());
@@ -94,16 +95,25 @@ public class PipelineService {
             }
         }
 
-        // job 수정 요청
-        String jenkinsUrl = info.getUri() + "/job/" + requestDto.getName() + "/config.xml";
+        // jenkins에 보낼 config 만들기
         RequestDto.CreateDto createDto = RequestDto.toCreateDto(requestDto);
         String config = configService.createConfig(configService.buildConfigContext(createDto, script));
 
         // 수정된 job 저장
-        Pipeline newPipeline = Pipeline.updatePipeline(pipeline, requestDto, config);
-        pipelineRepository.save(newPipeline);
+        Pipeline updated = pipelineRepository.save(Pipeline.updatePipeline(pipeline, requestDto, config));
+        updated.getStageList().clear();
+        for (int i = 0; i < stageNames.size(); i++) {
+            Stage stage = Stage.builder()
+                    .orderIndex(i)
+                    .name(stageNames.get(i))
+                    .pipeline(updated)
+                    .build();
+            updated.getStageList().add(stage);
+        }
 
-        publisher.publishEvent(new JobEvent.JobUpdatedEvent(newPipeline.getId(), newPipeline.getConfig(), jenkinsUrl));
+        // jenkins에 http 요청
+        String jenkinsUrl = info.getUri() + "/job/" + requestDto.getName() + "/config.xml";
+        publisher.publishEvent(new JobEvent.JobUpdatedEvent(updated.getId(), updated.getConfig(), jenkinsUrl));
     }
 
     public Pipeline getPipelineById(UUID id) {
