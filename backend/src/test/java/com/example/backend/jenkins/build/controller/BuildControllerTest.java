@@ -1,10 +1,16 @@
 package com.example.backend.jenkins.build.controller;
 
+import com.example.backend.auth.user.model.Users;
+import com.example.backend.config.jwt.JwtAuthenticationFilter;
+import com.example.backend.config.jwt.JwtTokenProvider;
+import com.example.backend.jenkins.build.BuildControllerTestConfig;
 import com.example.backend.jenkins.build.controller.BuildController;
 import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
 import com.example.backend.jenkins.build.service.BuildService;
+import com.example.backend.jenkins.error.service.ErrorService;
+import com.example.backend.jenkins.job.service.PipelineService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.BDDMockito;
@@ -14,12 +20,16 @@ import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2Clien
 import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.util.*;
 
@@ -27,27 +37,27 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
-@WebMvcTest(controllers = BuildController.class,
-        excludeAutoConfiguration = {
-                SecurityAutoConfiguration.class,
-                OAuth2ClientAutoConfiguration.class,
-                OAuth2ResourceServerAutoConfiguration.class
-        }
+@WebMvcTest(controllers = BuildController.class
 )
+@Import(BuildControllerTestConfig.class)  // MockBean 대체로 등록
 class BuildControllerTest {
 
     @Autowired
     MockMvc mockMvc;
 
-    @MockitoBean
+    @Autowired
+    ObjectMapper objectMapper;
+
+
+    @Autowired
     BuildService buildService;
 
-    ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    PipelineService pipelineService;
+
 
     @Test
     void job의_스테이지_목록_조회() throws Exception {
