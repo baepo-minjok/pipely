@@ -25,6 +25,7 @@ import java.util.*;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -64,7 +65,7 @@ class BuildControllerTest {
                 .andExpect((ResultMatcher) jsonPath("$.data.pipelineId").value(pipelineId.toString()))
                 .andExpect((ResultMatcher) jsonPath("$.data.stages").isArray());
 
-        Mockito.verify(buildService).getJobPipelineStage(pipelineId);
+        verify(buildService).getJobPipelineStage(pipelineId);
     }
 
     @Test
@@ -84,13 +85,13 @@ class BuildControllerTest {
         result.andExpect(status().isOk())
                 .andExpect((ResultMatcher) jsonPath("$.data").value("특정 Steps 실행"));
 
-        Mockito.verify(buildService).StageJenkinsBuild(any(BuildRequestDto.BuildStageRequestDto.class));
+        verify(buildService).StageJenkinsBuild(any(BuildRequestDto.BuildStageRequestDto.class));
     }
 
     @Test
     void 빌드_이력_조회_LATEST() throws Exception {
-        // given
         UUID pipelineId = UUID.randomUUID();
+
         BuildRequestDto.getBuildHistory requestDto =
                 new BuildRequestDto.getBuildHistory(JobType.LATEST, pipelineId);
 
@@ -100,19 +101,20 @@ class BuildControllerTest {
                         .status("SUCCESS")
                         .build();
 
-        BDDMockito.given(buildService.getBuildInfo(requestDto))
-                .willReturn(ResponseEntity.ok(List.of(latestHistory)));
-        // when
+        // ✅ 핵심: 컨트롤러가 호출하는 서비스 메서드를 목킹
+        given(buildService.getLastBuildStatus(pipelineId))
+                .willReturn(latestHistory);
+
         ResultActions result = mockMvc.perform(post("/api/build/builds")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(requestDto)));
 
-        // then
         result.andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.data[0].buildNumber").value(5))
-                .andExpect((ResultMatcher) jsonPath("$.data[0].status").value("SUCCESS"));
+                .andExpect((ResultMatcher) jsonPath("$.data.buildNumber").value(5))
+                .andExpect((ResultMatcher) jsonPath("$.data.status").value("SUCCESS"));
 
-        Mockito.verify(buildService).getBuildInfo(requestDto);
+        // ✅ 검증: 어떤 서비스 메서드를 호출했는지 확인
+        verify(buildService).getLastBuildStatus(pipelineId);
     }
 
     @Test
@@ -123,14 +125,14 @@ class BuildControllerTest {
                 new BuildRequestDto.getBuildHistory(JobType.HISTORY, pipelineId);
 
         List<BuildResponseDto.BuildInfo> historyList = Arrays.asList(
-                BuildResponseDto.BuildInfo.builder().buildNumber(4).status("FAILURE").build(),
                 BuildResponseDto.BuildInfo.builder().buildNumber(3).status("SUCCESS").build(),
-                BuildResponseDto.BuildInfo.builder().buildNumber(2).status("FAILURE").build()
+                BuildResponseDto.BuildInfo.builder().buildNumber(2).status("FAILURE").build(),
+                BuildResponseDto.BuildInfo.builder().buildNumber(1).status("SUCCESS").build()
         );
 
-
-        BDDMockito.given(buildService.getBuildInfo(requestDto))
-                .willReturn(ResponseEntity.ok(List.of(historyList)));
+        // ✅ 핵심: getBuildHistory 메서드 목킹
+        given(buildService.getBuildHistory(pipelineId))
+                .willReturn(historyList);
 
         // when
         ResultActions result = mockMvc.perform(post("/api/build/builds")
@@ -141,14 +143,15 @@ class BuildControllerTest {
         result.andExpect(status().isOk())
                 .andExpect((ResultMatcher) jsonPath("$.data").isArray())
                 .andExpect((ResultMatcher) jsonPath("$.data.length()").value(3))
-                .andExpect((ResultMatcher) jsonPath("$.data[0].buildNumber").value(4))
-                .andExpect((ResultMatcher) jsonPath("$.data[0].status").value("FAILURE"))
-                .andExpect((ResultMatcher) jsonPath("$.data[1].buildNumber").value(3))
-                .andExpect((ResultMatcher) jsonPath("$.data[1].status").value("SUCCESS"))
-                .andExpect((ResultMatcher) jsonPath("$.data[2].buildNumber").value(2))
-                .andExpect((ResultMatcher) jsonPath("$.data[2].status").value("FAILURE"));
+                .andExpect((ResultMatcher) jsonPath("$.data[0].buildNumber").value(3))
+                .andExpect((ResultMatcher) jsonPath("$.data[0].status").value("SUCCESS"))
+                .andExpect((ResultMatcher) jsonPath("$.data[1].buildNumber").value(2))
+                .andExpect((ResultMatcher) jsonPath("$.data[1].status").value("FAILURE"))
+                .andExpect((ResultMatcher) jsonPath("$.data[2].buildNumber").value(1))
+                .andExpect((ResultMatcher) jsonPath("$.data[2].status").value("SUCCESS"));
 
-        Mockito.verify(buildService).getBuildInfo(requestDto);
+        // ✅ 호출 검증
+        verify(buildService).getBuildHistory(pipelineId);
     }
 
     @Test
@@ -171,7 +174,7 @@ class BuildControllerTest {
         result.andExpect(status().isOk())
                 .andExpect((ResultMatcher) jsonPath("$.data.log").value("Log contents"));
 
-        Mockito.verify(buildService).getBuildLog(any());
+        verify(buildService).getBuildLog(any());
     }
 
     @Test
@@ -193,6 +196,6 @@ class BuildControllerTest {
                 .andExpect((ResultMatcher) jsonPath("$.data.log").isArray())
                 .andExpect((ResultMatcher) jsonPath("$.data.log[0]").value("Realtime log"));
 
-        Mockito.verify(buildService).getStreamLog(pipelineId);
+        verify(buildService).getStreamLog(pipelineId);
     }
 }
