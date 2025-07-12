@@ -154,8 +154,6 @@ public class BuildResponseDto {
         @Schema(description = "스테이지 목록", example = "[\"BUILD\", \"TEST\", \"DEPLOY\"]")
         private List<String> stage = new ArrayList<>();
 
-        public static Stage getStage(List<String> body) {
-            return Stage.builder().stage(body).build();
-        }
+
     }
 }
