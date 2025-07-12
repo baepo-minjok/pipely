@@ -5,7 +5,7 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.util.CronExpressionUtil;
-import com.example.backend.util.JenkinsStageUtil;
+import com.example.backend.util.ScriptEditUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
@@ -19,6 +19,7 @@ import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -28,6 +29,7 @@ import java.util.Optional;
 public class ConfigService {
 
     private final RestTemplate restTemplate;
+    private final ScriptEditUtil scriptEditUtil;
     private final MustacheFactory mf;
 
     public static String[] parseOwnerAndRepo(String gitUrl) {
@@ -37,7 +39,7 @@ public class ConfigService {
             if (!"github.com".equalsIgnoreCase(host)) {
                 throw new IllegalArgumentException("GitHub URL이 아닙니다: " + gitUrl);
             }
-            String path = uri.getPath();     // "/ownerName/repoName" 또는 "/ownerName/repoName.git"
+            String path = uri.getPath();
             String[] segments = path.split("/");
             if (segments.length < 3) {
                 throw new IllegalArgumentException("리포지토리 경로가 올바르지 않습니다: " + path);
@@ -127,11 +129,12 @@ public class ConfigService {
 
             String githubUrl = script.getGithubUrl() == null ? "" : script.getGithubUrl();
             String sc = script.getScript() == null ? "" : script.getScript();
-            String newSc = JenkinsStageUtil.injectBooleanParams(sc);
-            log.info(newSc);
+
+            List<String> stringList = scriptEditUtil.extractStageNames(sc);
+            String injectedScript = scriptEditUtil.injectBooleanParams(sc);
 
             context.put("githubUrl", githubUrl);
-            context.put("script", newSc);
+            context.put("script", injectedScript);
         }
 
         if (createDto.getSchedule() != null) {

@@ -114,4 +114,11 @@ public class RequestDto {
         // 스케줄 설정
         private String schedule;
     }
+
+    @Data
+    public static class ScriptValidateDto {
+        private UUID infoId;
+
+        private String script;
+    }
 }
