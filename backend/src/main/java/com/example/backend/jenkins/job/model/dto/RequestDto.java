@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.UUID;
 
 public class RequestDto {
@@ -35,6 +36,7 @@ public class RequestDto {
                 .isDeleted(false)
                 .script(script)
                 .config(config)
+                .stageList(new ArrayList<>())
                 .build();
     }
 
