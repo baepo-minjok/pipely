@@ -11,13 +11,18 @@ import com.example.backend.jenkins.job.model.Stage;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
+import com.example.backend.service.HttpClientService;
 import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -30,11 +35,13 @@ import java.util.UUID;
 public class PipelineService {
 
     private final ApplicationEventPublisher publisher;
+    private final HttpClientService httpClientService;
     private final JenkinsInfoService jenkinsInfoService;
     private final ConfigService configService;
     private final ScriptService scriptService;
     private final ScriptEditUtil scriptEditUtil;
     private final PipelineRepository pipelineRepository;
+    private final StageService stageService;
 
     @Transactional
     public void createJob(RequestDto.CreateDto requestDto) {
@@ -70,7 +77,14 @@ public class PipelineService {
 
         // jenkins에 http 요청
         String jenkinsUrl = info.getUri() + "/createItem?name=" + requestDto.getName();
-        publisher.publishEvent(new JobEvent.JobCreatedEvent(saved.getId(), saved.getConfig(), jenkinsUrl));
+        HttpEntity<String> req = new HttpEntity<>(
+                config,
+                httpClientService.buildHeaders(
+                        info,
+                        new MediaType("application", "xml", StandardCharsets.UTF_8)
+                )
+        );
+        publisher.publishEvent(new JobEvent.JobCreatedEvent<>(saved.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
     }
 
     @Transactional
@@ -86,6 +100,17 @@ public class PipelineService {
                 ? scriptEditUtil.extractStageNames(script.getScript())
                 : Collections.emptyList();
 
+        stageService.deleteByPipelineId(pipeline.getId());
+        pipeline.getStageList().clear();
+        for (int i = 0; i < stageNames.size(); i++) {
+            Stage stage = Stage.builder()
+                    .orderIndex(i)
+                    .name(stageNames.get(i))
+                    .pipeline(pipeline)
+                    .build();
+            pipeline.getStageList().add(stage);
+        }
+
         // jenkins info에 같은 name이 존재하는지 검증
         Optional<Pipeline> pipelineOptional = pipelineRepository.findByJenkinsInfoIdAndName(info.getId(), requestDto.getName());
         if (pipelineOptional.isPresent()) {
@@ -98,22 +123,24 @@ public class PipelineService {
         // jenkins에 보낼 config 만들기
         RequestDto.CreateDto createDto = RequestDto.toCreateDto(requestDto);
         String config = configService.createConfig(configService.buildConfigContext(createDto, script));
+        pipeline.setDescription(requestDto.getDescription());
+        pipeline.setIsTriggered(requestDto.getTrigger());
+        pipeline.setUpdatedAt(LocalDateTime.now());
+        pipeline.setConfig(config);
 
         // 수정된 job 저장
-        Pipeline updated = pipelineRepository.save(Pipeline.updatePipeline(pipeline, requestDto, config));
-        updated.getStageList().clear();
-        for (int i = 0; i < stageNames.size(); i++) {
-            Stage stage = Stage.builder()
-                    .orderIndex(i)
-                    .name(stageNames.get(i))
-                    .pipeline(updated)
-                    .build();
-            updated.getStageList().add(stage);
-        }
+        Pipeline updated = pipelineRepository.save(pipeline);
 
         // jenkins에 http 요청
         String jenkinsUrl = info.getUri() + "/job/" + requestDto.getName() + "/config.xml";
-        publisher.publishEvent(new JobEvent.JobUpdatedEvent(updated.getId(), updated.getConfig(), jenkinsUrl));
+        HttpEntity<String> req = new HttpEntity<>(
+                config,
+                httpClientService.buildHeaders(
+                        info,
+                        new MediaType("application", "xml", StandardCharsets.UTF_8)
+                )
+        );
+        publisher.publishEvent(new JobEvent.JobUpdatedEvent<>(updated.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
     }
 
     public Pipeline getPipelineById(UUID id) {
@@ -125,10 +152,21 @@ public class PipelineService {
     public void softDeletePipelineById(UUID id) {
         Pipeline pipeline = getPipelineById(id);
 
+        JenkinsInfo info = pipeline.getJenkinsInfo();
+
         pipeline.setIsDeleted(true);
         pipeline.setDeletedAt(LocalDateTime.now());
 
         pipelineRepository.save(pipeline);
+
+        String jenkinsUrl = info.getUri() + "/job/" + pipeline.getName() + "/doDelete";
+        HttpEntity<String> req = new HttpEntity<>(
+                httpClientService.buildHeaders(
+                        info,
+                        MediaType.APPLICATION_FORM_URLENCODED
+                )
+        );
+        publisher.publishEvent(new JobEvent.JobDeletedEvent<>(pipeline.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
     }
 
     @Transactional

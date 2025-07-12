@@ -12,7 +12,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class JobCreatedListener {
+public class JobEventListener {
 
     private final HttpClientService httpClientService;
     private final PipelineRepository pipelineRepository;
@@ -40,14 +40,14 @@ public class JobCreatedListener {
         }
     }
 
-    private void handleJobDeleted(JobEvent.JobDeletedEvent<?> evt) {
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleJobDeleted(JobEvent.JobDeletedEvent<?> evt) {
         try {
             httpClientService.exchange(evt.getUrl(), evt.getMethod(), evt.getRequestEntity(), evt.getResponseType());
         } catch (Exception e) {
-            //TODO delete 실패시 soft-delete 롤백
-            //TODO jenkins 서버에 이미 delete되있으면 그대로
+            //TODO 삭제 요청 실패시 soft-delete 롤백
+            //TODO jenkins 서버에 이미 없는 job일 경우 soft-delete 그대로
         }
     }
-
 }
 
