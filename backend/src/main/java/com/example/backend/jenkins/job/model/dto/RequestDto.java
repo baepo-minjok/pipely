@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.UUID;
 
 public class RequestDto {
@@ -35,6 +36,7 @@ public class RequestDto {
                 .isDeleted(false)
                 .script(script)
                 .config(config)
+                .stageList(new ArrayList<>())
                 .build();
     }
 
@@ -100,6 +102,8 @@ public class RequestDto {
         // job 고유id
         private UUID pipelineId;
 
+        private UUID scriptId;
+
         // job 이름
         private String name;
 
@@ -111,5 +115,12 @@ public class RequestDto {
 
         // 스케줄 설정
         private String schedule;
+    }
+
+    @Data
+    public static class ScriptValidateDto {
+        private UUID infoId;
+
+        private String script;
     }
 }

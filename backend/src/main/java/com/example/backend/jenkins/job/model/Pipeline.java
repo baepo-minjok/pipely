@@ -11,6 +11,8 @@ import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -63,8 +65,13 @@ public class Pipeline {
     @JoinColumn(name = "jenkins_info_id", nullable = false)
     private JenkinsInfo jenkinsInfo;
 
+    @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC")
+    private List<Stage> stageList = new ArrayList<>();
+
     /*@OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PipelineHistory> historyList = new ArrayList<>();*/
+
 
     public static Pipeline updatePipeline(Pipeline pipeline, RequestDto.UpdateDto requestDto, String config) {
         pipeline.setDescription(requestDto.getDescription());

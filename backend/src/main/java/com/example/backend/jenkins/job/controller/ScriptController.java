@@ -35,4 +35,14 @@ public class ScriptController {
         return ResponseEntity.ok()
                 .body(BaseResponse.success("Script deleted success"));
     }
+
+    @PostMapping("/validate")
+    public ResponseEntity<BaseResponse<String>> validateScript(
+            @RequestBody @Valid RequestDto.ScriptValidateDto requestDto
+    ) {
+        scriptService.validateScript(requestDto);
+
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("Script validation success"));
+    }
 }
