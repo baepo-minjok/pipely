@@ -5,12 +5,10 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
-import com.example.backend.jenkins.job.model.FreeStyle;
 import com.example.backend.jenkins.job.model.JobNotification;
+import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.dto.JobNotificationRequestDto;
 import com.example.backend.jenkins.job.model.dto.JobNotificationResponseDto;
-import com.example.backend.jenkins.job.model.pipeline.Pipeline;
-import com.example.backend.jenkins.job.repository.FreeStyleRepository;
 import com.example.backend.jenkins.job.repository.JobNotificationRepository;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.github.mustachejava.Mustache;
@@ -18,7 +16,6 @@ import com.github.mustachejava.MustacheFactory;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.io.StringWriter;
@@ -26,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -50,7 +46,7 @@ public class JobNotificationService {
         // Credential 이름 생성
         String credentialName = String.format("%s_%s_%s_%s",
                 dto.getChannel().toUpperCase(),
-                pipeline.getJobName(),
+                pipeline.getName(),
                 dto.getEventType().toUpperCase(),
                 uuidSuffix
         );
@@ -113,7 +109,7 @@ public class JobNotificationService {
         Pipeline pipeline = pipelineRepository.findByJenkinsInfoIdAndId(jenkinsInfo.getId(), jobId)
                 .orElseThrow(() -> new IllegalArgumentException("Jenkins Pipeline 정보를 찾을 수 없습니다."));
 
-        String jobName = pipeline.getJobName();
+        String jobName = pipeline.getName();
 
         List<JobNotification> notifications = notificationRepository
                 .findByIdAndShouldNotify(jobId, true);

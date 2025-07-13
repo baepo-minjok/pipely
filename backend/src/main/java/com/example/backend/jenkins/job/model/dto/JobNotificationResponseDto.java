@@ -22,7 +22,7 @@ public class JobNotificationResponseDto {
         public static JobNotificationListResponseDto fromEntity(JobNotification notification) {
             return JobNotificationListResponseDto.builder()
                     .jobId(notification.getPipeline().getId())
-                    .jobName(notification.getPipeline().getJobName())
+                    .jobName(notification.getPipeline().getName())
                     .eventType(notification.getEventType())
                     .credentialName(notification.getCredentialName())
                     .webhookUrl(notification.getWebhookUrl())
@@ -44,7 +44,7 @@ public class JobNotificationResponseDto {
         public static JobNotificationDetailResponseDto fromEntity(JobNotification notification) {
             return JobNotificationDetailResponseDto.builder()
                     .jobId(notification.getPipeline().getId())
-                    .jobName(notification.getPipeline().getJobName())
+                    .jobName(notification.getPipeline().getName())
                     .eventType(notification.getEventType())
                     .credentialName(notification.getCredentialName())
                     .webhookUrl(notification.getWebhookUrl())

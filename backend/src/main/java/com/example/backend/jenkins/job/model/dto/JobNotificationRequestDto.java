@@ -1,9 +1,7 @@
 package com.example.backend.jenkins.job.model.dto;
 
-import com.example.backend.jenkins.job.model.FreeStyle;
-import com.example.backend.jenkins.job.model.Job;
 import com.example.backend.jenkins.job.model.JobNotification;
-import com.example.backend.jenkins.job.model.pipeline.Pipeline;
+import com.example.backend.jenkins.job.model.Pipeline;
 import lombok.Data;
 
 import java.time.LocalDateTime;
