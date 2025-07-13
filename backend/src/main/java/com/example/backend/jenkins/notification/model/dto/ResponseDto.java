@@ -1,13 +1,13 @@
-package com.example.backend.jenkins.job.model.dto;
+package com.example.backend.jenkins.notification.model.dto;
 
-import com.example.backend.jenkins.job.model.JobNotification;
+import com.example.backend.jenkins.notification.model.JobNotification;
 import lombok.Builder;
 import lombok.Data;
 
 import java.util.UUID;
 
 @Data
-public class JobNotificationResponseDto {
+public class ResponseDto {
 
     @Builder
     @Data

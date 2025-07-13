@@ -1,4 +1,4 @@
-package com.example.backend.jenkins.job.service;
+package com.example.backend.parser;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;

@@ -1,9 +1,8 @@
-package com.example.backend.jenkins.job.repository;
+package com.example.backend.jenkins.notification.repository;
 
-import com.example.backend.jenkins.job.model.JobNotification;
-import com.example.backend.jenkins.job.model.JobNotificationId;
+import com.example.backend.jenkins.notification.model.JobNotification;
+import com.example.backend.jenkins.notification.model.JobNotificationId;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;

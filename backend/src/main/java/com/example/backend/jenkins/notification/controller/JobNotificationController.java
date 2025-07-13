@@ -1,11 +1,10 @@
-package com.example.backend.jenkins.job.controller;
+package com.example.backend.jenkins.notification.controller;
 
 import com.example.backend.auth.user.service.CustomUserDetails;
 import com.example.backend.exception.BaseResponse;
-import com.example.backend.jenkins.job.model.JobNotification;
-import com.example.backend.jenkins.job.model.dto.JobNotificationRequestDto;
-import com.example.backend.jenkins.job.model.dto.JobNotificationResponseDto;
-import com.example.backend.jenkins.job.service.JobNotificationService;
+import com.example.backend.jenkins.notification.model.dto.RequestDto;
+import com.example.backend.jenkins.notification.model.dto.ResponseDto;
+import com.example.backend.jenkins.notification.service.JobNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,7 +21,7 @@ public class JobNotificationController {
     private final JobNotificationService jobNotificationService;
 
     @PostMapping("/create")
-    public ResponseEntity<BaseResponse<String>> create(@RequestBody JobNotificationRequestDto.createCredential dto,
+    public ResponseEntity<BaseResponse<String>> create(@RequestBody RequestDto.createCredential dto,
                                                   @AuthenticationPrincipal CustomUserDetails user) {
         jobNotificationService.createJobNotification(dto, user.getUser().getId());
         return ResponseEntity.ok()
@@ -30,11 +29,11 @@ public class JobNotificationController {
     }
 
     @PostMapping("/list")
-    public ResponseEntity<BaseResponse<List<JobNotificationResponseDto.JobNotificationListResponseDto>>> getNotificationsForUser(
-            @RequestBody JobNotificationRequestDto.NotificationListRequestDto request
+    public ResponseEntity<BaseResponse<List<ResponseDto.JobNotificationListResponseDto>>> getNotificationsForUser(
+            @RequestBody RequestDto.NotificationListRequestDto request
     ) {
         UUID userId = getCurrentUserId();
-        List<JobNotificationResponseDto.JobNotificationListResponseDto> notifications =
+        List<ResponseDto.JobNotificationListResponseDto> notifications =
                 jobNotificationService.getUserJobNotifications(userId, request.getJobId());
 
         return ResponseEntity.ok()
@@ -42,10 +41,10 @@ public class JobNotificationController {
     }
 
     @PostMapping("/detail")
-    public ResponseEntity<BaseResponse<JobNotificationResponseDto.JobNotificationDetailResponseDto>> getNotificationDetail(
-            @RequestBody JobNotificationRequestDto.NotificationDetailRequestDto requestDto
+    public ResponseEntity<BaseResponse<ResponseDto.JobNotificationDetailResponseDto>> getNotificationDetail(
+            @RequestBody RequestDto.NotificationDetailRequestDto requestDto
     ) {
-        JobNotificationResponseDto.JobNotificationDetailResponseDto dto =
+        ResponseDto.JobNotificationDetailResponseDto dto =
                 jobNotificationService.getNotificationDetail(requestDto.getCredentialName());
         return ResponseEntity.ok()
                 .body(BaseResponse.success(dto));
@@ -53,7 +52,7 @@ public class JobNotificationController {
 
     @PostMapping("/update")
     public ResponseEntity<BaseResponse<String>> updateNotification(
-            @RequestBody JobNotificationRequestDto.JobNotificationUpdateRequestDto dto,
+            @RequestBody RequestDto.JobNotificationUpdateRequestDto dto,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         UUID userId = userDetails.getUser().getId();
         jobNotificationService.updateNotification(dto, userId);
@@ -63,7 +62,7 @@ public class JobNotificationController {
 
     @DeleteMapping("/delete")
     public ResponseEntity<BaseResponse<String>> deleteJobNotification(
-            @RequestBody JobNotificationRequestDto.JobNotificationDeleteRequestDto dto) {
+            @RequestBody RequestDto.JobNotificationDeleteRequestDto dto) {
 
         UUID userId = getCurrentUserId();
         jobNotificationService.deleteNotification(dto, userId);
@@ -73,7 +72,7 @@ public class JobNotificationController {
     }
 
     @PostMapping("/createNotifyScript")
-    public ResponseEntity<BaseResponse<String>> sendNotification(@RequestBody JobNotificationRequestDto.SendJobNotificationRequestDto dto) {
+    public ResponseEntity<BaseResponse<String>> sendNotification(@RequestBody RequestDto.SendJobNotificationRequestDto dto) {
         UUID currentUserId = getCurrentUserId();
         jobNotificationService.createNotifyScript(currentUserId, dto.getJobId());
         return ResponseEntity.ok()

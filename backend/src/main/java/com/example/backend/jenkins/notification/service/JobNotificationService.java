@@ -1,15 +1,15 @@
-package com.example.backend.jenkins.job.service;
+package com.example.backend.jenkins.notification.service;
 
-import com.example.backend.auth.user.service.CustomUserDetails;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
-import com.example.backend.jenkins.job.model.JobNotification;
+import com.example.backend.jenkins.notification.model.dto.RequestDto;
+import com.example.backend.jenkins.notification.model.dto.ResponseDto;
+import com.example.backend.parser.JenkinsClientFactory;
+import com.example.backend.jenkins.notification.model.JobNotification;
 import com.example.backend.jenkins.job.model.Pipeline;
-import com.example.backend.jenkins.job.model.dto.JobNotificationRequestDto;
-import com.example.backend.jenkins.job.model.dto.JobNotificationResponseDto;
-import com.example.backend.jenkins.job.repository.JobNotificationRepository;
+import com.example.backend.jenkins.notification.repository.JobNotificationRepository;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
@@ -36,7 +36,7 @@ public class JobNotificationService {
     private final MustacheFactory mf;
 
     @Transactional
-    public JobNotification createJobNotification(JobNotificationRequestDto.createCredential dto, UUID userId) {
+    public JobNotification createJobNotification(RequestDto.createCredential dto, UUID userId) {
         Pipeline pipeline = pipelineRepository.findById(dto.getJobId())
                 .orElseThrow(() -> new IllegalArgumentException("Jenkins Pipeline 정보를 찾을 수 없습니다."));
 
@@ -62,24 +62,24 @@ public class JobNotificationService {
         return saved;
     }
 
-    public List<JobNotificationResponseDto.JobNotificationListResponseDto> getUserJobNotifications(UUID userId, UUID jobId) {
+    public List<ResponseDto.JobNotificationListResponseDto> getUserJobNotifications(UUID userId, UUID jobId) {
         List<JobNotification> notifications = notificationRepository
                 .findByPipeline_JenkinsInfo_User_IdAndPipeline_Id(userId, jobId);
 
         return notifications.stream()
-                .map(JobNotificationResponseDto.JobNotificationListResponseDto::fromEntity)
+                .map(ResponseDto.JobNotificationListResponseDto::fromEntity)
                 .toList();
     }
 
-    public JobNotificationResponseDto.JobNotificationDetailResponseDto getNotificationDetail(String credentialName) {
+    public ResponseDto.JobNotificationDetailResponseDto getNotificationDetail(String credentialName) {
         JobNotification notification = notificationRepository.findByCredentialName(credentialName)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_NOTIFICATION_NOT_FOUND));
 
-        return JobNotificationResponseDto.JobNotificationDetailResponseDto.fromEntity(notification);
+        return ResponseDto.JobNotificationDetailResponseDto.fromEntity(notification);
     }
 
     @Transactional
-    public void updateNotification(JobNotificationRequestDto.JobNotificationUpdateRequestDto dto, UUID userId) {
+    public void updateNotification(RequestDto.JobNotificationUpdateRequestDto dto, UUID userId) {
         JobNotification oldEntity = notificationRepository.findByCredentialName(dto.getCredentialName())
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_NOTIFICATION_NOT_FOUND));
 
@@ -91,7 +91,7 @@ public class JobNotificationService {
     }
 
     @Transactional
-    public void deleteNotification(JobNotificationRequestDto.JobNotificationDeleteRequestDto dto, UUID userId) {
+    public void deleteNotification(RequestDto.JobNotificationDeleteRequestDto dto, UUID userId) {
         JobNotification notification = notificationRepository.findByCredentialName(dto.getCredentialName())
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_NOTIFICATION_NOT_FOUND));
 

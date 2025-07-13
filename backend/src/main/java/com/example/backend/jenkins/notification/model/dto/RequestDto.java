@@ -1,14 +1,14 @@
-package com.example.backend.jenkins.job.model.dto;
+package com.example.backend.jenkins.notification.model.dto;
 
-import com.example.backend.jenkins.job.model.JobNotification;
 import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.notification.model.JobNotification;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
-public class JobNotificationRequestDto {
+public class RequestDto {
 
     @Data
     public static class createCredential{

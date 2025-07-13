@@ -1,5 +1,6 @@
-package com.example.backend.jenkins.job.model;
+package com.example.backend.jenkins.notification.model;
 
+import com.example.backend.jenkins.job.model.Pipeline;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
