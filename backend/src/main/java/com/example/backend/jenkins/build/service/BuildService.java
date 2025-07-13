@@ -290,8 +290,10 @@ public class BuildService {
 
     public BuildResponseDto.Stage getJobPipelineStage(UUID pipeLine) {
 
+
         Pipeline pipeline = pipelineService.getPipelineById(pipeLine);
         JenkinsInfo info = pipeline.getJenkinsInfo();
+
 
 
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);

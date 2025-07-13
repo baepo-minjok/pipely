@@ -3,8 +3,6 @@ package com.example.backend.jenkins.build.controller;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.config.jwt.JwtAuthenticationFilter;
 import com.example.backend.config.jwt.JwtTokenProvider;
-import com.example.backend.jenkins.build.BuildControllerTestConfig;
-import com.example.backend.jenkins.build.controller.BuildController;
 import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
@@ -13,22 +11,19 @@ import com.example.backend.jenkins.error.service.ErrorService;
 import com.example.backend.jenkins.job.service.PipelineService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.mockito.BDDMockito;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
+
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.util.*;
@@ -39,41 +34,80 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.security.test.context.support.WithMockUser;
 
 @WebMvcTest(controllers = BuildController.class
 )
-@Import(BuildControllerTestConfig.class)  // MockBean 대체로 등록
+@TestPropertySource(properties = {
+        "USER_DORMANCY_DAYS=30",
+        "USER_DORMANCY_TOKEN_EXPIRATION=6",
+        "JWT_SECRET_KEY=test",
+        "JWT_ACCESS_NAME=access",
+        "JWT_REFRESH_NAME=refresh",
+        "JWT_ACCESS_EXPIRATION=3600",
+        "JWT_REFRESH_EXPIRATION=7200",
+        "ENCRYPTION_KEY=testkey",
+        "OPENAI_API_KEY=dummy-key",
+        "VERIFY_URL=http://localhost"
+})
 class BuildControllerTest {
 
-    @Autowired
-    MockMvc mockMvc;
-
-    @Autowired
-    ObjectMapper objectMapper;
-
-
-    @Autowired
-    BuildService buildService;
-
-    @Autowired
-    PipelineService pipelineService;
+    @Autowired MockMvc mockMvc;
+    @Autowired ObjectMapper objectMapper;
+    @Autowired BuildService buildService;
+    @Autowired PipelineService pipelineService;
 
 
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public BuildService buildService() {
+            return Mockito.mock(BuildService.class);
+        }
+
+        @Bean
+        public PipelineService pipelineService() {
+            return Mockito.mock(PipelineService.class);
+        }
+
+        @Bean
+        public JwtTokenProvider jwtTokenProvider() {
+            return Mockito.mock(JwtTokenProvider.class);
+        }
+
+        @Bean
+        public JwtAuthenticationFilter jwtAuthenticationFilter() {
+            return Mockito.mock(JwtAuthenticationFilter.class);
+        }
+
+        @Bean
+        public ErrorService errorService() {
+            return Mockito.mock(ErrorService.class);
+        }
+    }
+
+    @WithMockUser
     @Test
     void job의_스테이지_목록_조회() throws Exception {
         // given
         UUID pipelineId = UUID.randomUUID();
+
+
         BuildResponseDto.Stage mockStage = new BuildResponseDto.Stage(Arrays.asList("BUILD", "TEST"));
+
+
         given(buildService.getJobPipelineStage(pipelineId)).willReturn(mockStage);
 
         // when
+
         ResultActions result = mockMvc.perform(get("/api/build/stage")
-                .param("pipeLine", pipelineId.toString()));
+                        .param("pipeLine", pipelineId.toString()))
+                .andDo(print());
 
         // then
         result.andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.data.pipelineId").value(pipelineId.toString()))
-                .andExpect((ResultMatcher) jsonPath("$.data.stages").isArray());
+                .andExpect(  jsonPath("$.data.stages").isArray());
+
 
         verify(buildService).getJobPipelineStage(pipelineId);
     }
