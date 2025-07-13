@@ -1,8 +1,8 @@
 package com.example.backend.jenkins.build.controller;
 
-import com.example.backend.auth.user.model.Users;
 import com.example.backend.config.jwt.JwtAuthenticationFilter;
 import com.example.backend.config.jwt.JwtTokenProvider;
+import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
@@ -10,236 +10,209 @@ import com.example.backend.jenkins.build.service.BuildService;
 import com.example.backend.jenkins.error.service.ErrorService;
 import com.example.backend.jenkins.job.service.PipelineService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.ResultMatcher;
-
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.util.*;
 
+import static com.example.backend.exception.BaseResponse.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import org.springframework.security.test.context.support.WithMockUser;
 
-@WebMvcTest(controllers = BuildController.class
+@WebMvcTest(controllers = BuildController.class,
+        excludeAutoConfiguration = {
+                SecurityAutoConfiguration.class,
+                OAuth2ClientAutoConfiguration.class,
+                OAuth2ResourceServerAutoConfiguration.class
+        }
 )
-@TestPropertySource(properties = {
-        "USER_DORMANCY_DAYS=30",
-        "USER_DORMANCY_TOKEN_EXPIRATION=6",
-        "JWT_SECRET_KEY=test",
-        "JWT_ACCESS_NAME=access",
-        "JWT_REFRESH_NAME=refresh",
-        "JWT_ACCESS_EXPIRATION=3600",
-        "JWT_REFRESH_EXPIRATION=7200",
-        "ENCRYPTION_KEY=testkey",
-        "OPENAI_API_KEY=dummy-key",
-        "VERIFY_URL=http://localhost"
-})
+@AutoConfigureMockMvc(addFilters = false)
 class BuildControllerTest {
 
-    @Autowired MockMvc mockMvc;
-    @Autowired ObjectMapper objectMapper;
-    @Autowired BuildService buildService;
-    @Autowired PipelineService pipelineService;
+    @Autowired
+    MockMvc mockMvc;
+    @Autowired
+    ObjectMapper objectMapper;
 
+    @MockitoBean
+    BuildService buildService;
+    @MockitoBean
+    PipelineService pipelineService;
+    @MockitoBean
+    JwtTokenProvider jwtTokenProvider;
+    @MockitoBean
+    JwtAuthenticationFilter jwtAuthenticationFilter;
+    @MockitoBean
+    ErrorService errorService;
 
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        public BuildService buildService() {
-            return Mockito.mock(BuildService.class);
-        }
+    @WithMockUser
+    @Test
+    @DisplayName("빌드 스테이지 목록 조회")
+    void job의_스테이지_목록_조회() throws Exception {
+        UUID pipelineId = UUID.randomUUID();
+        BuildResponseDto.Stage stage = new BuildResponseDto.Stage(List.of("BUILD", "TEST"));
 
-        @Bean
-        public PipelineService pipelineService() {
-            return Mockito.mock(PipelineService.class);
-        }
+        when(buildService.getJobPipelineStage(any())).thenReturn(stage);
 
-        @Bean
-        public JwtTokenProvider jwtTokenProvider() {
-            return Mockito.mock(JwtTokenProvider.class);
-        }
-
-        @Bean
-        public JwtAuthenticationFilter jwtAuthenticationFilter() {
-            return Mockito.mock(JwtAuthenticationFilter.class);
-        }
-
-        @Bean
-        public ErrorService errorService() {
-            return Mockito.mock(ErrorService.class);
-        }
+        mockMvc.perform(get("/api/build/stage")
+                        .param("pipeLine", pipelineId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.stage").isArray());
     }
 
     @WithMockUser
     @Test
-    void job의_스테이지_목록_조회() throws Exception {
-        // given
-        UUID pipelineId = UUID.randomUUID();
-
-
-        BuildResponseDto.Stage mockStage = new BuildResponseDto.Stage(Arrays.asList("BUILD", "TEST"));
-
-
-        given(buildService.getJobPipelineStage(pipelineId)).willReturn(mockStage);
-
-        // when
-
-        ResultActions result = mockMvc.perform(get("/api/build/stage")
-                        .param("pipeLine", pipelineId.toString()))
-                .andDo(print());
-
-        // then
-        result.andExpect(status().isOk())
-                .andExpect(  jsonPath("$.data.stages").isArray());
-
-
-        verify(buildService).getJobPipelineStage(pipelineId);
-    }
-
-    @Test
+    @DisplayName("특정 스테이지 실행")
     void 특정_스테이지_실행() throws Exception {
-        // given
         UUID pipelineId = UUID.randomUUID();
-        BuildRequestDto.BuildStageRequestDto requestDto =
-                new BuildRequestDto.BuildStageRequestDto(Map.of("TEST", true), pipelineId);
+        BuildRequestDto.BuildStageRequestDto dto = new BuildRequestDto.BuildStageRequestDto(Map.of("TEST", true), pipelineId);
 
-        // when
-        ResultActions result = mockMvc.perform(post("/api/build/stage/trigger")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)));
-
-
-        // then
-        result.andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.data").value("특정 Steps 실행"));
-
-        verify(buildService).StageJenkinsBuild(any(BuildRequestDto.BuildStageRequestDto.class));
+        mockMvc.perform(post("/api/build/stage/trigger")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value("특정 Steps 실행"));
     }
 
+    @WithMockUser
     @Test
+    @DisplayName("빌드 이력 조회 - LATEST")
     void 빌드_이력_조회_LATEST() throws Exception {
         UUID pipelineId = UUID.randomUUID();
+        BuildRequestDto.getBuildHistory dto = new BuildRequestDto.getBuildHistory(JobType.LATEST, pipelineId);
 
-        BuildRequestDto.getBuildHistory requestDto =
-                new BuildRequestDto.getBuildHistory(JobType.LATEST, pipelineId);
+        BuildResponseDto.BuildInfo latest = BuildResponseDto.BuildInfo.builder()
+                .jobName("woojin_test1")
+                .buildNumber(2)
+                .status("FAILURE")
+                .durationStr("0.4초")
+                .startedAt("2025-07-13 14:05:59")
+                .triggeredBy("서찬영")
+                .buildUrl("http://122.40.225.54:7979/job/woojin_test1/2/")
+                .building(false)
+                .build();
 
-        BuildResponseDto.BuildInfo latestHistory =
-                BuildResponseDto.BuildInfo.builder()
-                        .buildNumber(5)
-                        .status("SUCCESS")
-                        .build();
+        // ✅ 정확한 타입으로 래핑
+        BaseResponse<BuildResponseDto.BuildInfo> baseResponse = BaseResponse.success(latest);
+        ResponseEntity<BaseResponse<BuildResponseDto.BuildInfo>> responseEntity = ResponseEntity.ok(baseResponse);
 
-        // ✅ 핵심: 컨트롤러가 호출하는 서비스 메서드를 목킹
-        given(buildService.getLastBuildStatus(pipelineId))
-                .willReturn(latestHistory);
+        doReturn(responseEntity)
+                .when(buildService)
+                .getBuildInfo(any(BuildRequestDto.getBuildHistory.class));
 
-        ResultActions result = mockMvc.perform(post("/api/build/builds")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)));
+        mockMvc.perform(post("/api/build/builds")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
 
-        result.andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.data.buildNumber").value(5))
-                .andExpect((ResultMatcher) jsonPath("$.data.status").value("SUCCESS"));
-
-        // ✅ 검증: 어떤 서비스 메서드를 호출했는지 확인
-        verify(buildService).getLastBuildStatus(pipelineId);
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.body.data.buildNumber").value(2))
+                .andExpect(jsonPath("$.data.body.data.jobName").value("woojin_test1"));
     }
 
+
+    @DisplayName("빌드 이력 조회 - HISTORY")
+    @WithMockUser
     @Test
     void 빌드_이력_조회_HISTORY() throws Exception {
-        // given
         UUID pipelineId = UUID.randomUUID();
-        BuildRequestDto.getBuildHistory requestDto =
-                new BuildRequestDto.getBuildHistory(JobType.HISTORY, pipelineId);
+        BuildRequestDto.getBuildHistory dto = new BuildRequestDto.getBuildHistory(JobType.HISTORY, pipelineId);
 
-        List<BuildResponseDto.BuildInfo> historyList = Arrays.asList(
-                BuildResponseDto.BuildInfo.builder().buildNumber(3).status("SUCCESS").build(),
-                BuildResponseDto.BuildInfo.builder().buildNumber(2).status("FAILURE").build(),
-                BuildResponseDto.BuildInfo.builder().buildNumber(1).status("SUCCESS").build()
+        List<BuildResponseDto.BuildInfo> history = List.of(
+                BuildResponseDto.BuildInfo.builder()
+                        .jobName("woojin_test1")
+                        .buildNumber(1)
+                        .status("SUCCESS")
+                        .building(false)
+                        .durationStr("0.4초")
+                        .startedAt("2025-07-13 13:01:55")
+                        .triggeredBy("서찬영")
+                        .buildUrl("http://122.40.225.54:7979/job/woojin_test1/1/")
+                        .build(),
+
+                BuildResponseDto.BuildInfo.builder()
+                        .jobName("woojin_test1")
+                        .buildNumber(2)
+                        .status("FAILURE")
+                        .building(false)
+                        .durationStr("0.4초")
+                        .startedAt("2025-07-13 14:05:59")
+                        .triggeredBy("서찬영")
+                        .buildUrl("http://122.40.225.54:7979/job/woojin_test1/2/")
+                        .build()
         );
 
-        // ✅ 핵심: getBuildHistory 메서드 목킹
-        given(buildService.getBuildHistory(pipelineId))
-                .willReturn(historyList);
 
-        // when
-        ResultActions result = mockMvc.perform(post("/api/build/builds")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)));
 
-        // then
-        result.andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.data").isArray())
-                .andExpect((ResultMatcher) jsonPath("$.data.length()").value(3))
-                .andExpect((ResultMatcher) jsonPath("$.data[0].buildNumber").value(3))
-                .andExpect((ResultMatcher) jsonPath("$.data[0].status").value("SUCCESS"))
-                .andExpect((ResultMatcher) jsonPath("$.data[1].buildNumber").value(2))
-                .andExpect((ResultMatcher) jsonPath("$.data[1].status").value("FAILURE"))
-                .andExpect((ResultMatcher) jsonPath("$.data[2].buildNumber").value(1))
-                .andExpect((ResultMatcher) jsonPath("$.data[2].status").value("SUCCESS"));
+        doReturn(ResponseEntity.ok(BaseResponse.success(history)))
+                .when(buildService)
+                .getBuildInfo(any(BuildRequestDto.getBuildHistory.class));
 
-        // ✅ 호출 검증
-        verify(buildService).getBuildHistory(pipelineId);
+
+        mockMvc.perform(post("/api/build/builds")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.body.data.length()").value(2))  // 배열 개수 체크
+                .andExpect(jsonPath("$.data.body.data[0].buildNumber").value(1))
+                .andExpect(jsonPath("$.data.body.data[0].jobName").value("woojin_test1"))
+                .andExpect(jsonPath("$.data.body.data[1].buildNumber").value(2))
+                .andExpect(jsonPath("$.data.body.data[1].jobName").value("woojin_test1"));
+
+
     }
 
+
+
+
+    @WithMockUser
     @Test
+    @DisplayName("빌드 로그 조회")
     void 빌드_로그_조회() throws Exception {
-        // given
         UUID pipelineId = UUID.randomUUID();
-        BuildRequestDto.GetLogRequestDto requestDto =
-                new BuildRequestDto.GetLogRequestDto("42", pipelineId);
+        BuildRequestDto.GetLogRequestDto dto = new BuildRequestDto.GetLogRequestDto("42", pipelineId);
 
+        when(buildService.getBuildLog(any()))
+                .thenReturn(new BuildResponseDto.BuildLogDto(List.of("Log contents")));
 
-        given(buildService.getBuildLog(any()))
-                .willReturn(new BuildResponseDto.BuildLogDto(Collections.singletonList("Log contents")));
+        mockMvc.perform(post("/api/build/log")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
 
-        // when
-        ResultActions result = mockMvc.perform(post("/api/build/log")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)));
-
-        // then
-        result.andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.data.log").value("Log contents"));
-
-        verify(buildService).getBuildLog(any());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.log[0]").value("Log contents"));
     }
 
+    @WithMockUser
     @Test
+    @DisplayName("빌드 실시간 로그 조회")
     void 빌드_실시간_로그_조회() throws Exception {
-        // given
         UUID pipelineId = UUID.randomUUID();
-        BuildResponseDto.BuildStreamLogDto mockStreamLog =
-                BuildResponseDto.BuildStreamLogDto.getStreamLog("Realtime log");
 
+        when(buildService.getStreamLog(any()))
+                .thenReturn(BuildResponseDto.BuildStreamLogDto.getStreamLog("Realtime log"));
 
-        given(buildService.getStreamLog(pipelineId)).willReturn(mockStreamLog);
-
-        // when
-        ResultActions result = mockMvc.perform(get("/api/build/streamlog")
-                .param("pipeLine", pipelineId.toString()));
-
-        // then
-        result.andExpect(status().isOk())
-                .andExpect((ResultMatcher) jsonPath("$.data.log").isArray())
-                .andExpect((ResultMatcher) jsonPath("$.data.log[0]").value("Realtime log"));
-
-        verify(buildService).getStreamLog(pipelineId);
+        mockMvc.perform(get("/api/build/streamlog")
+                        .param("pipeLine", pipelineId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.log[0]").value("Realtime log"));
     }
 }

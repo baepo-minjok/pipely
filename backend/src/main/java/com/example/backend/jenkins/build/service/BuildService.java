@@ -141,10 +141,12 @@ public class BuildService {
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        dto.getStageToggles().forEach((key, value) ->
-                body.add("DO_" + key.toUpperCase(), String.valueOf(value)));
-        httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
-
+        dto.getStageToggles().forEach((key, value) -> {
+            String paramKey = "RUN_" + key.toUpperCase().replace(" ", "_");
+            body.add(paramKey, String.valueOf(value));
+        });
+        String response = httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+        log.info("Jenkins 응답 상태: {}", response);
 
     }
 //    public void stagePipeline1(BuildRequestDto.StageSettingRequestDto dto) {
