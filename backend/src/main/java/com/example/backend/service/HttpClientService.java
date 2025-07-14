@@ -46,10 +46,14 @@ public class HttpClientService {
             return response.getBody();
         } catch (IllegalArgumentException e) {
             // url 틀렸을때
-            log.error(e.getMessage());
+            log.error("Invalid url");
             throw new CustomException(ErrorCode.URL_INCORRECT);
         } catch (HttpClientErrorException e) {
             // 4xx 오류
+            log.error(e.getStatusCode().toString());
+            log.error(e.getResponseBodyAsString());
+            log.error("HttpClientErrorException: {}", e.getMessage());
+
             int status = e.getStatusCode().value();
             switch (status) {
                 case 400:
@@ -63,13 +67,15 @@ public class HttpClientService {
         } catch (HttpServerErrorException e) {
             // 5xx 오류
             log.error(e.getStatusCode().toString());
+            log.error("HttpServerErrorException: {}", e.getMessage());
             throw new CustomException(ErrorCode.JENKINS_SERVER_PROBLEM);
         } catch (CancellationException e) {
             // 잘못된 주소로 요청이 취소
+            log.error("Http request cancelled: {}", e.getMessage());
             throw new CustomException(ErrorCode.URL_INCORRECT);
         } catch (RestClientException e) {
             // 그외 기타 예외
-            log.error(e.getMessage());
+            log.error("Unhandled request Exception: {}", e.getMessage());
             throw new CustomException(ErrorCode.HTTP_REQUEST_EXCEPTION);
         }
     }
