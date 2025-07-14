@@ -55,8 +55,10 @@ public class PipelineService {
         Script script = requestDto.getScriptId() != null ? scriptService.getScriptById(requestDto.getScriptId()) : null;
         // 2) 스테이지 이름 추출
         List<String> stageNames = script != null
-                ? scriptEditUtil.extractStageNames(script.getScript())
+                ? scriptEditUtil.extractStageNames(script.getScript()).stream()
+                .map(name -> name.toUpperCase().replaceAll("\\W+", "_")).toList()
                 : Collections.emptyList();
+
 
         // jenkins에 보낼 config 만들기
         String config = configService.createConfig(
@@ -74,6 +76,9 @@ public class PipelineService {
                     .build();
             saved.getStageList().add(stage);
         }
+        info.getPipelineList().add(saved);
+
+        pipelineRepository.flush();
 
         // jenkins에 http 요청
         String jenkinsUrl = info.getUri() + "/createItem?name=" + requestDto.getName();
@@ -90,13 +95,6 @@ public class PipelineService {
             compensationService.deletePipeline(saved.getId());
             throw e;
         }
-
-        info.getPipelineList().add(saved);
-    }
-
-    @Transactional
-    public void er() {
-
     }
 
     @Transactional
@@ -142,6 +140,7 @@ public class PipelineService {
 
         // 수정된 job 저장
         Pipeline updated = pipelineRepository.save(pipeline);
+        pipelineRepository.flush();
 
         // jenkins에 http 요청
         String jenkinsUrl = info.getUri() + "/job/" + requestDto.getName() + "/config.xml";
@@ -152,7 +151,11 @@ public class PipelineService {
                         new MediaType("application", "xml", StandardCharsets.UTF_8)
                 )
         );
-        publisher.publishEvent(new JobEvent.JobUpdatedEvent<>(updated.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
+        try {
+            httpClientService.exchange(jenkinsUrl, HttpMethod.POST, req, String.class);
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     public Pipeline getPipelineById(UUID id) {
@@ -178,7 +181,11 @@ public class PipelineService {
                         MediaType.APPLICATION_FORM_URLENCODED
                 )
         );
-        publisher.publishEvent(new JobEvent.JobDeletedEvent<>(pipeline.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
+        try {
+            httpClientService.exchange(jenkinsUrl, HttpMethod.POST, req, String.class);
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     @Transactional
