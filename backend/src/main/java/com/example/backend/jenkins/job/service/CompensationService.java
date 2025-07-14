@@ -3,7 +3,6 @@ package com.example.backend.jenkins.job.service;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -13,7 +12,7 @@ import java.util.UUID;
 public class CompensationService {
     private final PipelineRepository pipelineRepository;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void deletePipeline(UUID pipelineId) {
         pipelineRepository.findById(pipelineId)
                 .ifPresent(pipelineRepository::delete);

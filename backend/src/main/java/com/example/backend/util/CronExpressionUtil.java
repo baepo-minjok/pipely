@@ -44,7 +44,7 @@ public class CronExpressionUtil {
     }
 
     /**
-     * 예) "매일 09:30", "매주 월,수,금 오전 9시 30분"
+     * 예) "매주 월,수,금 오전 9시 30분"
      */
     public static String toCron(String userSchedule) {
         Matcher schedM = SCHEDULE_PATTERN.matcher(userSchedule.trim());
