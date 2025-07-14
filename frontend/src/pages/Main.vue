@@ -3,24 +3,21 @@ import { ref } from 'vue';
 import Header from '../components/common/Header.vue';
 
 const sendText = ref('');
-
 </script>
 
 <template>
   <div class="container">
-    <Header></Header>  
     <div class="chat_box">
       <p>무엇을 도와드릴까요?</p>
 
       <div class="input_box">
-        <input type="text" placeholder="오늘 어떤 도움을 드릴까요?" v-model="sendText">
+        <input type="text" placeholder="오늘 어떤 도움을 드릴까요?" v-model="sendText" />
         <button class="send_btn">
-          <img src="/src/assets/icons/up_arrow.svg" alt="send">
+          <img src="/src/assets/icons/up_arrow.svg" alt="send" />
         </button>
       </div>
     </div>
   </div>
-
 </template>
 
 <style scoped>
@@ -74,17 +71,15 @@ const sendText = ref('');
   border: none;
   padding: 11px;
   cursor: pointer;
-  transition: all .3s;
+  transition: all 0.3s;
 
   &:hover {
     background-color: var(--chat-send);
   }
-
 }
 
 .send_btn > img {
   width: 16px;
   height: 16px;
 }
-
 </style>
