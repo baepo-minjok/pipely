@@ -1,5 +1,6 @@
 <script setup>
 import { reactive } from 'vue';
+import { formatDateTime } from '../../utils/formatDateTime';
 
 const job = reactive({
   idx: 1,
@@ -25,7 +26,7 @@ const job = reactive({
 </script>
 
 <template>
-  <div class="container">
+  <div class="card_container">
     <div class="header">
       <h3>{{ job.name }}</h3>
       <div class="state_box" :class="{ success: job.buildState === 'SUCCESS' }">
@@ -33,21 +34,58 @@ const job = reactive({
         성공
       </div>
     </div>
+
+    <div class="text_box">
+      <p>실행자 : {{ job.createdBy }}</p>
+      <p>·</p>
+      <p>마지막 실행 : {{ formatDateTime(job.lastExe) }}</p>
+    </div>
+
+    <div class="stage_box">
+      <div class="build">
+        Build:
+        <img src="/src/assets/icons/check.svg" alt="success" />
+      </div>
+      <div class="test">
+        Test:
+        <img src="/src/assets/icons/check.svg" alt="success" />
+      </div>
+      <div class="deploy">
+        Deploy:
+        <img src="/src/assets/icons/check.svg" alt="success" />
+      </div>
+    </div>
+
+    <button class="start_btn" :class="{ restart: job.buildState === 'SUCCESS' }">
+      {{ job.buildState === 'SUCCESS' ? '재실행' : job.buildState === 'FAILED' ? '재시도' : '지금 실행' }}
+    </button>
   </div>
 </template>
 
 <style scoped>
-.container {
+.card_container {
   width: 100%;
   background-color: white;
   padding: 27px;
   border-radius: 10px;
   border: 1px solid var(--gray200);
+  box-sizing: border-box;
+  transition: scale 0.3s;
+  cursor: pointer;
+
+  &:hover {
+    scale: 1.03;
+  }
 }
 
 .header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+.header > h3 {
+  font-size: 20px;
 }
 
 .state_box {
@@ -60,5 +98,45 @@ const job = reactive({
 .state_box.success {
   background-color: var(--green-bg);
   color: var(--green-text);
+}
+
+.text_box {
+  display: flex;
+  gap: 10px;
+  color: var(--gray600);
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.stage_box {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 12px 0;
+  font-size: 14px;
+
+  & > div {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+}
+
+.start_btn {
+  border-radius: 6px;
+  border: none;
+  padding: 9px 18px;
+  font-size: 16px;
+  transition: all 0.3s;
+  cursor: pointer;
+
+  &.restart {
+    background-color: var(--gray200);
+    color: var(--gray700);
+  }
+
+  &.restart:hover {
+    background-color: var(--gray300);
+  }
 }
 </style>
