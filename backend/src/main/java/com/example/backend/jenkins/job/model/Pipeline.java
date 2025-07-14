@@ -17,7 +17,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "pipeline",
-        uniqueConstraints = @UniqueConstraint(name = "uq_pipeline", columnNames = {"jenkins_info_id", "name"}))
+        uniqueConstraints = @UniqueConstraint(name = "uq_pipeline", columnNames = {"jenkins_info_id", "name", "is_deleted"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -57,7 +57,7 @@ public class Pipeline {
     @Lob
     private String config;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
+    @OneToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "script_id", nullable = true)
     private Script script;
 

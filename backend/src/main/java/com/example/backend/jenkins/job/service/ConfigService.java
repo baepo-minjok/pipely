@@ -130,9 +130,11 @@ public class ConfigService {
             String githubUrl = script.getGithubUrl() == null ? "" : script.getGithubUrl();
             String sc = script.getScript() == null ? "" : script.getScript();
 
-            List<String> stringList = scriptEditUtil.extractStageNames(sc);
+            List<String> stageList = scriptEditUtil.extractStageNames(script.getScript()).stream()
+                    .map(name -> name.toUpperCase().replaceAll("\\W+", "_")).toList();
             String injectedScript = scriptEditUtil.injectBooleanParams(sc);
 
+            context.put("params", stageList);
             context.put("githubUrl", githubUrl);
             context.put("script", injectedScript);
         }
