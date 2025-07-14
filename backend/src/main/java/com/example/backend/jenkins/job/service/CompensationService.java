@@ -1,7 +1,5 @@
 package com.example.backend.jenkins.job.service;
 
-import com.example.backend.exception.CustomException;
-import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +17,5 @@ public class CompensationService {
     public void deletePipeline(UUID pipelineId) {
         pipelineRepository.findById(pipelineId)
                 .ifPresent(pipelineRepository::delete);
-        throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
     }
 }
