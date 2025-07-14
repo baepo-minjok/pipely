@@ -42,8 +42,8 @@ public class PipelineService {
     private final ScriptEditUtil scriptEditUtil;
     private final PipelineRepository pipelineRepository;
     private final StageService stageService;
+    private final CompensationService compensationService;
 
-    @Transactional
     public void createJob(RequestDto.CreateDto requestDto) {
         // jenkins info 확인
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
@@ -65,6 +65,7 @@ public class PipelineService {
         // job 저장
         Pipeline pipeline = RequestDto.toEntity(requestDto, info, script, config);
         Pipeline saved = pipelineRepository.save(pipeline);
+
         for (int i = 0; i < stageNames.size(); i++) {
             Stage stage = Stage.builder()
                     .orderIndex(i)
@@ -73,7 +74,6 @@ public class PipelineService {
                     .build();
             saved.getStageList().add(stage);
         }
-        info.getPipelineList().add(saved);
 
         // jenkins에 http 요청
         String jenkinsUrl = info.getUri() + "/createItem?name=" + requestDto.getName();
@@ -84,7 +84,19 @@ public class PipelineService {
                         new MediaType("application", "xml", StandardCharsets.UTF_8)
                 )
         );
-        publisher.publishEvent(new JobEvent.JobCreatedEvent<>(saved.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
+        try {
+            httpClientService.exchange(jenkinsUrl, HttpMethod.POST, req, String.class);
+        } catch (Exception e) {
+            compensationService.deletePipeline(saved.getId());
+            throw e;
+        }
+
+        info.getPipelineList().add(saved);
+    }
+
+    @Transactional
+    public void er() {
+
     }
 
     @Transactional

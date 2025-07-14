@@ -27,6 +27,7 @@ public class JobEventListener {
             httpClientService.exchange(evt.getUrl(), evt.getMethod(), evt.getRequestEntity(), evt.getResponseType());
         } catch (Exception e) {
             compensationService.deletePipeline(evt.getPipelineId());
+            throw e;
         }
     }
 
