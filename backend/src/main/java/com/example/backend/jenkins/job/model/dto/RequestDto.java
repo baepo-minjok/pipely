@@ -15,9 +15,11 @@ import java.util.UUID;
 
 public class RequestDto {
 
-    public static CreateDto toCreateDto(UpdateDto requestDto) {
+    public static CreateDto toCreateDto(UpdateDto requestDto, UUID infoId) {
         return CreateDto.builder()
                 .name(requestDto.getName())
+                .infoId(infoId)
+                .scriptId(requestDto.getScriptId())
                 .description(requestDto.getDescription())
                 .trigger(requestDto.getTrigger())
                 .schedule(requestDto.getSchedule())
