@@ -18,8 +18,8 @@ pipeline {
           sh './gradlew clean build -x test'
           {{/Gradle}}
           {{#Maven}}
-          sh 'chmod +x mvn'
-          sh 'mvn clean install'
+          sh 'chmod +x mvnw'
+          sh './mvnw clean install'
           {{/Maven}}
           {{#Maven_Wrapper}}
           sh 'chmod +x mvnw'
@@ -37,7 +37,7 @@ pipeline {
           sh './gradlew test'
           {{/Gradle}}
           {{#Maven}}
-          sh 'mvn test'
+          sh './mvnw test'
           {{/Maven}}
           {{#Maven_Wrapper}}
           sh './mvnw test'

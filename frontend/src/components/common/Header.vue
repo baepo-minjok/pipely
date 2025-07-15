@@ -8,11 +8,11 @@ const showMenu = ref(false);
 
 const goToHome = () => {
   router.push('/');
-}
+};
 
-const handleMenuClick  = () => {
+const handleMenuClick = () => {
   showMenu.value = !showMenu.value;
-}
+};
 
 // 드롭다운 영역을 참조할 ref
 const profileWrapper = ref(null);
@@ -31,15 +31,14 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside);
 });
-
 </script>
 
 <template>
   <div class="container">
-    <img src="/src/assets/images/logo.png" alt="pipely" class="logo_img" @click="goToHome()">
+    <img src="/src/assets/images/logo.png" alt="pipely" class="logo_img" @click="goToHome()" />
     <div class="profile_wrapper" ref="profileWrapper">
-      <img src="/src/assets/icons/profile.svg" alt="profile" class="profile_icon" @click="handleMenuClick()">
-      <Dropdown v-if="showMenu" />
+      <img src="/src/assets/icons/profile.svg" alt="profile" class="profile_icon" @click="handleMenuClick()" />
+      <Dropdown v-if="showMenu" @select="showMenu = false" />
     </div>
   </div>
 </template>

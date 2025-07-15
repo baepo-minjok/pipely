@@ -54,4 +54,16 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
     Optional<Pipeline> findByJenkinsInfoIdAndId(UUID jenkinsInfoId, UUID jobId);
 
     Optional<Pipeline> findByScriptId(UUID scriptId);
+           
+    @Query("""
+            select p
+            from Pipeline p
+            where p.jenkinsInfo.id = :jenkinsInfoId
+              and p.name = :name
+              and p.isDeleted = false
+            """)
+    Optional<Pipeline> findByJenkinsInfoIdAndName(
+            @Param("jenkinsInfoId") UUID jenkinsInfoId,
+            @Param("name") String name
+    );
 }

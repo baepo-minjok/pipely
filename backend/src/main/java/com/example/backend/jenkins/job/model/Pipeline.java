@@ -16,8 +16,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "pipeline",
-        uniqueConstraints = @UniqueConstraint(name = "uq_pipeline", columnNames = {"jenkins_info_id", "name"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -57,7 +55,10 @@ public class Pipeline {
     @Lob
     private String config;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = true)
+    @Column(name = "latest_version")
+    private Integer latestVersion;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "script_id", nullable = true)
     private Script script;
 
@@ -68,6 +69,10 @@ public class Pipeline {
     @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<Stage> stageList = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PipelineVersion> versionList = new ArrayList<>();
 
     /*@OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PipelineHistory> historyList = new ArrayList<>();*/

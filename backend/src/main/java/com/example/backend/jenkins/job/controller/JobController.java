@@ -8,6 +8,8 @@ import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.service.PipelineService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
@@ -39,6 +41,10 @@ public class JobController {
             @ApiResponse(responseCode = "404", description = "잘못된 JenkinsInfo Id"),
             @ApiResponse(responseCode = "500", description = "Jenkins 서버 문제로 인한 실패")
     })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(schema = @Schema(implementation = RequestDto.CreateDto.class))
+    )
     @PreAuthorize("@jenkinsInfoService.isOwner(#user, #requestDto.infoId)")
     @PostMapping("/create")
     public ResponseEntity<BaseResponse<String>> create(
@@ -144,6 +150,18 @@ public class JobController {
     ) {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(pipelineService.getDeletedLightJobs(jenkinsInfoId)));
+    }
+
+    @Operation(
+            summary = "파이프라인 버전 리스트 조회",
+            description = "지정된 파이프라인 ID에 대해 모든 버전 기록을 반환합니다."
+    )
+    @GetMapping("/pipelines/{id}/versions")
+    public ResponseEntity<List<ResponseDto.PipelineVersionDto>> getVersions(
+            @Parameter(description = "버전을 조회할 파이프라인 ID", example = "b1a7c7b2-8123-4cce-80ec-ccf79d5e2f7a")
+            @PathVariable UUID id) {
+        List<ResponseDto.PipelineVersionDto> versions = pipelineService.getPipelineVersions(id);
+        return ResponseEntity.ok(versions);
     }
 
 }

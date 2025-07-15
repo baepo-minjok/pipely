@@ -6,6 +6,7 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.Stage;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
@@ -15,7 +16,6 @@ import com.example.backend.service.HttpClientService;
 import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -28,13 +28,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PipelineService {
 
-    private final ApplicationEventPublisher publisher;
     private final HttpClientService httpClientService;
     private final JenkinsInfoService jenkinsInfoService;
     private final ConfigService configService;
@@ -42,105 +42,57 @@ public class PipelineService {
     private final ScriptEditUtil scriptEditUtil;
     private final PipelineRepository pipelineRepository;
     private final StageService stageService;
+    private final CompensationService compensationService;
 
+    /**
+     * Create a new Jenkins job and persist the pipeline.
+     */
     @Transactional
-    public void createJob(RequestDto.CreateDto requestDto) {
-        // jenkins info 확인
-        JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
+    public UUID createJob(RequestDto.CreateDto dto) {
+        JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
+        ensureUniqueName(info.getId(), dto.getName());
 
-        // jenkins info에 같은 name이 존재하는지 검증
-        if (pipelineRepository.findByJenkinsInfoIdAndName(requestDto.getInfoId(), requestDto.getName()).isPresent()) {
-            throw new CustomException(ErrorCode.JENKINS_JOB_EXIST);
-        }
-        Script script = requestDto.getScriptId() != null ? scriptService.getScriptById(requestDto.getScriptId()) : null;
-        // 2) 스테이지 이름 추출
-        List<String> stageNames = script != null
-                ? scriptEditUtil.extractStageNames(script.getScript())
-                : Collections.emptyList();
+        Script script = loadScript(dto.getScriptId());
+        String config = buildConfig(dto, script);
 
-        // jenkins에 보낼 config 만들기
-        String config = configService.createConfig(
-                configService.buildConfigContext(requestDto, script));
+        Pipeline pipeline = savePipeline(dto, info, script, config);
+        createStages(pipeline, script);
+        saveVersion(pipeline);
 
-        // job 저장
-        Pipeline pipeline = RequestDto.toEntity(requestDto, info, script, config);
-        Pipeline saved = pipelineRepository.save(pipeline);
-        for (int i = 0; i < stageNames.size(); i++) {
-            Stage stage = Stage.builder()
-                    .orderIndex(i)
-                    .name(stageNames.get(i))
-                    .pipeline(saved)
-                    .build();
-            saved.getStageList().add(stage);
-        }
-        info.getPipelineList().add(saved);
+        callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
+                config, info, HttpMethod.POST,
+                () -> compensationService.deletePipeline(pipeline.getId()));
 
-        // jenkins에 http 요청
-        String jenkinsUrl = info.getUri() + "/createItem?name=" + requestDto.getName();
-        HttpEntity<String> req = new HttpEntity<>(
-                config,
-                httpClientService.buildHeaders(
-                        info,
-                        new MediaType("application", "xml", StandardCharsets.UTF_8)
-                )
-        );
-        publisher.publishEvent(new JobEvent.JobCreatedEvent<>(saved.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
+        return pipeline.getId();
     }
 
+    /**
+     * Update an existing Jenkins job or recreate if renamed.
+     */
     @Transactional
-    public void updateJob(RequestDto.UpdateDto requestDto) {
-
-        // job 검색 & info 가져오기stage 추출
-        Pipeline pipeline = getPipelineById(requestDto.getPipelineId());
+    public void updateJob(RequestDto.UpdateDto dto) {
+        Pipeline pipeline = getPipelineById(dto.getPipelineId());
         JenkinsInfo info = pipeline.getJenkinsInfo();
+        String preName = pipeline.getName();
+        boolean isRenamed = isRenamed(preName, dto);
 
-        // script 정보 가져오기 & stage 추출
-        Script script = requestDto.getScriptId() != null ? scriptService.getScriptById(requestDto.getScriptId()) : null;
-        List<String> stageNames = script != null
-                ? scriptEditUtil.extractStageNames(script.getScript())
-                : Collections.emptyList();
+        Script script = loadScript(dto.getScriptId());
+        updateStages(pipeline, script);
+        ensureUniqueName(info.getId(), dto.getName(), pipeline);
 
-        stageService.deleteByPipelineId(pipeline.getId());
-        pipeline.getStageList().clear();
-        for (int i = 0; i < stageNames.size(); i++) {
-            Stage stage = Stage.builder()
-                    .orderIndex(i)
-                    .name(stageNames.get(i))
-                    .pipeline(pipeline)
-                    .build();
-            pipeline.getStageList().add(stage);
+        String config = buildConfig(RequestDto.toCreateDto(dto, info.getId()), script);
+        applyPipelineChanges(pipeline, dto, config);
+        saveVersion(pipeline);
+
+        if (isRenamed) {
+            callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
+                    config, info, HttpMethod.POST,
+                    () -> compensationService.rollback());
+            deleteJobOnJenkins(info, preName, () -> compensationService.rollback());
+        } else {
+            callJenkins(info.getUri() + "/job/" + dto.getName() + "/config.xml",
+                    config, info, HttpMethod.POST, () -> compensationService.rollback());
         }
-
-        // jenkins info에 같은 name이 존재하는지 검증
-        Optional<Pipeline> pipelineOptional = pipelineRepository.findByJenkinsInfoIdAndName(info.getId(), requestDto.getName());
-        if (pipelineOptional.isPresent()) {
-            Pipeline existing = pipelineOptional.get();
-            if (!existing.equals(pipeline)) {
-                throw new CustomException(ErrorCode.JENKINS_JOB_EXIST);
-            }
-        }
-
-        // jenkins에 보낼 config 만들기
-        RequestDto.CreateDto createDto = RequestDto.toCreateDto(requestDto);
-        String config = configService.createConfig(configService.buildConfigContext(createDto, script));
-        pipeline.setDescription(requestDto.getDescription());
-        pipeline.setIsTriggered(requestDto.getTrigger());
-        pipeline.setUpdatedAt(LocalDateTime.now());
-        pipeline.setConfig(config);
-
-        // 수정된 job 저장
-        Pipeline updated = pipelineRepository.save(pipeline);
-
-        // jenkins에 http 요청
-        String jenkinsUrl = info.getUri() + "/job/" + requestDto.getName() + "/config.xml";
-        HttpEntity<String> req = new HttpEntity<>(
-                config,
-                httpClientService.buildHeaders(
-                        info,
-                        new MediaType("application", "xml", StandardCharsets.UTF_8)
-                )
-        );
-        publisher.publishEvent(new JobEvent.JobUpdatedEvent<>(updated.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
     }
 
     public Pipeline getPipelineById(UUID id) {
@@ -151,56 +103,182 @@ public class PipelineService {
     @Transactional
     public void softDeletePipelineById(UUID id) {
         Pipeline pipeline = getPipelineById(id);
-
-        JenkinsInfo info = pipeline.getJenkinsInfo();
-
-        pipeline.setIsDeleted(true);
         pipeline.setDeletedAt(LocalDateTime.now());
-
+        pipeline.setIsDeleted(true);
         pipelineRepository.save(pipeline);
-
-        String jenkinsUrl = info.getUri() + "/job/" + pipeline.getName() + "/doDelete";
-        HttpEntity<String> req = new HttpEntity<>(
-                httpClientService.buildHeaders(
-                        info,
-                        MediaType.APPLICATION_FORM_URLENCODED
-                )
-        );
-        publisher.publishEvent(new JobEvent.JobDeletedEvent<>(pipeline.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
+        deleteJobOnJenkins(pipeline.getJenkinsInfo(), pipeline.getName(), () -> compensationService.softDeletePipeline(pipeline, null, false));
     }
 
     @Transactional
     public void hardDeletePipelineById(UUID id) {
-        Pipeline pipeline = getPipelineById(id);
-
-        pipelineRepository.delete(pipeline);
+        pipelineRepository.delete(getPipelineById(id));
     }
 
     public List<ResponseDto.LightJobDto> getLightJobs(UUID jenkinsInfoId) {
-        return pipelineRepository.findActiveWithScriptByJenkinsInfoId(jenkinsInfoId)
-                .stream().map(ResponseDto::entityToLightJobDto).toList();
+        return pipelineRepository.findActiveWithScriptByJenkinsInfoId(jenkinsInfoId).stream()
+                .map(ResponseDto::entityToLightJobDto)
+                .collect(Collectors.toList());
     }
 
     public List<ResponseDto.LightJobDto> getDeletedLightJobs(UUID jenkinsInfoId) {
-        return pipelineRepository.findDeletedWithScriptByJenkinsInfoId(jenkinsInfoId)
-                .stream().map(ResponseDto::entityToLightJobDto).toList();
+        return pipelineRepository.findDeletedWithScriptByJenkinsInfoId(jenkinsInfoId).stream()
+                .map(ResponseDto::entityToLightJobDto)
+                .collect(Collectors.toList());
     }
 
     public ResponseDto.DetailJobDto getDetailJob(UUID jobId) {
-
         return ResponseDto.entityToDetailJobDto(getPipelineById(jobId));
     }
 
-    // Pipeline 권한 확인하는 AOP
     public boolean isOwner(Users user, UUID pipelineId) {
-
         Pipeline pipeline = pipelineRepository.findWithInfoAndScriptAndUserById(pipelineId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
-        JenkinsInfo info = pipeline.getJenkinsInfo();
-        UUID userId = user.getId();
-        UUID confirmUserId = info.getUser().getId();
-        log.info(user.getId().toString());
-        log.info(info.getUser().getId().toString());
-        return userId.equals(confirmUserId);
+        return user.getId().equals(pipeline.getJenkinsInfo().getUser().getId());
     }
+
+    private void ensureUniqueName(UUID infoId, String name) {
+        pipelineRepository.findByJenkinsInfoIdAndName(infoId, name)
+                .ifPresent(p -> {
+                    throw new CustomException(ErrorCode.JENKINS_JOB_EXIST);
+                });
+    }
+
+    private void ensureUniqueName(UUID infoId, String name, Pipeline current) {
+        pipelineRepository.findByJenkinsInfoIdAndName(infoId, name)
+                .filter(p -> !p.getId().equals(current.getId()))
+                .ifPresent(p -> {
+                    throw new CustomException(ErrorCode.JENKINS_JOB_EXIST);
+                });
+    }
+
+    private boolean isRenamed(String previousName, RequestDto.UpdateDto dto) {
+        return !previousName.equals(dto.getName());
+    }
+
+    private Script loadScript(UUID scriptId) {
+        return scriptId != null ? scriptService.getScriptById(scriptId) : null;
+    }
+
+    private String buildConfig(RequestDto.CreateDto dto, Script script) {
+        return configService.createConfig(
+                configService.buildConfigContext(dto, script)
+        );
+    }
+
+    private Pipeline savePipeline(RequestDto.CreateDto dto, JenkinsInfo info, Script script, String config) {
+        Pipeline entity = RequestDto.toEntity(dto, info, script, config);
+        return pipelineRepository.save(entity);
+    }
+
+    private void createStages(Pipeline pipeline, Script script) {
+        List<String> names = extractStageNames(script);
+        for (int i = 0; i < names.size(); i++) {
+            Stage stage = Stage.builder()
+                    .orderIndex(i)
+                    .name(names.get(i))
+                    .pipeline(pipeline)
+                    .build();
+            pipeline.getStageList().add(stage);
+        }
+    }
+
+    private void updateStages(Pipeline pipeline, Script script) {
+        stageService.deleteByPipelineId(pipeline.getId());
+        pipeline.getStageList().clear();
+        createStages(pipeline, script);
+    }
+
+    private List<String> extractStageNames(Script script) {
+        if (script == null) return Collections.emptyList();
+        return scriptEditUtil.extractStageNames(script.getScript())
+                .stream()
+                .map(s -> s.toUpperCase().replaceAll("\\W+", "_"))
+                .collect(Collectors.toList());
+    }
+
+    private void applyPipelineChanges(Pipeline pipeline, RequestDto.UpdateDto dto, String config) {
+        pipeline.setName(dto.getName());
+        pipeline.setDescription(dto.getDescription());
+        pipeline.setIsTriggered(dto.getTrigger());
+        pipeline.setConfig(config);
+        pipeline.setUpdatedAt(LocalDateTime.now());
+        pipeline.setSchedule(dto.getSchedule());
+        pipelineRepository.save(pipeline);
+        pipelineRepository.flush();
+    }
+
+    private void callJenkins(String url, String body, JenkinsInfo info, HttpMethod method, Runnable onError) {
+        HttpEntity<String> req = new HttpEntity<>(
+                body,
+                httpClientService.buildHeaders(
+                        info,
+                        new MediaType("application", "xml", StandardCharsets.UTF_8)
+                )
+        );
+        try {
+            httpClientService.exchange(url, method, req, String.class);
+        } catch (Exception e) {
+            if (onError != null) onError.run();
+            throw e;
+        }
+    }
+
+    private void deleteJobOnJenkins(JenkinsInfo info, String name, Runnable onError) {
+        String url = info.getUri() + "/job/" + name + "/doDelete";
+        HttpEntity<String> req = new HttpEntity<>(
+                httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED)
+        );
+        try {
+            httpClientService.exchange(url, HttpMethod.POST, req, String.class);
+        } catch (CustomException e) {
+            if (!ErrorCode.INVALID_ENDPOINT.equals(e.getErrorCode())) {
+                if (onError != null) onError.run();
+                throw e;
+            }
+        }
+    }
+
+
+    @Transactional
+    public void restorationJob(UUID pipelineId) {
+        Pipeline pipeline = getPipelineById(pipelineId);
+        JenkinsInfo info = pipeline.getJenkinsInfo();
+        LocalDateTime time = pipeline.getDeletedAt();
+
+        ensureUniqueName(info.getId(), pipeline.getName(), pipeline);
+
+        compensationService.softDeletePipeline(pipeline, null, false);
+
+        String config = pipeline.getConfig();
+
+        callJenkins(info.getUri() + "/createItem?name=" + pipeline.getName(),
+                config, info, HttpMethod.POST,
+                () -> compensationService.softDeletePipeline(pipeline, time, true));
+    }
+
+    public List<ResponseDto.PipelineVersionDto> getPipelineVersions(UUID pipelineId) {
+        Pipeline pipeline = getPipelineById(pipelineId);
+        return pipeline.getVersionList().stream()
+                .map(ResponseDto::entityToPipelineVersionDto)
+                .toList();
+    }
+
+    //새 버전 저장
+    private void saveVersion(Pipeline pipeline) {
+        Integer newVersion = Optional.ofNullable(pipeline.getLatestVersion()).orElse(0) + 1;
+        pipeline.setLatestVersion(newVersion);
+
+        PipelineVersion version = PipelineVersion.builder()
+                .pipeline(pipeline)
+                .version(newVersion)
+                .createdAt(LocalDateTime.now())
+                .script(pipeline.getScript())
+                .config(pipeline.getConfig())
+                .isSuccessfulBuild(null)
+                .build();
+
+        pipeline.getVersionList().add(version);
+    }
+
+
 }
