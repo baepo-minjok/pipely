@@ -49,12 +49,6 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
             """)
     List<Pipeline> findDeletedWithScriptByJenkinsInfoId(@Param("jenkinsInfoId") UUID jenkinsInfoId);
 
-    Optional<Pipeline> findByJenkinsInfoIdAndName(UUID jenkinsInfoId, String name);
-
-    Optional<Pipeline> findByJenkinsInfoIdAndId(UUID jenkinsInfoId, UUID jobId);
-
-    Optional<Pipeline> findByScriptId(UUID scriptId);
-           
     @Query("""
             select p
             from Pipeline p
@@ -66,4 +60,6 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
             @Param("jenkinsInfoId") UUID jenkinsInfoId,
             @Param("name") String name
     );
+
+    Optional<Pipeline> findByScriptId(UUID scriptId);
 }

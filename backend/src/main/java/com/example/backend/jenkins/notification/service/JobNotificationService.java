@@ -3,11 +3,9 @@ package com.example.backend.jenkins.notification.service;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
-import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.repository.ScriptRepository;
 import com.example.backend.jenkins.job.service.ConfigService;
-import com.example.backend.jenkins.job.service.JobEvent;
 import com.example.backend.jenkins.notification.model.dto.RequestDto;
 import com.example.backend.jenkins.notification.model.dto.ResponseDto;
 import com.example.backend.jenkins.notification.model.JobNotification;
@@ -42,8 +40,6 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -55,7 +51,6 @@ public class JobNotificationService {
     private final ApplicationEventPublisher publisher;
     private final JobNotificationRepository notificationRepository;
     private final JenkinsClientFactory jenkinsClient;
-    private final JenkinsInfoRepository jenkinsInfoRepository;
     private final ScriptRepository scriptRepository;
     private final ScriptEditUtil scriptEditUtil;
     private final ConfigService configService;
@@ -256,7 +251,8 @@ public class JobNotificationService {
                         new MediaType("application", "xml", StandardCharsets.UTF_8)
                 )
         );
-        publisher.publishEvent(new JobEvent.JobUpdatedEvent<>(updated.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
+        publisher.publishEvent(new JobNotificationEvent<>(updated.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
+
     }
 
     private String replacePostBlock(String originalScript, String newPostBlock) {
