@@ -21,11 +21,14 @@ public class JobNotificationController {
     private final JobNotificationService jobNotificationService;
 
     @PostMapping("/create")
-    public ResponseEntity<BaseResponse<String>> create(@RequestBody RequestDto.createCredential dto,
-                                                  @AuthenticationPrincipal CustomUserDetails user) {
-        jobNotificationService.createJobNotification(dto, user.getUser().getId());
-        return ResponseEntity.ok()
-                .body(BaseResponse.success("create jenkins notification credential success"));
+    public ResponseEntity<BaseResponse<String>> create(
+            @RequestBody List<RequestDto.createCredential> dtoList,
+            @AuthenticationPrincipal CustomUserDetails user)
+    {
+        jobNotificationService.createJobNotifications(dtoList, user.getUser().getId());
+        return ResponseEntity.ok(
+                BaseResponse.success("create jenkins notification credential success")
+        );
     }
 
     @PostMapping("/list")
@@ -69,14 +72,6 @@ public class JobNotificationController {
 
         return ResponseEntity.ok()
                 .body(BaseResponse.success("delete jenkins notification credential success"));
-    }
-
-    @PostMapping("/createNotifyScript")
-    public ResponseEntity<BaseResponse<String>> sendNotification(@RequestBody RequestDto.SendJobNotificationRequestDto dto) {
-        UUID currentUserId = getCurrentUserId();
-        jobNotificationService.createNotifyScript(currentUserId, dto.getJobId());
-        return ResponseEntity.ok()
-                .body(BaseResponse.success("create jenkins notification script success"));
     }
 
     private UUID getCurrentUserId() {

@@ -13,15 +13,17 @@ public class RequestDto {
     @Data
     public static class createCredential{
         private UUID jobId;
+        private UUID scriptId;
         private String name;
         private String eventType;
         private String channel;
         private String webhookUrl;
         private Boolean shouldNotify;
 
-        public JobNotification toEntity(Pipeline pipeline, String credentialName) {
+        public JobNotification toEntity(UUID pipelineId, String credentialName) {
             return JobNotification.builder()
-                    .id(pipeline.getId())
+                    .pipelineId(pipelineId)
+                    .scriptId(this.scriptId)
                     .name(this.name)
                     .createdAt(LocalDateTime.now())
                     .shouldNotify(this.shouldNotify)
@@ -29,7 +31,6 @@ public class RequestDto {
                     .webhookUrl(this.webhookUrl)
                     .eventType(this.eventType)
                     .credentialName(credentialName)
-                    .pipeline(pipeline)
                     .build();
         }
     }
@@ -58,7 +59,7 @@ public class RequestDto {
 
         public JobNotification toEntity(JobNotification notification) {
             return JobNotification.builder()
-                    .id(notification.getId())
+                    .pipelineId(notification.getPipelineId())
                     .name(notification.getName())
                     .createdAt(notification.getCreatedAt())
                     .pipeline(notification.getPipeline())

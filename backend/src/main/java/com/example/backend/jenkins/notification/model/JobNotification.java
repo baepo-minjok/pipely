@@ -15,19 +15,25 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@IdClass(JobNotificationId.class)
 @Table(name = "job_notification")
 public class JobNotification {
-
     @Id
-    @Column(name = "id", nullable = false)
-    private UUID id;
+    @Column(name = "credential_name", nullable = false)
+    private String credentialName;
 
-    @Id
+    @Column(name = "pipeline_id")
+    private UUID pipelineId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pipeline_id", referencedColumnName = "id", insertable = false, updatable = false)
+    private Pipeline pipeline;
+
+    @Column(name = "script_id", nullable = false)
+    private UUID scriptId;
+
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Id
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -39,13 +45,4 @@ public class JobNotification {
     private String webhookUrl;
 
     private String eventType;
-
-    @Column(name = "credential_name")
-    private String credentialName;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumns({
-            @JoinColumn(name = "id", referencedColumnName = "id", insertable = false, updatable = false),
-    })
-    private Pipeline pipeline;
 }
