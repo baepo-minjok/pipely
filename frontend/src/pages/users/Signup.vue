@@ -31,11 +31,13 @@ watch(phoneValue, (newVal, _oldVal) => {
 <template>
   <div class="container">
     <div class="left_wrapper">
-      <img src="/src/assets/images/logo.png" alt="logo">
+      <img src="/src/assets/images/logo.png" alt="logo" />
       <h3>처음 오셨군요! 👋</h3>
-      <p>이제부터 배포는 더 쉽고, 더 똑똑해집니다. <br />
-        당신의 DevOps 여정에 AI가 함께합니다.</p>
-      <router-link to="login" class="btn login_btn">로그인</router-link>
+      <p>
+        이제부터 배포는 더 쉽고, 더 똑똑해집니다. <br />
+        당신의 DevOps 여정에 AI가 함께합니다.
+      </p>
+      <router-link to="/user/login" class="btn login_btn">로그인</router-link>
     </div>
 
     <div class="right_wrapper">
@@ -46,10 +48,24 @@ watch(phoneValue, (newVal, _oldVal) => {
           <button class="btn">중복 확인</button>
         </div>
         <input type="password" id="password" name="password" class="input_box" placeholder="비밀번호를 입력해주세요." />
-        <input type="password" id="password_check" name="password_check" class="input_box"
-          placeholder="비밀번호를 확인해주세요." />
-        <input type="tel" id="phone" name="phone" class="input_box" maxlength="13" placeholder="010-1234-5678" :value="phoneValue"
-          @input="handlePress" required>
+        <input
+          type="password"
+          id="password_check"
+          name="password_check"
+          class="input_box"
+          placeholder="비밀번호를 확인해주세요."
+        />
+        <input
+          type="tel"
+          id="phone"
+          name="phone"
+          class="input_box"
+          maxlength="13"
+          placeholder="010-1234-5678"
+          :value="phoneValue"
+          @input="handlePress"
+          required
+        />
         <button class="btn signup_btn">회원가입</button>
         <p>또는</p>
         <button class="oauth_btn">
@@ -83,16 +99,16 @@ watch(phoneValue, (newVal, _oldVal) => {
   gap: 20px;
 }
 
-.left_wrapper>img {
+.left_wrapper > img {
   width: 200px;
   margin: 20px 0;
 }
 
-.left_wrapper>h3 {
+.left_wrapper > h3 {
   font-weight: 700;
 }
 
-.left_wrapper>p {
+.left_wrapper > p {
   line-height: 140%;
   margin-top: 10px;
   text-align: center;
@@ -111,8 +127,6 @@ watch(phoneValue, (newVal, _oldVal) => {
   background-color: var(--main-color-hover);
 }
 
-
-
 /* 오른쪽  */
 .right_wrapper {
   width: 50%;
@@ -123,7 +137,7 @@ watch(phoneValue, (newVal, _oldVal) => {
   gap: 30px;
 }
 
-.right_wrapper>h1 {
+.right_wrapper > h1 {
   font-size: 30px;
 }
 
@@ -139,7 +153,7 @@ watch(phoneValue, (newVal, _oldVal) => {
   gap: 10px;
 }
 
-.signup_box>p {
+.signup_box > p {
   font-size: 14px;
   margin: 6px 0;
 }
@@ -150,7 +164,7 @@ watch(phoneValue, (newVal, _oldVal) => {
   gap: 5px;
 }
 
-.email_box>button {
+.email_box > button {
   white-space: nowrap;
   padding: 10px 12px;
   font-size: 12px;
@@ -192,7 +206,7 @@ watch(phoneValue, (newVal, _oldVal) => {
   background-color: var(--main-color-bg);
 }
 
-.oauth_btn>img {
+.oauth_btn > img {
   width: 16px;
   height: 16px;
 }

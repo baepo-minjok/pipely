@@ -2,7 +2,6 @@ package com.example.backend.jenkins.job.model.dto;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
-import com.example.backend.jenkins.job.model.Script;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,30 +13,26 @@ import java.util.UUID;
 
 public class RequestDto {
 
-    public static CreateDto toCreateDto(UpdateDto requestDto) {
+    public static CreateDto toCreateDto(UpdateDto requestDto, UUID infoId) {
         return CreateDto.builder()
                 .name(requestDto.getName())
+                .infoId(infoId)
+                .scriptId(requestDto.getScriptId())
                 .description(requestDto.getDescription())
                 .trigger(requestDto.getTrigger())
                 .schedule(requestDto.getSchedule())
                 .build();
     }
 
-    public static Pipeline toEntity(CreateDto requestDto, JenkinsInfo info, Script script, String config) {
+    public static Pipeline toEntity(CreateDto requestDto, JenkinsInfo info) {
 
         return Pipeline.builder()
                 .name(requestDto.getName())
-                .description(requestDto.getDescription())
-                .isTriggered(requestDto.getTrigger())
-                .schedule(requestDto.getSchedule())
                 .jenkinsInfo(info)
                 .createdAt(LocalDateTime.now())
                 .isDeleted(false)
-                .script(script)
-                .config(config)
                 .build();
     }
-
 
     @Data
     @SuperBuilder
@@ -113,5 +108,12 @@ public class RequestDto {
 
         // 스케줄 설정
         private String schedule;
+    }
+
+    @Data
+    public static class ScriptValidateDto {
+        private UUID infoId;
+
+        private String script;
     }
 }

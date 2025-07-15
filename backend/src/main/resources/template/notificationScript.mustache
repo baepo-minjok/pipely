@@ -1,0 +1,83 @@
+post {
+    success {
+        echo '🎉 빌드가 성공했습니다!'
+        {{#notifications}}
+            {{#shouldNotify}}
+                {{#isBuildSuccess}}
+                    {{#isSlack}}
+                        withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
+                        sh '''
+                        curl -X POST "$WEBHOOK_URL" \\
+                        -H "Content-Type: application/json" \\
+                        -d '{
+                        "text": "[{{eventType}}] {{jobName}} 알림입니다."
+                        }'
+                        '''
+                        }
+                    {{/isSlack}}
+                    {{^isSlack}}
+                        withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
+                        sh '''
+                        curl -X POST "$WEBHOOK_URL" \\
+                        -H "Content-Type: application/json" \\
+                        -d '{
+                        "username": "CI/CD Bot",
+                        "avatar_url": "https://i.imgur.com/CI-CD-Bot.png",
+                        "embeds": [{
+                        "title": "BUILD_SUCCESS 🚀",
+                        "description": "**Job:** {{jobName}}\\n**Status:** BUILD_SUCCESS",
+                        "color": 3066993,
+                        "footer": {
+                        "text": "Powered by Jenkins Notification System"
+                        }
+                        }]
+                        }'
+                        '''
+                        }
+                    {{/isSlack}}
+                {{/isBuildSuccess}}
+            {{/shouldNotify}}
+        {{/notifications}}
+    }
+
+    failure {
+        echo '❌ 빌드가 실패했습니다!'
+        {{#notifications}}
+            {{#shouldNotify}}
+                {{#isBuildFail}}
+                    {{#isSlack}}
+                        withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
+                        sh '''
+                        curl -X POST "$WEBHOOK_URL" \\
+                        -H "Content-Type: application/json" \\
+                        -d '{
+                        "text": "[{{eventType}}] {{jobName}} 알림입니다."
+                        }'
+                        '''
+                        }
+                    {{/isSlack}}
+                    {{^isSlack}}
+                        withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
+                        sh '''
+                        curl -X POST "$WEBHOOK_URL" \\
+                        -H "Content-Type: application/json" \\
+                        -d '{
+                        "username": "CI/CD Bot",
+                        "avatar_url": "https://i.imgur.com/CI-CD-Bot.png",
+                        "embeds": [{
+                        "title": "BUILD_FAIL ❌",
+                        "description": "**Job:** {{jobName}}\\n**Status:** BUILD_FAIL",
+                        "color": 15158332,
+                        "footer": {
+                        "text": "Powered by Jenkins Notification System"
+                        }
+                        }]
+                        }'
+                        '''
+                        }
+                    {{/isSlack}}
+                {{/isBuildFail}}
+            {{/shouldNotify}}
+        {{/notifications}}
+    }
+}

@@ -52,19 +52,24 @@ public class JenkinsInfoControllerTest {
     static Stream<Arguments> verificationExceptionProvider() {
         return Stream.of(
                 Arguments.of(
-                        ErrorCode.JENKINS_AUTHENTICATION_FAILED,
-                        HttpStatus.NOT_FOUND,
-                        "JENKINS_AUTHENTICATION_FAILED_404"
+                        ErrorCode.URL_INCORRECT,
+                        HttpStatus.BAD_REQUEST,
+                        "URL_INCORRECT_400"
                 ),
                 Arguments.of(
-                        ErrorCode.JENKINS_ENDPOINT_NOT_FOUND,
-                        HttpStatus.NOT_FOUND,
-                        "JENKINS_ENDPOINT_NOT_FOUND_404"
+                        ErrorCode.DUPLICATED_JOB_NAME,
+                        HttpStatus.BAD_REQUEST,
+                        "DUPLICATED_JOB_NAME_400"
                 ),
                 Arguments.of(
-                        ErrorCode.JENKINS_URI_NOT_FOUND,
-                        HttpStatus.NOT_FOUND,
-                        "JENKINS_URI_NOT_FOUND_404"
+                        ErrorCode.AUTHENTICATION_FAILED,
+                        HttpStatus.BAD_REQUEST,
+                        "AUTHENTICATION_FAILED_400"
+                ),
+                Arguments.of(
+                        ErrorCode.INVALID_ENDPOINT,
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "INVALID_ENDPOINT_500"
                 ),
                 Arguments.of(
                         ErrorCode.JENKINS_CONNECTION_FAILED,
@@ -72,14 +77,19 @@ public class JenkinsInfoControllerTest {
                         "JENKINS_CONNECTION_FAILED_404"
                 ),
                 Arguments.of(
-                        ErrorCode.JENKINS_SERVER_ERROR,
-                        HttpStatus.INTERNAL_SERVER_ERROR,
-                        "JENKINS_SERVER_ERROR_500"
+                        ErrorCode.JENKINS_SERVER_PROBLEM,
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "JENKINS_SERVER_PROBLEM_503"
                 ),
                 Arguments.of(
-                        ErrorCode.JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR,
+                        ErrorCode.URL_INCORRECT,
+                        HttpStatus.BAD_REQUEST,
+                        "URL_INCORRECT_400"
+                ),
+                Arguments.of(
+                        ErrorCode.HTTP_REQUEST_EXCEPTION,
                         HttpStatus.INTERNAL_SERVER_ERROR,
-                        "JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR_500"
+                        "HTTP_REQUEST_EXCEPTION_500"
                 )
 
         );

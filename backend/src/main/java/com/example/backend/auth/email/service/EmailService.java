@@ -119,6 +119,7 @@ public class EmailService {
         }
 
         log.info("[TokenService] 토큰 유효: token={}, 사용자={}", token, vt.getUser().getEmail());
+        verificationTokenRepository.deleteById(token);
         return vt.getUser();
     }
 

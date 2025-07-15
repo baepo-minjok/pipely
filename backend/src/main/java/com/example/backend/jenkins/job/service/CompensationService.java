@@ -1,13 +1,12 @@
 package com.example.backend.jenkins.job.service;
 
-import com.example.backend.exception.CustomException;
-import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -15,10 +14,22 @@ import java.util.UUID;
 public class CompensationService {
     private final PipelineRepository pipelineRepository;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void deletePipeline(UUID pipelineId) {
         pipelineRepository.findById(pipelineId)
                 .ifPresent(pipelineRepository::delete);
-        throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
+    }
+
+    @Transactional
+    public void softDeletePipeline(Pipeline pipeline, LocalDateTime time, boolean isDelete) {
+        pipeline.setDeletedAt(time);
+        pipeline.setIsDeleted(isDelete);
+        pipelineRepository.save(pipeline);
+        pipelineRepository.flush();
+    }
+
+    @Transactional
+    public void rollback() {
+        
     }
 }
