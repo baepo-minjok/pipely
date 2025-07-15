@@ -2,6 +2,7 @@ package com.example.backend.jenkins.info.controller;
 
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
+import com.example.backend.jenkins.info.model.dto.InfoRequestDto;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.CreateDto;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.InfoDto;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.UpdateDto;
@@ -10,6 +11,8 @@ import com.example.backend.jenkins.info.model.dto.InfoResponseDto.LightInfoDto;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +45,10 @@ public class JenkinsInfoController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청 (필드 누락 또는 형식 오류)"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(schema = @Schema(implementation = InfoRequestDto.CreateDto.class))
+    )
     @PostMapping("/create")
     public ResponseEntity<BaseResponse<String>> create(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
