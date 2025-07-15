@@ -9,6 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -53,6 +55,10 @@ public class Script {
 
     @Lob
     private String script;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "pipeline", orphanRemoval = true)
+    private List<PipelineVersion> pipelineVersionList = new ArrayList<>();
 
     public static Script toEntity(RequestDto.ScriptBaseDto requestDto, String script) {
         return Script.builder()
