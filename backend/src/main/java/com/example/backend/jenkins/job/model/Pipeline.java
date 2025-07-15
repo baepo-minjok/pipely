@@ -55,6 +55,9 @@ public class Pipeline {
     @Lob
     private String config;
 
+    @Column(name = "latest_version")
+    private Integer latestVersion;
+
     @OneToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "script_id", nullable = true)
     private Script script;
@@ -66,6 +69,10 @@ public class Pipeline {
     @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<Stage> stageList = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PipelineVersion> versionList = new ArrayList<>();
 
     /*@OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PipelineHistory> historyList = new ArrayList<>();*/

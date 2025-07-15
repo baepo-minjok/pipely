@@ -1,6 +1,7 @@
 package com.example.backend.jenkins.job.model.dto;
 
 import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -59,6 +60,14 @@ public class ResponseDto {
                 .springProfile(script.getSpringProfile())
                 .replicas(script.getReplicas())
                 .script(script.getScript())
+                .build();
+    }
+
+    public static PipelineVersionDto entityToPipelineVersionDto(PipelineVersion version) {
+        return PipelineVersionDto.builder()
+                .version(version.getVersion())
+                .createdAt(version.getCreatedAt())
+                .isSuccessfulBuild(version.getIsSuccessfulBuild())
                 .build();
     }
 
@@ -134,5 +143,16 @@ public class ResponseDto {
         private String replicas;
 
         private String script;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class PipelineVersionDto {
+        private Integer version;
+        private LocalDateTime createdAt;
+        private Boolean isSuccessfulBuild;
+
     }
 }

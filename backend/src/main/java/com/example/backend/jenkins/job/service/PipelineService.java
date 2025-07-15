@@ -6,6 +6,7 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.Stage;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
@@ -89,7 +90,7 @@ public class PipelineService {
                     config, info, HttpMethod.POST, () -> compensationService.rollback());
         }
     }
-
+  
     public Pipeline getPipelineById(UUID id) {
         return pipelineRepository.findWithInfoAndScriptById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
@@ -251,4 +252,30 @@ public class PipelineService {
                 config, info, HttpMethod.POST,
                 () -> compensationService.softDeletePipeline(pipeline, time, true));
     }
+
+    public List<ResponseDto.PipelineVersionDto> getPipelineVersions(UUID pipelineId) {
+        Pipeline pipeline = getPipelineById(pipelineId);
+        return pipeline.getVersionList().stream()
+                .map(ResponseDto::entityToPipelineVersionDto)
+                .toList();
+    }
+
+    //새 버전 저장
+    private void saveVersion(Pipeline pipeline, Script script, String config) {
+        Integer newVersion = Optional.ofNullable(pipeline.getLatestVersion()).orElse(0) + 1;
+        pipeline.setLatestVersion(newVersion);
+
+        PipelineVersion version = PipelineVersion.builder()
+                .pipeline(pipeline)
+                .version(newVersion)
+                .createdAt(LocalDateTime.now())
+                .script(script)
+                .config(config)
+                .isSuccessfulBuild(null)
+                .build();
+
+        pipeline.getVersionList().add(version);
+    }
+
+
 }

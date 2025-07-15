@@ -1,7 +1,4 @@
-<script setup>
-
-
-</script>
+<script setup></script>
 
 <template>
   <div class="container">
@@ -22,9 +19,9 @@
         <button class="btn login_btn">로그인</button>
 
         <div class="bottom_box">
-          <router-link to='signup'>회원가입</router-link>
+          <router-link to="/user/signup">회원가입</router-link>
           <div class="col_line"></div>
-          <router-link to="find/password">비밀번호 찾기</router-link>
+          <router-link to="/user/find/password">비밀번호 찾기</router-link>
         </div>
       </div>
     </div>
@@ -58,7 +55,8 @@ pipeline {
     }
     ...
 }
-    </pre>
+    </pre
+          >
         </div>
       </div>
     </div>
@@ -82,7 +80,7 @@ pipeline {
   gap: 40px;
 }
 
-.left_wrapper>h1 {
+.left_wrapper > h1 {
   font-size: 35px;
 }
 
@@ -98,7 +96,7 @@ pipeline {
   gap: 10px;
 }
 
-.login_box>p {
+.login_box > p {
   font-size: 14px;
   margin: 6px 0;
 }
@@ -122,7 +120,7 @@ pipeline {
   background-color: var(--main-color-bg);
 }
 
-.oauth_btn>img {
+.oauth_btn > img {
   width: 16px;
   height: 16px;
 }
@@ -156,7 +154,7 @@ pipeline {
   background-color: var(--gray300);
 }
 
-.bottom_box>a {
+.bottom_box > a {
   font-size: 12px;
   text-decoration: none;
   color: var(--gray600);
@@ -173,12 +171,12 @@ pipeline {
   background-color: var(--main-color-bg);
 }
 
-.right_wrapper>img {
+.right_wrapper > img {
   width: 200px;
   margin: 20px 0;
 }
 
-.right_wrapper>.text {
+.right_wrapper > .text {
   text-align: center;
   line-height: 160%;
   margin-bottom: 40px;
