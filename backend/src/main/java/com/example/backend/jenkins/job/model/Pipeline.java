@@ -16,8 +16,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "pipeline",
-        uniqueConstraints = @UniqueConstraint(name = "uq_pipeline", columnNames = {"jenkins_info_id", "name", "is_deleted"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
