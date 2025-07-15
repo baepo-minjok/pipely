@@ -6,6 +6,7 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.Stage;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
@@ -44,6 +45,7 @@ public class PipelineService {
     private final StageService stageService;
     private final CompensationService compensationService;
 
+    @Transactional
     public void createJob(RequestDto.CreateDto requestDto) {
         // jenkins info 확인
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
@@ -77,6 +79,9 @@ public class PipelineService {
             saved.getStageList().add(stage);
         }
         info.getPipelineList().add(saved);
+
+        //버전 저장
+        saveVersion(saved, saved.getScript(), saved.getConfig());
 
         pipelineRepository.flush();
 
@@ -137,6 +142,9 @@ public class PipelineService {
         pipeline.setIsTriggered(requestDto.getTrigger());
         pipeline.setUpdatedAt(LocalDateTime.now());
         pipeline.setConfig(config);
+
+        //버전 저장
+        saveVersion(pipeline, script, config);
 
         // 수정된 job 저장
         Pipeline updated = pipelineRepository.save(pipeline);
@@ -222,4 +230,30 @@ public class PipelineService {
         log.info(info.getUser().getId().toString());
         return userId.equals(confirmUserId);
     }
+
+    public List<ResponseDto.PipelineVersionDto> getPipelineVersions(UUID pipelineId) {
+        Pipeline pipeline = getPipelineById(pipelineId);
+        return pipeline.getVersionList().stream()
+                .map(ResponseDto::entityToPipelineVersionDto)
+                .toList();
+    }
+
+    //새 버전 저장
+    private void saveVersion(Pipeline pipeline, Script script, String config) {
+        Integer newVersion = Optional.ofNullable(pipeline.getLatestVersion()).orElse(0) + 1;
+        pipeline.setLatestVersion(newVersion);
+
+        PipelineVersion version = PipelineVersion.builder()
+                .pipeline(pipeline)
+                .version(newVersion)
+                .createdAt(LocalDateTime.now())
+                .script(script)
+                .config(config)
+                .isSuccessfulBuild(null)
+                .build();
+
+        pipeline.getVersionList().add(version);
+    }
+
+
 }
