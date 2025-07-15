@@ -65,6 +65,7 @@ const job = reactive({
 <style scoped>
 .card_container {
   width: 100%;
+  min-width: 360px;
   background-color: white;
   padding: 27px;
   border-radius: 10px;
