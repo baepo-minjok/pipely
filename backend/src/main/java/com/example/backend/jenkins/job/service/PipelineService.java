@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -56,6 +57,7 @@ public class PipelineService {
 
         Pipeline pipeline = savePipeline(dto, info, script, config);
         createStages(pipeline, script);
+        saveVersion(pipeline);
 
         callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
                 config, info, HttpMethod.POST,
@@ -80,6 +82,8 @@ public class PipelineService {
 
         String config = buildConfig(RequestDto.toCreateDto(dto, info.getId()), script);
         applyPipelineChanges(pipeline, dto, config);
+        saveVersion(pipeline);
+
         if (isRenamed) {
             callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
                     config, info, HttpMethod.POST,
@@ -90,7 +94,7 @@ public class PipelineService {
                     config, info, HttpMethod.POST, () -> compensationService.rollback());
         }
     }
-  
+
     public Pipeline getPipelineById(UUID id) {
         return pipelineRepository.findWithInfoAndScriptById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_NOT_FOUND));
@@ -176,7 +180,6 @@ public class PipelineService {
                     .build();
             pipeline.getStageList().add(stage);
         }
-        pipelineRepository.flush();
     }
 
     private void updateStages(Pipeline pipeline, Script script) {
@@ -261,7 +264,7 @@ public class PipelineService {
     }
 
     //새 버전 저장
-    private void saveVersion(Pipeline pipeline, Script script, String config) {
+    private void saveVersion(Pipeline pipeline) {
         Integer newVersion = Optional.ofNullable(pipeline.getLatestVersion()).orElse(0) + 1;
         pipeline.setLatestVersion(newVersion);
 
@@ -269,8 +272,8 @@ public class PipelineService {
                 .pipeline(pipeline)
                 .version(newVersion)
                 .createdAt(LocalDateTime.now())
-                .script(script)
-                .config(config)
+                .script(pipeline.getScript())
+                .config(pipeline.getConfig())
                 .isSuccessfulBuild(null)
                 .build();
 
