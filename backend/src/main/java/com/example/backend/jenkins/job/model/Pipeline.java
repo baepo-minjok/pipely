@@ -30,43 +30,49 @@ public class Pipeline {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "BINARY(16)")
     @Schema(
             description = "파이프라인의 고유 UUID",
             example = "b1a7c7b2-8123-4cce-80ec-ccf79d5e2f7a"
     )
     private UUID id;
 
+    @Column(name = "name", nullable = false, length = 100)
     @Schema(
             description = "Jenkins Job 이름",
             example = "my-job"
     )
     private String name;
 
+    @Column(name = "is_deleted", nullable = false)
     @Schema(
             description = "삭제 여부",
             example = "false"
     )
     private Boolean isDeleted;
 
+    @Column(name = "created_at", nullable = false)
     @Schema(
             description = "생성 시간 (ISO 8601 형식)",
             example = "2024-07-16T15:32:10"
     )
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
     @Schema(
             description = "수정 시간 (ISO 8601 형식)",
             example = "2024-07-16T15:45:00"
     )
     private LocalDateTime updatedAt;
 
+    @Column(name = "deleted_at")
     @Schema(
             description = "삭제 시간 (ISO 8601 형식)",
             example = "2024-07-16T16:00:00"
     )
     private LocalDateTime deletedAt;
 
-    @Column(name = "latest_version")
+    @Column(name = "latest_version", nullable = false)
     @Schema(
             description = "가장 최신 버전 번호",
             example = "3"
@@ -93,4 +99,3 @@ public class Pipeline {
     private List<PipelineVersion> versionList = new ArrayList<>();
 
 }
-
