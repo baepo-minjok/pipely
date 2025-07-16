@@ -60,6 +60,4 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
             @Param("jenkinsInfoId") UUID jenkinsInfoId,
             @Param("name") String name
     );
-
-    Optional<Pipeline> findByScriptId(UUID scriptId);
 }
