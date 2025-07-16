@@ -24,10 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -83,15 +80,15 @@ public class PipelineService {
             ensureUniqueName(info.getId(), dto.getName(), pipeline);
 
             // 기존 job 삭제 요청
-            deleteJobOnJenkins(info, preName, () -> compensationService.rollback());
+            deleteJobOnJenkins(info, preName, () -> compensationService.rollbackLatestVersion(pipeline));
             // 생성 요청
             callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
                     config, info, HttpMethod.POST,
-                    () -> compensationService.rollback());
+                    () -> compensationService.rollbackLatestVersion(pipeline));
         } else {        // 수정할 Job 이름이 같을 때
             // 수정 요청
             callJenkins(info.getUri() + "/job/" + dto.getName() + "/config.xml",
-                    config, info, HttpMethod.POST, () -> compensationService.rollback());
+                    config, info, HttpMethod.POST, () -> compensationService.rollbackLatestVersion(pipeline));
         }
     }
 
@@ -268,7 +265,11 @@ public class PipelineService {
 
     //새 버전 저장
     private void saveVersion(Pipeline pipeline, Script script, String config, RequestDto.CreateDto dto) {
-        Integer newVersion = Optional.ofNullable(pipeline.getLatestVersion()).orElse(0) + 1;
+        Integer newVersion = pipeline.getVersionList().stream()
+                .map(PipelineVersion::getVersion)
+                .max(Integer::compareTo)
+                .orElse(0) + 1;
+
         pipeline.setLatestVersion(newVersion);
 
         PipelineVersion version = PipelineVersion.builder()
@@ -288,5 +289,84 @@ public class PipelineService {
         pipeline.getVersionList().add(version);
     }
 
+    // 특정 파이프라인버전 삭제
+    // 조건: 가장 최신 버전은 삭제 할 수 없음
+    @Transactional
+    public void deletePipelineVersion(UUID pipelineId, Integer version) {
+        Pipeline pipeline = getPipelineById(pipelineId);
 
+        // 최신 버전은 삭제 불가
+        if (pipeline.getLatestVersion() != null && pipeline.getLatestVersion().equals(version)) {
+            throw new CustomException(ErrorCode.CANNOT_DELETE_LATEST_VERSION);
+        }
+
+        // 삭제할 대상 버전 찾기
+        PipelineVersion toDelete = pipeline.getVersionList().stream()
+                .filter(v -> v.getVersion().equals(version))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
+
+        // 파이프라인의 버전 리스트에서 해당 버전 제거 (Cascade 설정으로 DB에서도 삭제됨)
+        pipeline.getVersionList().remove(toDelete);
+        pipelineRepository.save(pipeline);
+
+    }
+
+    // 현재 최신 버전을 제거하고 이전 버전으로 롤백
+    @Transactional
+    public void rollbackToPreviousVersion(UUID pipelineId) {
+        Pipeline pipeline = getPipelineById(pipelineId);
+        int currentVersion = pipeline.getLatestVersion();
+
+        // 버전이 1 이하인 경우 롤백 불가
+        if (currentVersion <= 1) {
+            throw new CustomException(ErrorCode.NO_PREVIOUS_VERSION);
+        }
+
+        // 존재하는 이전 버전들 중 가장 높은 값 찾기
+        PipelineVersion target = pipeline.getVersionList().stream()
+                .filter(v -> v.getVersion() < currentVersion)
+                .max(Comparator.comparingInt(PipelineVersion::getVersion))
+                .orElseThrow(() -> new CustomException(ErrorCode.NO_PREVIOUS_VERSION));
+
+
+        // Jenkins job 수정
+        rollbackPipelineToVersion(pipeline, target);
+
+        // 롤백된 버전으로 최신 버전 변경
+        pipeline.setLatestVersion(target.getVersion());
+        pipelineRepository.save(pipeline);
+    }
+
+    // 특정버전으로 롤백 & latestVersion을 해당 버전으로 변경
+    @Transactional
+    public void rollbackToSpecificVersion(UUID pipelineId, int version) {
+        Pipeline pipeline = getPipelineById(pipelineId);
+
+        // 롤백할 대상 버전 조회
+        PipelineVersion target = pipeline.getVersionList().stream()
+                .filter(v -> v.getVersion().equals(version))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
+
+        // Jenkins job 수정
+        rollbackPipelineToVersion(pipeline, target);
+
+        //롤백된 버전으로 최신버전 수정
+        pipeline.setLatestVersion(version);
+        pipelineRepository.save(pipeline);
+    }
+
+    // Jenkins에 롤백된 config 반영해서 수정
+    private void rollbackPipelineToVersion(Pipeline pipeline, PipelineVersion version) {
+        pipeline.setUpdatedAt(LocalDateTime.now());
+
+        callJenkins(
+                pipeline.getJenkinsInfo().getUri() + "/job/" + pipeline.getName() + "/config.xml",
+                version.getConfig(),
+                pipeline.getJenkinsInfo(),
+                HttpMethod.POST,
+                () -> compensationService.rollbackLatestVersion(pipeline)
+        );
+    }
 }
