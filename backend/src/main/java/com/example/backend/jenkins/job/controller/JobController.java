@@ -157,11 +157,43 @@ public class JobController {
             description = "지정된 파이프라인 ID에 대해 모든 버전 기록을 반환합니다."
     )
     @GetMapping("/pipelines/{id}/versions")
-    public ResponseEntity<List<ResponseDto.PipelineVersionDto>> getVersions(
+    public ResponseEntity<BaseResponse<List<ResponseDto.PipelineVersionDto>>> getVersions(
             @Parameter(description = "버전을 조회할 파이프라인 ID", example = "b1a7c7b2-8123-4cce-80ec-ccf79d5e2f7a")
             @PathVariable UUID id) {
         List<ResponseDto.PipelineVersionDto> versions = pipelineService.getPipelineVersions(id);
-        return ResponseEntity.ok(versions);
+        return ResponseEntity.ok().body(BaseResponse.success(versions));
     }
+
+    @Operation(summary = "특정 파이프라인 버전 삭제", description = "파이프라인의 특정 버전 정보를 삭제합니다. latestVersion은 삭제할 수 없습니다.")
+    @DeleteMapping("/{pipelineId}/version/{version}")
+    public ResponseEntity<BaseResponse<String>> deletePipelineVersion(
+            @Parameter(description = "삭제할 파이프라인이 속한 Pipeline의 UUID", example = "a2f1b6d3-1a9e-4a61-a5f5-91aef7e7b7ee")
+            @PathVariable UUID pipelineId,
+            @Parameter(description = "삭제할 파이프라인 버전 번호", example = "3")
+            @PathVariable Integer version) {
+        pipelineService.deletePipelineVersion(pipelineId, version);
+        return ResponseEntity.ok().body(BaseResponse.success("delete pipeline success"));
+    }
+
+
+    @Operation(summary = "최신 버전 롤백", description = "현재 최신 파이프라인 버전을 삭제하고, 직전 버전으로 롤백합니다.")
+    @PutMapping("/{pipelineId}/rollback/previous")
+    public ResponseEntity<BaseResponse<String>> rollbackToPreviousVersion(
+            @Parameter(description = "파이프라인 ID", required = true) @PathVariable UUID pipelineId) {
+
+        pipelineService.rollbackToPreviousVersion(pipelineId);
+        return ResponseEntity.ok(BaseResponse.success("Rollback to previous version successful"));
+    }
+
+    @Operation(summary = "특정 버전 롤백", description = "지정된 파이프라인 버전으로 롤백합니다. 기존 버전으로 최신 버전 값을 바꿉니다.")
+    @PutMapping("/{pipelineId}/rollback/{version}")
+    public ResponseEntity<BaseResponse<String>> rollbackToSpecificVersion(
+            @Parameter(description = "파이프라인 ID", required = true) @PathVariable UUID pipelineId,
+            @Parameter(description = "롤백 대상 버전", required = true) @PathVariable int version) {
+
+        pipelineService.rollbackToSpecificVersion(pipelineId, version);
+        return ResponseEntity.ok(BaseResponse.success("Rollback to version " + version + " successful"));
+    }
+
 
 }
