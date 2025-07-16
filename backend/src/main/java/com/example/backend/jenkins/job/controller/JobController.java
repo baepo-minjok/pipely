@@ -164,4 +164,17 @@ public class JobController {
         return ResponseEntity.ok(versions);
     }
 
+    @PreAuthorize("@pipelineService.isOwner(#user, #jobId)")
+    @GetMapping("/restoration")
+    public ResponseEntity<BaseResponse<String>> restorationJob(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @Parameter(description = "조회할 job의 UUID", required = true)
+            @RequestParam UUID jobId
+    ) {
+        pipelineService.restorationJob(jobId);
+
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("restoration job success"));
+    }
+
 }
