@@ -17,17 +17,18 @@ public class ResponseDto {
         return LightJobDto.builder()
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
-                .description(pipeline.getDescription())
                 .build();
     }
 
     public static DetailJobDto entityToDetailJobDto(Pipeline pipeline) {
-        Script script = pipeline.getScript();
+        PipelineVersion pipelineVersion = pipeline.getVersionList().get(pipeline.getLatestVersion());
+        Script script = pipelineVersion.getScript();
+
         return DetailJobDto.builder()
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
-                .description(pipeline.getDescription())
-                .trigger(pipeline.getIsTriggered())
+                .description(pipelineVersion.getDescription())
+                .trigger(pipelineVersion.getIsTriggered())
                 .createdAt(pipeline.getCreatedAt())
                 .updatedAt(pipeline.getUpdatedAt())
                 .deletedAt(pipeline.getDeletedAt())

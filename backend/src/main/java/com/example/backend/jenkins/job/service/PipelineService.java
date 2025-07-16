@@ -48,7 +48,7 @@ public class PipelineService {
      * Create a new Jenkins job and persist the pipeline.
      */
     @Transactional
-    public UUID createJob(RequestDto.CreateDto dto) {
+    public void createJob(RequestDto.CreateDto dto) {
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
         ensureUniqueName(info.getId(), dto.getName());
 
@@ -56,14 +56,10 @@ public class PipelineService {
         String config = buildConfig(dto, script);
 
         Pipeline pipeline = savePipeline(dto, info, script, config);
-        createStages(pipeline, script);
-        saveVersion(pipeline);
 
         callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
                 config, info, HttpMethod.POST,
                 () -> compensationService.deletePipeline(pipeline.getId()));
-
-        return pipeline.getId();
     }
 
     /**
@@ -77,19 +73,23 @@ public class PipelineService {
         boolean isRenamed = isRenamed(preName, dto);
 
         Script script = loadScript(dto.getScriptId());
-        updateStages(pipeline, script);
-        ensureUniqueName(info.getId(), dto.getName(), pipeline);
 
-        String config = buildConfig(RequestDto.toCreateDto(dto, info.getId()), script);
-        applyPipelineChanges(pipeline, dto, config);
-        saveVersion(pipeline);
+        RequestDto.CreateDto createDto = RequestDto.toCreateDto(dto, info.getId());
+        String config = buildConfig(createDto, script);
+        applyPipelineChanges(pipeline, createDto, script, config);
 
-        if (isRenamed) {
+        if (isRenamed) {    // 수정할 Job 이름이 다를 때
+            // 이미 존재하는 이름인지 검사
+            ensureUniqueName(info.getId(), dto.getName(), pipeline);
+
+            // 기존 job 삭제 요청
+            deleteJobOnJenkins(info, preName, () -> compensationService.rollback());
+            // 생성 요청
             callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
                     config, info, HttpMethod.POST,
                     () -> compensationService.rollback());
-            deleteJobOnJenkins(info, preName, () -> compensationService.rollback());
-        } else {
+        } else {        // 수정할 Job 이름이 같을 때
+            // 수정 요청
             callJenkins(info.getUri() + "/job/" + dto.getName() + "/config.xml",
                     config, info, HttpMethod.POST, () -> compensationService.rollback());
         }
@@ -166,26 +166,23 @@ public class PipelineService {
     }
 
     private Pipeline savePipeline(RequestDto.CreateDto dto, JenkinsInfo info, Script script, String config) {
-        Pipeline entity = RequestDto.toEntity(dto, info, script, config);
-        return pipelineRepository.save(entity);
+        Pipeline entity = RequestDto.toEntity(dto, info);
+        saveVersion(entity, script, config, dto);
+        Pipeline saved = pipelineRepository.save(entity);
+        pipelineRepository.flush();
+        return saved;
     }
 
-    private void createStages(Pipeline pipeline, Script script) {
+    private void createStages(PipelineVersion pipelineVersion, Script script) {
         List<String> names = extractStageNames(script);
         for (int i = 0; i < names.size(); i++) {
             Stage stage = Stage.builder()
                     .orderIndex(i)
                     .name(names.get(i))
-                    .pipeline(pipeline)
+                    .pipelineVersion(pipelineVersion)
                     .build();
-            pipeline.getStageList().add(stage);
+            pipelineVersion.getStageList().add(stage);
         }
-    }
-
-    private void updateStages(Pipeline pipeline, Script script) {
-        stageService.deleteByPipelineId(pipeline.getId());
-        pipeline.getStageList().clear();
-        createStages(pipeline, script);
     }
 
     private List<String> extractStageNames(Script script) {
@@ -196,13 +193,12 @@ public class PipelineService {
                 .collect(Collectors.toList());
     }
 
-    private void applyPipelineChanges(Pipeline pipeline, RequestDto.UpdateDto dto, String config) {
+    private void applyPipelineChanges(Pipeline pipeline, RequestDto.CreateDto dto, Script script, String config) {
         pipeline.setName(dto.getName());
-        pipeline.setDescription(dto.getDescription());
-        pipeline.setIsTriggered(dto.getTrigger());
-        pipeline.setConfig(config);
         pipeline.setUpdatedAt(LocalDateTime.now());
-        pipeline.setSchedule(dto.getSchedule());
+
+        saveVersion(pipeline, script, config, dto);
+
         pipelineRepository.save(pipeline);
         pipelineRepository.flush();
     }
@@ -239,7 +235,7 @@ public class PipelineService {
     }
 
 
-    @Transactional
+    /*@Transactional
     public void restorationJob(UUID pipelineId) {
         Pipeline pipeline = getPipelineById(pipelineId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
@@ -254,7 +250,7 @@ public class PipelineService {
         callJenkins(info.getUri() + "/createItem?name=" + pipeline.getName(),
                 config, info, HttpMethod.POST,
                 () -> compensationService.softDeletePipeline(pipeline, time, true));
-    }
+    }*/
 
     public List<ResponseDto.PipelineVersionDto> getPipelineVersions(UUID pipelineId) {
         Pipeline pipeline = getPipelineById(pipelineId);
@@ -263,19 +259,30 @@ public class PipelineService {
                 .toList();
     }
 
+    public PipelineVersion getLatestVersion(Pipeline pipeline) {
+        int latestVersion = pipeline.getLatestVersion();
+
+        return pipeline.getVersionList().get(latestVersion);
+    }
+
     //새 버전 저장
-    private void saveVersion(Pipeline pipeline) {
+    private void saveVersion(Pipeline pipeline, Script script, String config, RequestDto.CreateDto dto) {
         Integer newVersion = Optional.ofNullable(pipeline.getLatestVersion()).orElse(0) + 1;
         pipeline.setLatestVersion(newVersion);
 
         PipelineVersion version = PipelineVersion.builder()
-                .pipeline(pipeline)
                 .version(newVersion)
+                .description(dto.getDescription())
+                .isTriggered(dto.getTrigger())
+                .schedule(dto.getSchedule())
                 .createdAt(LocalDateTime.now())
-                .script(pipeline.getScript())
-                .config(pipeline.getConfig())
+                .config(config)
                 .isSuccessfulBuild(null)
+                .script(script)
+                .pipeline(pipeline)
                 .build();
+
+        createStages(version, script);
 
         pipeline.getVersionList().add(version);
     }
