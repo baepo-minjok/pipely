@@ -1,0 +1,55 @@
+package com.example.backend.jenkins.notification.model.dto;
+
+import com.example.backend.jenkins.notification.model.JobNotification;
+import lombok.Builder;
+import lombok.Data;
+
+import java.util.UUID;
+
+@Data
+public class ResponseDto {
+
+    @Builder
+    @Data
+    public static class JobNotificationListResponseDto {
+        private UUID jobId;
+        private String jobName;
+        private String eventType;
+        private String credentialName;
+        private String webhookUrl;
+        private Boolean shouldNotify;
+
+        public static JobNotificationListResponseDto fromEntity(JobNotification notification) {
+            return JobNotificationListResponseDto.builder()
+                    .jobId(notification.getPipeline().getId())
+                    .jobName(notification.getPipeline().getName())
+                    .eventType(notification.getEventType())
+                    .credentialName(notification.getCredentialName())
+                    .webhookUrl(notification.getWebhookUrl())
+                    .shouldNotify(notification.getShouldNotify())
+                    .build();
+        }
+    }
+
+    @Builder
+    @Data
+    public static class JobNotificationDetailResponseDto {
+        private UUID jobId;
+        private String jobName;
+        private String eventType;
+        private String credentialName;
+        private String webhookUrl;
+        private Boolean shouldNotify;
+
+        public static JobNotificationDetailResponseDto fromEntity(JobNotification notification) {
+            return JobNotificationDetailResponseDto.builder()
+                    .jobId(notification.getPipeline().getId())
+                    .jobName(notification.getPipeline().getName())
+                    .eventType(notification.getEventType())
+                    .credentialName(notification.getCredentialName())
+                    .webhookUrl(notification.getWebhookUrl())
+                    .shouldNotify(notification.getShouldNotify())
+                    .build();
+        }
+    }
+}
