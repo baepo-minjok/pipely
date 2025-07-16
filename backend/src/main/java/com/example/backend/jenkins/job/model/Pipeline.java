@@ -1,6 +1,7 @@
 package com.example.backend.jenkins.job.model;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,38 +21,75 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @DynamicInsert
+@Schema(
+        name = "Pipeline",
+        description = "Jenkins 파이프라인(Job) 엔티티"
+)
 public class Pipeline {
 
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @Schema(
+            description = "파이프라인의 고유 UUID",
+            example = "b1a7c7b2-8123-4cce-80ec-ccf79d5e2f7a"
+    )
     private UUID id;
 
-    // job 이름
+    @Schema(
+            description = "Jenkins Job 이름",
+            example = "my-job"
+    )
     private String name;
 
-    // 삭제 여부
+    @Schema(
+            description = "삭제 여부",
+            example = "false"
+    )
     private Boolean isDeleted;
 
-    // 생성 시간
+    @Schema(
+            description = "생성 시간 (ISO 8601 형식)",
+            example = "2024-07-16T15:32:10"
+    )
     private LocalDateTime createdAt;
 
-    // 수정 시간
+    @Schema(
+            description = "수정 시간 (ISO 8601 형식)",
+            example = "2024-07-16T15:45:00"
+    )
     private LocalDateTime updatedAt;
 
-    // 삭제 시간
+    @Schema(
+            description = "삭제 시간 (ISO 8601 형식)",
+            example = "2024-07-16T16:00:00"
+    )
     private LocalDateTime deletedAt;
 
     @Column(name = "latest_version")
+    @Schema(
+            description = "가장 최신 버전 번호",
+            example = "3"
+    )
     private Integer latestVersion;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "jenkins_info_id", nullable = false)
+    @Schema(
+            description = "Jenkins 서버 정보",
+            implementation = JenkinsInfo.class,
+            hidden = true
+    )
     private JenkinsInfo jenkinsInfo;
 
     @Builder.Default
     @OrderBy("version ASC")
     @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Schema(
+            description = "파이프라인의 버전 목록",
+            implementation = PipelineVersion.class,
+            hidden = true
+    )
     private List<PipelineVersion> versionList = new ArrayList<>();
 
 }
