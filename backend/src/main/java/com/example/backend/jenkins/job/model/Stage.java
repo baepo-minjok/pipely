@@ -28,18 +28,21 @@ public class Stage {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "BINARY(16)")
     @Schema(
             description = "Stage의 고유 식별자 (UUID)",
             example = "7e6adf14-8153-41e7-aeb1-2f97782f3b0d"
     )
     private UUID id;
 
+    @Column(name = "order_index", nullable = false)
     @Schema(
             description = "파이프라인 내에서의 Stage 순서 (0부터 시작)",
             example = "0"
     )
     private Integer orderIndex;
 
+    @Column(name = "name", nullable = false, length = 50)
     @Schema(
             description = "Stage의 이름 (보통 대문자, 알파벳·숫자·언더바 등)",
             example = "BUILD"
