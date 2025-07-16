@@ -280,5 +280,24 @@ public class PipelineService {
         pipeline.getVersionList().add(version);
     }
 
+    @Transactional
+    public void deletePipelineVersion(UUID pipelineId, Integer version) {
+        Pipeline pipeline = getPipelineById(pipelineId);
+
+        if (pipeline.getLatestVersion() != null && pipeline.getLatestVersion().equals(version)) {
+            throw new CustomException(ErrorCode.CANNOT_DELETE_LATEST_VERSION);
+        }
+
+        List<PipelineVersion> versions = pipeline.getVersionList();
+        boolean removed = versions.removeIf(v -> v.getVersion().equals(version));
+
+        if (!removed) {
+            throw new CustomException(ErrorCode.VERSION_NOT_FOUND);
+        }
+
+        // 변경 반영
+        pipelineRepository.save(pipeline);
+    }
+
 
 }
