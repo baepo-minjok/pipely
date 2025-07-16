@@ -15,7 +15,7 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
             select p
             from Pipeline p
             left join fetch p.jenkinsInfo ji
-            left join fetch p.script s
+            left join fetch p.versionList vl
             where p.id = :id
             """)
     Optional<Pipeline> findWithInfoAndScriptById(@Param("id") UUID id);
@@ -24,7 +24,7 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
             select p
             from Pipeline p
             left join fetch p.jenkinsInfo ji
-            left join fetch p.script s
+            left join fetch p.versionList vl
             left join fetch ji.user
             where p.id = :id
             """)
@@ -34,7 +34,7 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
     @Query("""
             select p
             from Pipeline p
-            left join fetch p.script s
+            left join fetch p.versionList vl
             where p.jenkinsInfo.id = :jenkinsInfoId
               and p.isDeleted = false
             """)
@@ -43,7 +43,7 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
     @Query("""
             select p
             from Pipeline p
-            left join fetch p.script s
+            left join fetch p.versionList vl
             where p.jenkinsInfo.id = :jenkinsInfoId
               and p.isDeleted = true
             """)
