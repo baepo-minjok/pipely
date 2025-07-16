@@ -57,7 +57,7 @@ public class Script {
     private String script;
 
     @Builder.Default
-    @OneToMany(mappedBy = "pipeline", orphanRemoval = true)
+    @OneToMany(mappedBy = "script", orphanRemoval = true)
     private List<PipelineVersion> pipelineVersionList = new ArrayList<>();
 
     public static Script toEntity(RequestDto.ScriptBaseDto requestDto, String script) {

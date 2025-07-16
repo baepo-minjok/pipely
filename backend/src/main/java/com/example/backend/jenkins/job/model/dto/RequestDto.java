@@ -2,7 +2,6 @@ package com.example.backend.jenkins.job.model.dto;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
-import com.example.backend.jenkins.job.model.Script;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.UUID;
 
 public class RequestDto {
@@ -26,22 +24,15 @@ public class RequestDto {
                 .build();
     }
 
-    public static Pipeline toEntity(CreateDto requestDto, JenkinsInfo info, Script script, String config) {
+    public static Pipeline toEntity(CreateDto requestDto, JenkinsInfo info) {
 
         return Pipeline.builder()
                 .name(requestDto.getName())
-                .description(requestDto.getDescription())
-                .isTriggered(requestDto.getTrigger())
-                .schedule(requestDto.getSchedule())
                 .jenkinsInfo(info)
                 .createdAt(LocalDateTime.now())
                 .isDeleted(false)
-                .script(script)
-                .config(config)
-                .stageList(new ArrayList<>())
                 .build();
     }
-
 
     @Data
     @SuperBuilder

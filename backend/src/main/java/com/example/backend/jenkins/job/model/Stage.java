@@ -26,8 +26,8 @@ public class Stage {
     private Integer orderIndex;
 
     private String name;
-
+    
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pipeline_id", nullable = false)
-    private Pipeline pipeline;
+    @JoinColumn(name = "pipeline_version_id", nullable = false)
+    private PipelineVersion pipelineVersion;
 }
