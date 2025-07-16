@@ -261,7 +261,7 @@ public class PipelineService {
     }
 
     public PipelineVersion getLatestVersion(Pipeline pipeline) {
-        int latestVersion = pipeline.getLatestVersion();
+        int latestVersion = pipeline.getLatestVersion() - 1;
 
         return pipeline.getVersionList().get(latestVersion);
     }

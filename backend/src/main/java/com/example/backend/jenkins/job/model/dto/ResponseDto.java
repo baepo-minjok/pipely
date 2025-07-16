@@ -16,9 +16,12 @@ import java.util.UUID;
 public class ResponseDto {
 
     public static LightJobDto entityToLightJobDto(Pipeline pipeline) {
+        PipelineVersion pipelineVersion = pipeline.getVersionList().get(pipeline.getLatestVersion() - 1);
+
         return LightJobDto.builder()
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
+                .description(pipelineVersion.getDescription())
                 .build();
     }
 
@@ -102,6 +105,8 @@ public class ResponseDto {
         private UUID pipelineId;
 
         private String name;
+        
+        private String description;
     }
 
     @Data
