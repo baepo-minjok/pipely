@@ -3,6 +3,10 @@ package com.example.backend.jenkins.job.model.dto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -42,64 +46,171 @@ public class RequestDto {
     @Schema(name = "ScriptBaseDto", description = "Jenkins Script 생성/수정에 필요한 파라미터")
     public static class ScriptBaseDto {
 
-        @Schema(description = "Script 고유 식별자 (UUID)", example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e")
+        @Schema(
+                description = "Script 고유 식별자 (UUID)",
+                example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private UUID scriptId;
 
-        @Schema(description = "연동된 git 저장소 주소", example = "https://github.com/org/repo.git")
+        @NotBlank
+        @Size(max = 200)
+        @Schema(
+                description = "연동된 git 저장소 주소",
+                example = "https://github.com/org/repo.git",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private String githubUrl;
 
-        @Schema(description = "빌드 시 clone할 git 브랜치명", example = "main", defaultValue = "main")
+        @NotBlank
+        @Size(max = 50)
+        @Schema(
+                description = "빌드 시 clone할 git 브랜치명",
+                example = "main",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private String branch;
 
-        @Schema(description = "빌드 스테이지 선택 여부", example = "true")
+        @NotNull
+        @Schema(
+                description = "빌드 스테이지 선택 여부",
+                example = "true",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private Boolean isBuildSelected;
 
-        @Schema(description = "테스트 스테이지 선택 여부", example = "false")
+        @NotNull
+        @Schema(
+                description = "테스트 스테이지 선택 여부",
+                example = "false",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private Boolean isTestSelected;
 
-        @Schema(description = "Kubernetes 배포 여부", example = "true")
+        @NotNull
+        @Schema(
+                description = "배포 스테이지 선택 여부",
+                example = "false",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        private Boolean isDeploySelected;
+
+        @Schema(
+                description = "Kubernetes 배포 여부",
+                example = "true",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private Boolean isK8sDeploy;
 
-        @Schema(description = "이미지 태그 (ex: latest, 1.0.0)", example = "latest")
+        @Size(max = 50)
+        @Schema(
+                description = "이미지 태그 (ex: latest, 1.0.0)",
+                example = "latest",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String tag;
 
-        @Schema(description = "SSH 키 경로 (ex: ~/.ssh/id_rsa)", example = "~/.ssh/id_rsa")
+        @Size(max = 200)
+        @Schema(
+                description = "SSH 키 경로 (ex: ~/.ssh/id_rsa)",
+                example = "~/.ssh/id_rsa",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String sshKeyPath;
 
-        @Schema(description = "SSH 포트 (기본: 22)", example = "22")
+        @Size(max = 10)
+        @Schema(
+                description = "SSH 포트 (기본: 22)",
+                example = "22",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String sshPort;
 
-        @Schema(description = "배포 대상 서버 (ex: user@ip)", example = "ubuntu@1.2.3.4")
+        @Size(max = 100)
+        @Schema(
+                description = "배포 대상 서버 (ex: user@ip)",
+                example = "ubuntu@1.2.3.4",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String deployTarget;
 
-        @Schema(description = "원격 서버에 복사할 yaml 파일 경로", example = "/home/ubuntu/app/deploy.yaml")
+        @Size(max = 200)
+        @Schema(
+                description = "원격 서버에 복사할 yaml 파일 경로",
+                example = "/home/ubuntu/app/deploy.yaml",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String k8sPath;
 
-        @Schema(description = "Kubernetes Deployment 명", example = "my-app-deployment")
+        @Size(max = 100)
+        @Schema(
+                description = "Kubernetes Deployment 명",
+                example = "my-app-deployment",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String deploymentName;
 
-        @Schema(description = "Kubernetes 네임스페이스", example = "default")
+        @Size(max = 100)
+        @Schema(
+                description = "Kubernetes 네임스페이스",
+                example = "default",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String namespace;
 
-        @Schema(description = "app 라벨명 (K8s용)", example = "my-app")
+        @Size(max = 100)
+        @Schema(
+                description = "app 라벨명 (K8s용)",
+                example = "my-app",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String appName;
 
-        @Schema(description = "컨테이너 이름", example = "my-container")
+        @Size(max = 100)
+        @Schema(
+                description = "컨테이너 이름",
+                example = "my-container",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String containerName;
 
-        @Schema(description = "이미지 저장소 경로", example = "ghcr.io/org/project")
+        @Size(max = 200)
+        @Schema(
+                description = "이미지 저장소 경로",
+                example = "ghcr.io/org/project",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String imageRepo;
 
-        @Schema(description = "컨테이너 내부 포트", example = "8080")
+        @Size(max = 10)
+        @Schema(
+                description = "컨테이너 내부 포트",
+                example = "8080",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String port;
 
-        @Schema(description = "디플로이먼트 복제 수", example = "2")
+        @Size(max = 10)
+        @Schema(
+                description = "디플로이먼트 복제 수",
+                example = "2",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String replicas;
 
-        @Schema(description = "EC2 배포 여부", example = "false")
+        @Schema(
+                description = "EC2 배포 여부",
+                example = "false",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private Boolean isEc2Deploy;
 
-        @Schema(description = "EC2 내 jar 저장 경로", example = "/home/ec2-user/app")
+        @Size(max = 200)
+        @Schema(
+                description = "EC2 내 jar 저장 경로",
+                example = "/home/ec2-user/app",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String ec2DeployPath;
     }
 
@@ -110,22 +221,56 @@ public class RequestDto {
     @Schema(name = "CreateDto", description = "Jenkins Job 생성 요청 DTO")
     public static class CreateDto {
 
-        @Schema(description = "Jenkins 서버 정보의 UUID", example = "2c1edbe1-4e6a-420d-84cd-3ffb2b9d7c85")
+        @NotNull
+        @Schema(
+                description = "Jenkins 서버 정보의 UUID",
+                example = "2c1edbe1-4e6a-420d-84cd-3ffb2b9d7c85",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private UUID infoId;
 
-        @Schema(description = "Script 고유 식별자 (UUID)", example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e")
+        @Schema(
+                description = "Script 고유 식별자 (UUID)",
+                example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private UUID scriptId;
 
-        @Schema(description = "생성할 Jenkins Job 이름", example = "sample-job")
+        @NotBlank
+        @Size(max = 100)
+        @Schema(
+                description = "생성할 Jenkins Job 이름",
+                example = "sample-job",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private String name;
 
-        @Schema(description = "Job 설명", example = "테스트 Job")
+        @Size(max = 255)
+        @Schema(
+                description = "Job 설명",
+                example = "테스트 Job",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String description;
 
-        @Schema(description = "Git webhook 트리거 사용 여부", example = "true")
+        @NotNull
+        @Schema(
+                description = "Git webhook 트리거 사용 여부",
+                example = "true",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private Boolean trigger;
 
-        @Schema(description = "스케줄(cron) 설정 값", example = "매일 오후 12시 30분")
+        @Size(max = 100)
+        @Pattern(
+                regexp = "^(매일|매주)\\s*(?:([월화수목금토일](?:,\\s*[월화수목금토일])*)(?:요일)?)?\\s*(오전\\s*\\d{1,2}시\\s*\\d{1,2}분?|오후\\s*\\d{1,2}시\\s*\\d{1,2}분?|\\d{1,2}:\\d{1,2})$",
+                message = "형식 예시: '매일 오후 3시 5분', '매주 월,수,금 오전 9시 30분' 등으로 입력해야 합니다."
+        )
+        @Schema(
+                description = "스케줄(cron) 설정 값",
+                example = "매주 월,수,금 오전 9시 30분",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String schedule;
     }
 
@@ -136,22 +281,56 @@ public class RequestDto {
     @Schema(name = "UpdateDto", description = "Jenkins Job 수정 요청 DTO")
     public static class UpdateDto {
 
-        @Schema(description = "수정 대상 Jenkins Job의 고유 UUID", example = "b5a7c7b2-8123-4cce-80ec-ccf79d5e2f7a")
+        @NotNull
+        @Schema(
+                description = "수정 대상 Jenkins Job의 고유 UUID",
+                example = "b5a7c7b2-8123-4cce-80ec-ccf79d5e2f7a",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private UUID pipelineId;
 
-        @Schema(description = "수정에 사용할 Script 고유 식별자 (UUID)", example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e")
+        @Schema(
+                description = "수정에 사용할 Script 고유 식별자 (UUID)",
+                example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private UUID scriptId;
 
-        @Schema(description = "수정할 Jenkins Job 이름", example = "updated-job")
+        @NotBlank
+        @Size(max = 100)
+        @Schema(
+                description = "수정할 Jenkins Job 이름",
+                example = "updated-job",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private String name;
 
-        @Schema(description = "Job 설명", example = "수정된 Job 설명")
+        @Size(max = 255)
+        @Schema(
+                description = "Job 설명",
+                example = "수정된 Job 설명",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String description;
 
-        @Schema(description = "Git webhook 트리거 사용 여부", example = "false")
+        @NotNull
+        @Schema(
+                description = "Git webhook 트리거 사용 여부",
+                example = "false",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private Boolean trigger;
 
-        @Schema(description = "스케줄(cron) 설정 값", example = "매일 오후 12시 30분")
+        @Size(max = 100)
+        @Pattern(
+                regexp = "^(매일|매주)\\s*(?:([월화수목금토일](?:,\\s*[월화수목금토일])*)(?:요일)?)?\\s*(오전\\s*\\d{1,2}시\\s*\\d{1,2}분?|오후\\s*\\d{1,2}시\\s*\\d{1,2}분?|\\d{1,2}:\\d{1,2})$",
+                message = "형식 예시: '매일 오후 3시 5분', '매주 월,수,금 오전 9시 30분' 등으로 입력해야 합니다."
+        )
+        @Schema(
+                description = "스케줄(cron) 설정 값",
+                example = "매주 월,수,금 오전 9시 30분",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String schedule;
     }
 
@@ -159,10 +338,20 @@ public class RequestDto {
     @Schema(name = "ScriptValidateDto", description = "Jenkins Script 유효성 검증 요청 DTO")
     public static class ScriptValidateDto {
 
-        @Schema(description = "Jenkins 서버 정보의 UUID", example = "2c1edbe1-4e6a-420d-84cd-3ffb2b9d7c85")
+        @NotNull
+        @Schema(
+                description = "Jenkins 서버 정보의 UUID",
+                example = "2c1edbe1-4e6a-420d-84cd-3ffb2b9d7c85",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private UUID infoId;
 
-        @Schema(description = "유효성 검증할 Jenkins Script", example = "Pipeline{ ... }")
+        @NotBlank
+        @Schema(
+                description = "유효성 검증할 Jenkins Script",
+                example = "Pipeline{ ... }",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String script;
     }
 }
