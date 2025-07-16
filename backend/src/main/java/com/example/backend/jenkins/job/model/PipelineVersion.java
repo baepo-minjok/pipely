@@ -1,6 +1,5 @@
 package com.example.backend.jenkins.job.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,7 +28,6 @@ public class PipelineVersion {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(columnDefinition = "CHAR(36)")
     @Schema(description = "파이프라인 버전 ID", example = "3e6c84f7-7fd2-4f57-8015-3b45528d15df")
     private UUID id;
 
@@ -70,7 +68,6 @@ public class PipelineVersion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pipeline_id", nullable = false)
-    @JsonBackReference
     @Schema(description = "연결된 파이프라인 객체", hidden = true)
     private Pipeline pipeline;
 

@@ -3,25 +3,30 @@ package com.example.backend.jenkins.job.model.dto;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
+import com.example.backend.jenkins.job.model.Stage;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class ResponseDto {
 
     public static LightJobDto entityToLightJobDto(Pipeline pipeline) {
+        PipelineVersion pipelineVersion = pipeline.getVersionList().get(pipeline.getLatestVersion() - 1);
+
         return LightJobDto.builder()
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
+                .description(pipelineVersion.getDescription())
                 .build();
     }
 
     public static DetailJobDto entityToDetailJobDto(Pipeline pipeline) {
-        PipelineVersion pipelineVersion = pipeline.getVersionList().get(pipeline.getLatestVersion());
+        PipelineVersion pipelineVersion = pipeline.getVersionList().get(pipeline.getLatestVersion() - 1);
         Script script = pipelineVersion.getScript();
 
         return DetailJobDto.builder()
@@ -33,6 +38,11 @@ public class ResponseDto {
                 .updatedAt(pipeline.getUpdatedAt())
                 .deletedAt(pipeline.getDeletedAt())
                 .lightScriptDto(entityToLightScriptDto(script))
+                .latestVersion(pipeline.getLatestVersion())
+                .stageList(toListOfStageDtos(pipelineVersion.getStageList()))
+                .isSuccessfulBuild(pipelineVersion.getIsSuccessfulBuild())
+                .schedule(pipelineVersion.getSchedule())
+                .pipelineVersionList(toListOfPipelineVersionDtos(pipeline.getVersionList()))
                 .build();
     }
 
@@ -64,11 +74,25 @@ public class ResponseDto {
                 .build();
     }
 
+    public static List<PipelineVersionDto> toListOfPipelineVersionDtos(List<PipelineVersion> pipelines) {
+        return pipelines.stream().map(ResponseDto::entityToPipelineVersionDto).toList();
+    }
+
     public static PipelineVersionDto entityToPipelineVersionDto(PipelineVersion version) {
         return PipelineVersionDto.builder()
                 .version(version.getVersion())
                 .createdAt(version.getCreatedAt())
                 .isSuccessfulBuild(version.getIsSuccessfulBuild())
+                .build();
+    }
+
+    public static List<StageDto> toListOfStageDtos(List<Stage> stageList) {
+        return stageList.stream().map(ResponseDto::entityToStageDto).toList();
+    }
+
+    public static StageDto entityToStageDto(Stage stage) {
+        return StageDto.builder()
+                .stageName(stage.getName())
                 .build();
     }
 
@@ -81,10 +105,8 @@ public class ResponseDto {
         private UUID pipelineId;
 
         private String name;
-
+        
         private String description;
-
-        private String githubUrl;
     }
 
     @Data
@@ -105,8 +127,18 @@ public class ResponseDto {
         private LocalDateTime createdAt;
         // 수정 시간
         private LocalDateTime updatedAt;
+        // 삭제 시간
         private LocalDateTime deletedAt;
-        private String script;
+        // 최신 버전
+        private Integer latestVersion;
+
+        private Boolean isSuccessfulBuild;
+
+        private String schedule;
+
+        private List<StageDto> stageList;
+
+        private List<PipelineVersionDto> pipelineVersionList;
     }
 
     @Data
@@ -154,6 +186,16 @@ public class ResponseDto {
         private Integer version;
         private LocalDateTime createdAt;
         private Boolean isSuccessfulBuild;
+
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class StageDto {
+
+        private String stageName;
 
     }
 }

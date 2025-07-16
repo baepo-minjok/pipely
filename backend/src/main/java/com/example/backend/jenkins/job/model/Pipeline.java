@@ -50,6 +50,7 @@ public class Pipeline {
     private JenkinsInfo jenkinsInfo;
 
     @Builder.Default
+    @OrderBy("version ASC")
     @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PipelineVersion> versionList = new ArrayList<>();
 
