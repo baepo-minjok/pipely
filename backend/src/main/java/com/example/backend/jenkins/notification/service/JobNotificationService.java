@@ -3,7 +3,9 @@ package com.example.backend.jenkins.notification.service;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
+import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
+import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import com.example.backend.jenkins.job.repository.ScriptRepository;
 import com.example.backend.jenkins.job.service.ConfigService;
 import com.example.backend.jenkins.notification.model.dto.RequestDto;
@@ -16,6 +18,7 @@ import com.example.backend.service.HttpClientService;
 import com.example.backend.util.ScriptEditUtil;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +51,7 @@ import java.util.stream.Collectors;
 public class JobNotificationService {
 
     private final PipelineRepository pipelineRepository;
+    private final PipelineVersionRepository pipelineVersionRepository;
     private final ApplicationEventPublisher publisher;
     private final JobNotificationRepository notificationRepository;
     private final JenkinsClientFactory jenkinsClient;
@@ -58,7 +62,7 @@ public class JobNotificationService {
     private final MustacheFactory mf;
 
     @Transactional
-    public List<JobNotification> createJobNotifications(List<RequestDto.createCredential> dtoList, UUID userId) {
+    public void createJobNotifications(List<RequestDto.createCredential> dtoList, UUID userId) {
         List<JobNotification> savedNotifications = new ArrayList<>();
         Set<UUID> affectedScriptIds = new HashSet<>();
 
@@ -98,8 +102,6 @@ public class JobNotificationService {
         for (UUID scriptId : affectedScriptIds) {
             updatePipelineConfigWithScript(scriptId);
         }
-
-        return savedNotifications;
     }
 
     public List<ResponseDto.JobNotificationListResponseDto> getUserJobNotifications(UUID userId, UUID jobId) {
@@ -186,9 +188,9 @@ public class JobNotificationService {
         List<JobNotification> notifications = notificationRepository.findAllByScriptIdAndShouldNotifyTrue(scriptId);
 
         String jobName = "";
-        Optional<Pipeline> pipelineOpt = pipelineRepository.findByScriptId(scriptId);
+        Optional<PipelineVersion> pipelineOpt = pipelineVersionRepository.findTopByScriptIdOrderByCreatedAtDesc(scriptId);
         if (pipelineOpt.isPresent()) {
-            jobName = pipelineOpt.get().getName();
+            jobName = pipelineOpt.get().getPipeline().getName();
         }
 
         String newPostBlock = createNotificationScript(jobName, notifications);
@@ -202,30 +204,50 @@ public class JobNotificationService {
             return;
         }
 
-        Pipeline pipeline = pipelineOpt.get();
-        String updatedConfigXml = updateScriptInConfigXml(pipeline.getConfig(), updatedScript);
-        pipeline.setConfig(updatedConfigXml);
-        pipeline.setUpdatedAt(LocalDateTime.now());
-        pipelineRepository.save(pipeline);
+        Pipeline pipeline = pipelineOpt.get().getPipeline();
 
-        updateJenkinsServerConfig(pipeline);
+        PipelineVersion latestVersion = pipelineVersionRepository.findTopByPipelineOrderByCreatedAtDesc(pipeline)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
+
+        String updatedConfigXml = updateScriptInConfigXml(latestVersion.getConfig(), updatedScript);
+
+        int newVersionNumber = latestVersion.getVersion() + 1;
+
+        pipeline.setLatestVersion(newVersionNumber);
+        pipeline.setUpdatedAt(LocalDateTime.now());
+        Pipeline updatedPipeline = pipelineRepository.save(pipeline);
+
+        PipelineVersion newVersion = PipelineVersion.builder()
+                .pipeline(updatedPipeline)
+                .version(newVersionNumber)
+                .createdAt(LocalDateTime.now())
+                .config(updatedConfigXml)
+                .script(script)
+                .description(latestVersion.getDescription())
+                .isTriggered(latestVersion.getIsTriggered())
+                .schedule(latestVersion.getSchedule())
+                .build();
+
+        pipelineVersionRepository.save(newVersion);
+
+        updateJenkinsServerConfig(updatedPipeline, newVersion);
     }
 
-    private void updateJenkinsServerConfig(Pipeline pipeline) {
+    private void updateJenkinsServerConfig(Pipeline pipeline, PipelineVersion newVersion) {
         JenkinsInfo info = pipeline.getJenkinsInfo();
         if (info == null) {
             throw new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND);
         }
 
-        Script script = pipeline.getScript();
+        Script script = newVersion.getScript();
         if (script == null) {
             throw new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND);
         }
 
         Map<String, Object> context = new HashMap<>();
 
-        context.put("description", pipeline.getDescription());
-        context.put("trigger", pipeline.getIsTriggered());
+        context.put("description", newVersion.getDescription());
+        context.put("trigger", newVersion.getIsTriggered());
 
         if (script != null) {
             String githubUrl = Optional.ofNullable(script.getGithubUrl()).orElse("");
@@ -239,10 +261,6 @@ public class JobNotificationService {
 
         String configXml = configService.createConfig(context);
 
-        pipeline.setConfig(configXml);
-        pipeline.setUpdatedAt(LocalDateTime.now());
-        Pipeline updated = pipelineRepository.save(pipeline);
-
         String jenkinsUrl = info.getUri() + "/job/" + pipeline.getName() + "/config.xml";
         HttpEntity<String> req = new HttpEntity<>(
                 configXml,
@@ -251,8 +269,7 @@ public class JobNotificationService {
                         new MediaType("application", "xml", StandardCharsets.UTF_8)
                 )
         );
-        publisher.publishEvent(new JobNotificationEvent<>(updated.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
-
+        publisher.publishEvent(new JobNotificationEvent<>(pipeline.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
     }
 
     private String replacePostBlock(String originalScript, String newPostBlock) {
