@@ -232,9 +232,10 @@ public class PipelineService {
     }
 
 
-    /*@Transactional
+    @Transactional
     public void restorationJob(UUID pipelineId) {
         Pipeline pipeline = getPipelineById(pipelineId);
+        PipelineVersion pipelineVersion = getLatestVersion(pipeline);
         JenkinsInfo info = pipeline.getJenkinsInfo();
         LocalDateTime time = pipeline.getDeletedAt();
 
@@ -242,12 +243,12 @@ public class PipelineService {
 
         compensationService.softDeletePipeline(pipeline, null, false);
 
-        String config = pipeline.getConfig();
+        String config = pipelineVersion.getConfig();
 
         callJenkins(info.getUri() + "/createItem?name=" + pipeline.getName(),
                 config, info, HttpMethod.POST,
                 () -> compensationService.softDeletePipeline(pipeline, time, true));
-    }*/
+    }
 
     public List<ResponseDto.PipelineVersionDto> getPipelineVersions(UUID pipelineId) {
         Pipeline pipeline = getPipelineById(pipelineId);
@@ -257,7 +258,7 @@ public class PipelineService {
     }
 
     public PipelineVersion getLatestVersion(Pipeline pipeline) {
-        int latestVersion = pipeline.getLatestVersion();
+        int latestVersion = pipeline.getLatestVersion() - 1;
 
         return pipeline.getVersionList().get(latestVersion);
     }

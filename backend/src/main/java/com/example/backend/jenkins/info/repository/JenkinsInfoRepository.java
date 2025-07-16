@@ -26,4 +26,6 @@ public interface JenkinsInfoRepository extends JpaRepository<JenkinsInfo, UUID> 
     Optional<JenkinsInfo> findByUserAndJenkinsId(Users user, String jenkinsId);
 
     void deleteByUser(Users user);
+
+    Optional<JenkinsInfo> findByUserId(UUID userId);
 }
