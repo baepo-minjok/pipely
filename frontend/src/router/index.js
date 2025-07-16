@@ -6,6 +6,7 @@ import Main from '../pages/Main.vue';
 import Mypage from '../pages/users/Mypage.vue';
 import CreateCicdInfo from '../pages/users/CreateCicdInfo.vue';
 import CicdInfoDetail from '../pages/users/CicdInfoDetail.vue';
+import JobList from '../pages/jobs/JobList.vue';
 
 const routes = [
   { path: '/', component: Main },
@@ -15,6 +16,7 @@ const routes = [
   { path: '/mypage', component: Mypage },
   { path: '/mypage/cicd/create', component: CreateCicdInfo },
   { path: '/mypage/cicd/:id', component: CicdInfoDetail },
+  { path: '/job', component: JobList },
 ];
 
 const router = createRouter({
