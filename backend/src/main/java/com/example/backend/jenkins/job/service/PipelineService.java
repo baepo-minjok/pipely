@@ -168,8 +168,10 @@ public class PipelineService {
     private Pipeline savePipeline(RequestDto.CreateDto dto, JenkinsInfo info, Script script, String config, String name) {
         Pipeline pipeline = RequestDto.toEntity(dto, info);
         Pipeline saved = pipelineRepository.save(pipeline);
+        UUID latestVersionId = saveVersion(saved, script, config, dto, name);
 
-        saveVersion(saved, script, config, dto, name);
+        pipeline.setLatestVersionId(latestVersionId);
+        saved = pipelineRepository.save(pipeline);
         pipelineRepository.flush();
         return saved;
     }
@@ -272,7 +274,7 @@ public class PipelineService {
     }
 
     //새 버전 저장
-    private void saveVersion(Pipeline pipeline, Script script, String config, RequestDto.CreateDto dto, String name) {
+    private UUID saveVersion(Pipeline pipeline, Script script, String config, RequestDto.CreateDto dto, String name) {
 
         PipelineVersion version = PipelineVersion.builder()
                 .name(name)
@@ -288,6 +290,10 @@ public class PipelineService {
         createStages(version, script);
 
         pipeline.getVersionList().add(version);
+
+        PipelineVersion savedVersion = pipelineVersionRepository.save(version);
+        pipelineVersionRepository.flush();
+        return savedVersion.getId();
     }
 
     private void updateVersion(PipelineVersion pipelineVersion, RequestDto.UpdateDto dto, Script script, String config) {

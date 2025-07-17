@@ -33,7 +33,7 @@ public class PipelineVersion {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "BINARY(16)")
+    @Column(name = "id", updatable = false, nullable = false)
     @Schema(
             description = "파이프라인 버전 ID (UUID)",
             example = "3e6c84f7-7fd2-4f57-8015-3b45528d15df"
@@ -76,7 +76,6 @@ public class PipelineVersion {
     private LocalDateTime createdAt;
 
     @Lob
-    @Column(name = "config", nullable = false)
     @Schema(
             description = "Jenkins XML Config 전체 문자열",
             example = "<project>...</project>"
@@ -102,7 +101,7 @@ public class PipelineVersion {
     private List<Stage> stageList = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pipeline_id", nullable = false)
+    @JoinColumn(name = "pipeline_id")
     @Schema(
             description = "이 PipelineVersion이 소속된 Pipeline 객체 (내부 매핑용, API 문서에는 숨김)",
             implementation = Pipeline.class,

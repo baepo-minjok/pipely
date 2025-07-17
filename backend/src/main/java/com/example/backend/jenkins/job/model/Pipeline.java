@@ -30,7 +30,7 @@ public class Pipeline {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "BINARY(16)")
+    @Column(name = "id", updatable = false, nullable = false)
     @Schema(
             description = "파이프라인의 고유 UUID",
             example = "b1a7c7b2-8123-4cce-80ec-ccf79d5e2f7a"
@@ -72,7 +72,7 @@ public class Pipeline {
     )
     private LocalDateTime deletedAt;
 
-    @Column(name = "latest_version_id", nullable = false)
+    @Column(name = "latest_version_id")
     @Schema(
             description = "가장 최신 버전의 Id",
             example = "b1a7c7b2-8123-4cce-80ec-ccf79d5e2f7a"

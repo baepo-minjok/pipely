@@ -12,7 +12,7 @@ public class StageService {
 
     private final StageRepository stageRepository;
 
-    public void deleteByPipelineVersionId(UUID versionId) {
-        stageRepository.deleteByPipelineVersionId(versionId);
+    public void deleteByPipelineVersionId(UUID pipelineVersionId) {
+        stageRepository.deleteByPipelineVersionId(pipelineVersionId);
     }
 }
