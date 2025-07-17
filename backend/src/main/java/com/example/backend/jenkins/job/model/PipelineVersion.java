@@ -42,11 +42,10 @@ public class PipelineVersion {
 
     @Column(name = "version", nullable = false)
     @Schema(
-            description = "파이프라인 버전 번호 (1부터 증가)",
-            example = "1",
-            minimum = "1"
+            description = "파이프라인 버전 이름",
+            example = "버전1"
     )
-    private Integer version;
+    private String name;
 
     @Column(name = "description", length = 255)
     @Schema(
@@ -83,14 +82,6 @@ public class PipelineVersion {
             example = "<project>...</project>"
     )
     private String config;
-
-    @Column(name = "is_successful_build")
-    @Schema(
-            description = "빌드 성공 여부 (true: 성공, false: 실패, null: 빌드 전 또는 미실행)",
-            example = "true",
-            nullable = true
-    )
-    private Boolean isSuccessfulBuild;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "script_id")
