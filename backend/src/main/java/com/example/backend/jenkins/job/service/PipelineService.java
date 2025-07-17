@@ -12,6 +12,7 @@ import com.example.backend.jenkins.job.model.Stage;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
+import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import com.example.backend.service.HttpClientService;
 import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,8 +41,8 @@ public class PipelineService {
     private final ScriptService scriptService;
     private final ScriptEditUtil scriptEditUtil;
     private final PipelineRepository pipelineRepository;
-    private final StageService stageService;
     private final CompensationService compensationService;
+    private final PipelineVersionRepository pipelineVersionRepository;
 
     /**
      * Create a new Jenkins job and persist the pipeline.
@@ -51,8 +54,9 @@ public class PipelineService {
 
         Script script = loadScript(dto.getScriptId());
         String config = buildConfig(dto, script);
+        String name = "Initial Version";
 
-        Pipeline pipeline = savePipeline(dto, info, script, config);
+        Pipeline pipeline = savePipeline(dto, info, script, config, name);
 
         callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
                 config, info, HttpMethod.POST,
@@ -70,10 +74,8 @@ public class PipelineService {
         boolean isRenamed = isRenamed(preName, dto);
 
         Script script = loadScript(dto.getScriptId());
-
-        RequestDto.CreateDto createDto = RequestDto.toCreateDto(dto, info.getId());
-        String config = buildConfig(createDto, script);
-        applyPipelineChanges(pipeline, createDto, script, config);
+        String config = buildConfig(dto, script);
+        applyPipelineChanges(pipeline, dto, script, config);
 
         if (isRenamed) {    // 수정할 Job 이름이 다를 때
             // 이미 존재하는 이름인지 검사
@@ -156,16 +158,17 @@ public class PipelineService {
         return scriptId != null ? scriptService.getScriptById(scriptId) : null;
     }
 
-    private String buildConfig(RequestDto.CreateDto dto, Script script) {
+    private String buildConfig(RequestDto.BaseDto dto, Script script) {
         return configService.createConfig(
                 configService.buildConfigContext(dto, script)
         );
     }
 
-    private Pipeline savePipeline(RequestDto.CreateDto dto, JenkinsInfo info, Script script, String config) {
-        Pipeline entity = RequestDto.toEntity(dto, info);
-        saveVersion(entity, script, config, dto);
-        Pipeline saved = pipelineRepository.save(entity);
+    private Pipeline savePipeline(RequestDto.CreateDto dto, JenkinsInfo info, Script script, String config, String name) {
+        Pipeline pipeline = RequestDto.toEntity(dto, info);
+        Pipeline saved = pipelineRepository.save(pipeline);
+
+        saveVersion(saved, script, config, dto, name);
         pipelineRepository.flush();
         return saved;
     }
@@ -190,11 +193,11 @@ public class PipelineService {
                 .collect(Collectors.toList());
     }
 
-    private void applyPipelineChanges(Pipeline pipeline, RequestDto.CreateDto dto, Script script, String config) {
+    private void applyPipelineChanges(Pipeline pipeline, RequestDto.UpdateDto dto, Script script, String config) {
         pipeline.setName(dto.getName());
         pipeline.setUpdatedAt(LocalDateTime.now());
 
-        saveVersion(pipeline, script, config, dto);
+        updateVersion(getLatestVersion(pipeline), dto, script, config);
 
         pipelineRepository.save(pipeline);
         pipelineRepository.flush();
@@ -258,28 +261,20 @@ public class PipelineService {
     }
 
     public PipelineVersion getLatestVersion(Pipeline pipeline) {
-        int latestVersion = pipeline.getLatestVersion() - 1;
-
-        return pipeline.getVersionList().get(latestVersion);
+        return pipelineVersionRepository.findWithScriptAndStageListById(pipeline.getLatestVersionId())
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
     }
 
     //새 버전 저장
-    private void saveVersion(Pipeline pipeline, Script script, String config, RequestDto.CreateDto dto) {
-        Integer newVersion = pipeline.getVersionList().stream()
-                .map(PipelineVersion::getVersion)
-                .max(Integer::compareTo)
-                .orElse(0) + 1;
-
-        pipeline.setLatestVersion(newVersion);
+    private void saveVersion(Pipeline pipeline, Script script, String config, RequestDto.CreateDto dto, String name) {
 
         PipelineVersion version = PipelineVersion.builder()
-                .version(newVersion)
+                .name(name)
                 .description(dto.getDescription())
                 .isTriggered(dto.getTrigger())
                 .schedule(dto.getSchedule())
                 .createdAt(LocalDateTime.now())
                 .config(config)
-                .isSuccessfulBuild(null)
                 .script(script)
                 .pipeline(pipeline)
                 .build();
@@ -289,20 +284,34 @@ public class PipelineService {
         pipeline.getVersionList().add(version);
     }
 
+    private void updateVersion(PipelineVersion pipelineVersion, RequestDto.UpdateDto dto, Script script, String config) {
+
+        pipelineVersion.setDescription(dto.getDescription());
+        pipelineVersion.setIsTriggered(dto.getTrigger());
+        pipelineVersion.setSchedule(dto.getSchedule());
+        pipelineVersion.setConfig(config);
+        pipelineVersion.setScript(script);
+
+        createStages(pipelineVersion, script);
+
+        pipelineVersionRepository.save(pipelineVersion);
+        pipelineVersionRepository.flush();
+    }
+
     // 특정 파이프라인버전 삭제
     // 조건: 가장 최신 버전은 삭제 할 수 없음
     @Transactional
-    public void deletePipelineVersion(UUID pipelineId, Integer version) {
+    public void deletePipelineVersion(UUID pipelineId, UUID pipelineVersionId) {
         Pipeline pipeline = getPipelineById(pipelineId);
 
         // 최신 버전은 삭제 불가
-        if (pipeline.getLatestVersion() != null && pipeline.getLatestVersion().equals(version)) {
+        if (pipeline.getLatestVersionId() != null && pipeline.getLatestVersionId().equals(pipelineVersionId)) {
             throw new CustomException(ErrorCode.CANNOT_DELETE_LATEST_VERSION);
         }
 
         // 삭제할 대상 버전 찾기
         PipelineVersion toDelete = pipeline.getVersionList().stream()
-                .filter(v -> v.getVersion().equals(version))
+                .filter(v -> v.getId().equals(pipelineVersionId))
                 .findFirst()
                 .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
 
@@ -313,19 +322,18 @@ public class PipelineService {
     }
 
     // 현재 최신 버전을 제거하고 이전 버전으로 롤백
-    @Transactional
+    /*@Transactional
     public void rollbackToPreviousVersion(UUID pipelineId) {
         Pipeline pipeline = getPipelineById(pipelineId);
-        int currentVersion = pipeline.getLatestVersion();
 
-        // 버전이 1 이하인 경우 롤백 불가
-        if (currentVersion <= 1) {
+        // 버전의 개수가 1 이하인 경우 롤백 불가
+        if (pipeline.getVersionList().size() <= 1) {
             throw new CustomException(ErrorCode.NO_PREVIOUS_VERSION);
         }
 
         // 존재하는 이전 버전들 중 가장 높은 값 찾기
         PipelineVersion target = pipeline.getVersionList().stream()
-                .filter(v -> v.getVersion() < currentVersion)
+                .filter(v -> v.getCreatedAt() < currentVersion)
                 .max(Comparator.comparingInt(PipelineVersion::getVersion))
                 .orElseThrow(() -> new CustomException(ErrorCode.NO_PREVIOUS_VERSION));
 
@@ -355,7 +363,7 @@ public class PipelineService {
         //롤백된 버전으로 최신버전 수정
         pipeline.setLatestVersion(version);
         pipelineRepository.save(pipeline);
-    }
+    }*/
 
     // Jenkins에 롤백된 config 반영해서 수정
     private void rollbackPipelineToVersion(Pipeline pipeline, PipelineVersion version) {
