@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -53,24 +54,24 @@ class BuildServiceTest {
     @DisplayName("getBuildHistory - 정상 응답 시 파싱 성공")
     void getBuildHistory_success() throws Exception {
         String mockJson = """   
-            {
-              "builds": [
-                {
-                  "number": 1,
-                  "result": "SUCCESS",
-                  "timestamp": 1000,
-                  "duration": 200,
-                  "building": false,
-                  "url": "http://jenkins.local/job/test-job/1/",
-                  "actions": [{
-                    "causes": [{
-                      "userName": "tester"
-                    }]
-                  }]
-                }
-              ]
-            }
-        """;
+                    {
+                      "builds": [
+                        {
+                          "number": 1,
+                          "result": "SUCCESS",
+                          "timestamp": 1000,
+                          "duration": 200,
+                          "building": false,
+                          "url": "http://jenkins.local/job/test-job/1/",
+                          "actions": [{
+                            "causes": [{
+                              "userName": "tester"
+                            }]
+                          }]
+                        }
+                      ]
+                    }
+                """;
 
         when(pipelineService.getPipelineById(pipelineId)).thenReturn(mockPipeline);
         when(httpClientService.buildHeaders(mockJenkinsInfo, MediaType.APPLICATION_FORM_URLENCODED)).thenReturn(new HttpHeaders());
@@ -89,24 +90,24 @@ class BuildServiceTest {
     @DisplayName("getLastBuildStatus - 정상 응답 시 단일 빌드 반환")
     void getLastBuildStatus_success() throws Exception {
         String mockJson = """
-            {
-              "builds": [
-                {
-                  "number": 3,
-                  "result": "FAILURE",
-                  "timestamp": 2000,
-                  "duration": 100,
-                  "building": false,
-                  "url": "http://jenkins.local/job/test-job/3/",
-                  "actions": [{
-                    "causes": [{
-                      "userName": "user1"
-                    }]
-                  }]
-                }
-              ]
-            }
-        """;
+                    {
+                      "builds": [
+                        {
+                          "number": 3,
+                          "result": "FAILURE",
+                          "timestamp": 2000,
+                          "duration": 100,
+                          "building": false,
+                          "url": "http://jenkins.local/job/test-job/3/",
+                          "actions": [{
+                            "causes": [{
+                              "userName": "user1"
+                            }]
+                          }]
+                        }
+                      ]
+                    }
+                """;
 
         when(pipelineService.getPipelineById(pipelineId)).thenReturn(mockPipeline);
         when(httpClientService.buildHeaders(mockJenkinsInfo, MediaType.APPLICATION_FORM_URLENCODED)).thenReturn(new HttpHeaders());
@@ -137,18 +138,28 @@ class BuildServiceTest {
     @Test
     @DisplayName("getBuildLog - consoleText API 호출 성공 시 로그 반환")
     void getBuildLog_success() {
+        // given
         String buildNumber = "5";
-        String mockLog = "Started by user admin\nBuilding in workspace...";
+        String mockLog = """
+<html>
+  <body>
+    <pre class="console-output">
+Started by user admin
+Building in workspace...
++ chmod +x gradlew
++ ./gradlew build
+Finished: SUCCESS
+    </pre>
+  </body>
+</html>
+""";
 
         BuildRequestDto.GetLogRequestDto dto =
                 new BuildRequestDto.GetLogRequestDto(buildNumber, pipelineId);
 
         when(pipelineService.getPipelineById(pipelineId)).thenReturn(mockPipeline);
-
         when(httpClientService.buildHeaders(eq(mockJenkinsInfo), any(MediaType.class)))
                 .thenReturn(new HttpHeaders());
-
-
         when(httpClientService.exchange(
                 eq("http://jenkins.local/job/test-job/5/console"),
                 eq(HttpMethod.GET),
@@ -156,14 +167,15 @@ class BuildServiceTest {
                 eq(String.class)))
                 .thenReturn(mockLog);
 
-
+        // when
         BuildResponseDto.BuildLogDto result = buildService.getBuildLog(dto);
 
+        // then
         assertNotNull(result);
-        assertEquals(1, result.getLog().size());
-        assertEquals(mockLog, result.getLog().get(0));
+        assertFalse(result.getLog().isEmpty());
+        assertEquals("Started by user admin", result.getLog().get(0));
+        assertTrue(result.getLog().stream().anyMatch(line -> line.contains("SUCCESS")));
     }
-
 
 
     @Test
@@ -175,13 +187,24 @@ class BuildServiceTest {
         when(httpClientService.buildHeaders(eq(mockJenkinsInfo), any(MediaType.class)))
                 .thenReturn(new HttpHeaders());
 
+        // 1. buildNumber 조회 stubbing
         when(httpClientService.exchange(
-                contains("progressiveText"), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
-                .thenReturn(mockLog);
+                contains("buildNumber"), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class))
+        ).thenReturn("5");
+
+        // 2. progressiveText 로그 조회 stubbing
+        when(httpClientService.exchange(
+                contains("progressiveText"), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class))
+        ).thenReturn(mockLog);
 
         BuildResponseDto.BuildStreamLogDto result = buildService.getStreamLog(pipelineId);
 
-        assertEquals(mockLog, result.getLog().get(0));
+        assertEquals(
+                Arrays.asList(mockLog.split("\\r?\\n")),
+                result.getLog()
+        );
     }
+
+
 
 }
