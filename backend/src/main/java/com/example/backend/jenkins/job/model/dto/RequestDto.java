@@ -9,24 +9,13 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class RequestDto {
-
-    public static CreateDto toCreateDto(UpdateDto requestDto, UUID infoId) {
-        return CreateDto.builder()
-                .name(requestDto.getName())
-                .infoId(infoId)
-                .scriptId(requestDto.getScriptId())
-                .description(requestDto.getDescription())
-                .trigger(requestDto.getTrigger())
-                .schedule(requestDto.getSchedule())
-                .build();
-    }
 
     public static Pipeline toEntity(CreateDto requestDto, JenkinsInfo info) {
 
@@ -39,7 +28,6 @@ public class RequestDto {
     }
 
     @Data
-    @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
     public static abstract class BaseDto {
@@ -90,7 +78,6 @@ public class RequestDto {
     }
 
     @Data
-    @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
     @Schema(name = "ScriptBaseDto", description = "Jenkins Script 생성/수정에 필요한 파라미터")
@@ -256,8 +243,8 @@ public class RequestDto {
         private String deployTarget;
     }
 
+    @EqualsAndHashCode(callSuper = true)
     @Data
-    @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
     @Schema(name = "CreateDto", description = "Jenkins Job 생성 요청 DTO")
@@ -273,8 +260,8 @@ public class RequestDto {
 
     }
 
+    @EqualsAndHashCode(callSuper = true)
     @Data
-    @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
     @Schema(name = "UpdateDto", description = "Jenkins Job 수정 요청 DTO")

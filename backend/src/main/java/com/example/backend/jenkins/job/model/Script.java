@@ -26,7 +26,7 @@ public class Script {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "BINARY(16)")
+    @Column(name = "id", updatable = false, nullable = false)
     @Schema(description = "Script 고유 식별자 (UUID)", example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e")
     private UUID id;
 
@@ -108,7 +108,6 @@ public class Script {
     private String ec2DeployPath;
 
     @Lob
-    @Column(name = "script", nullable = false)
     @Schema(description = "실행할 스크립트(셸, 파이프라인 등)", example = "#!/bin/bash\necho Hello World")
     private String script;
 

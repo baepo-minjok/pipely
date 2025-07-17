@@ -13,7 +13,7 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "pipeline_stage",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"pipeline_id", "order_index"})
+        uniqueConstraints = @UniqueConstraint(columnNames = {"pipeline_version_id", "order_index"})
 )
 @Data
 @Builder
@@ -28,7 +28,7 @@ public class Stage {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", updatable = false, nullable = false, columnDefinition = "BINARY(16)")
+    @Column(name = "id", updatable = false, nullable = false)
     @Schema(
             description = "Stage의 고유 식별자 (UUID)",
             example = "7e6adf14-8153-41e7-aeb1-2f97782f3b0d"

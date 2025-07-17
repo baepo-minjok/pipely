@@ -6,11 +6,9 @@ import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.service.ScriptService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,7 +42,7 @@ public class ScriptController {
     )
     @PostMapping("/generate")
     public ResponseEntity<BaseResponse<ResponseDto.LightScriptDto>> generateScript(
-            @RequestBody @Valid RequestDto.ScriptBaseDto requestDto
+            @RequestBody RequestDto.ScriptBaseDto requestDto
     ) {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(scriptService.generateScript(requestDto)));
@@ -90,7 +88,7 @@ public class ScriptController {
     )
     @PostMapping("/validate")
     public ResponseEntity<BaseResponse<String>> validateScript(
-            @RequestBody @Valid RequestDto.ScriptValidateDto requestDto
+            @RequestBody RequestDto.ScriptValidateDto requestDto
     ) {
         scriptService.validateScript(requestDto);
 

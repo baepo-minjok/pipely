@@ -12,6 +12,6 @@ import java.util.UUID;
 @Repository
 public interface StageRepository extends JpaRepository<Stage, UUID> {
     @Modifying
-    @Query("delete from Stage s where s.pipelineVersion.id = :pipelineVersioId")
+    @Query("delete from Stage s where s.pipelineVersion.id = :pipelineVersionId")
     void deleteByPipelineVersionId(@Param("pipelineVersionId") UUID pipelineVersioId);
 }
