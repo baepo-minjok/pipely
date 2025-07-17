@@ -3,27 +3,29 @@ package com.example.backend.jenkins.notification.service;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
+import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
+import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import com.example.backend.jenkins.job.repository.ScriptRepository;
 import com.example.backend.jenkins.job.service.ConfigService;
+import com.example.backend.jenkins.job.service.PipelineService;
+import com.example.backend.jenkins.notification.model.JobNotification;
 import com.example.backend.jenkins.notification.model.dto.RequestDto;
 import com.example.backend.jenkins.notification.model.dto.ResponseDto;
-import com.example.backend.jenkins.notification.model.JobNotification;
-import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.notification.repository.JobNotificationRepository;
-import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.service.HttpClientService;
 import com.example.backend.util.ScriptEditUtil;
 import com.github.mustachejava.Mustache;
 import com.github.mustachejava.MustacheFactory;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
@@ -60,6 +62,20 @@ public class JobNotificationService {
     private final ConfigService configService;
     private final HttpClientService httpClientService;
     private final MustacheFactory mf;
+    private final PipelineService pipelineService;
+
+    public static String removeInvalidXMLChars(String input) {
+        StringBuilder out = new StringBuilder();
+        for (char c : input.toCharArray()) {
+            if ((c == 0x9) || (c == 0xA) || (c == 0xD) ||
+                    ((c >= 0x20) && (c <= 0xD7FF)) ||
+                    ((c >= 0xE000) && (c <= 0xFFFD)) ||
+                    ((c >= 0x10000) && (c <= 0x10FFFF))) {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
 
     @Transactional
     public void createJobNotifications(List<RequestDto.createCredential> dtoList, UUID userId) {
@@ -206,20 +222,15 @@ public class JobNotificationService {
 
         Pipeline pipeline = pipelineOpt.get().getPipeline();
 
-        PipelineVersion latestVersion = pipelineVersionRepository.findTopByPipelineOrderByCreatedAtDesc(pipeline)
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
+        PipelineVersion latestVersion = pipelineService.getLatestVersion(pipeline);
 
         String updatedConfigXml = updateScriptInConfigXml(latestVersion.getConfig(), updatedScript);
 
-        int newVersionNumber = latestVersion.getVersion() + 1;
-
-        pipeline.setLatestVersion(newVersionNumber);
         pipeline.setUpdatedAt(LocalDateTime.now());
         Pipeline updatedPipeline = pipelineRepository.save(pipeline);
 
         PipelineVersion newVersion = PipelineVersion.builder()
                 .pipeline(updatedPipeline)
-                .version(newVersionNumber)
                 .createdAt(LocalDateTime.now())
                 .config(updatedConfigXml)
                 .script(script)
@@ -228,7 +239,7 @@ public class JobNotificationService {
                 .schedule(latestVersion.getSchedule())
                 .build();
 
-        pipelineVersionRepository.save(newVersion);
+        PipelineVersion saved = pipelineVersionRepository.save(newVersion);
 
         updateJenkinsServerConfig(updatedPipeline, newVersion);
     }
@@ -332,18 +343,5 @@ public class JobNotificationService {
             log.error("Failed to update script in config.xml", e);
             throw new CustomException(ErrorCode.JENKINS_XML_UPDATE_FAIL);
         }
-    }
-
-    public static String removeInvalidXMLChars(String input) {
-        StringBuilder out = new StringBuilder();
-        for (char c : input.toCharArray()) {
-            if ((c == 0x9) || (c == 0xA) || (c == 0xD) ||
-                    ((c >= 0x20) && (c <= 0xD7FF)) ||
-                    ((c >= 0xE000) && (c <= 0xFFFD)) ||
-                    ((c >= 0x10000) && (c <= 0x10FFFF))) {
-                out.append(c);
-            }
-        }
-        return out.toString();
     }
 }
