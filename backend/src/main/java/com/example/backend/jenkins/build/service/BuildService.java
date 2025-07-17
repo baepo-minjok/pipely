@@ -110,18 +110,15 @@ public class BuildService {
     public ResponseEntity<?> getBuildInfo(BuildRequestDto.getBuildHistory dto) {
 
         Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
-        JenkinsInfo info = pipeline.getJenkinsInfo();
-
-        String jobName = pipeline.getName();
-        JobType jobType = dto.getJobType();
-        UUID pipelineId = dto.getPipeLine();
 
 
-        log.info("빌드 정보 요청 - jobName: {}, jobType: {}", pipeline.getName(), jobType);
+
+
+        log.info("빌드 정보 요청 - jobName: {}, jobType: {}", pipeline.getName(), dto.getJobType());
         try {
-            return switch (jobType) {
-                case LATEST -> ResponseEntity.ok(getLastBuildStatus(pipelineId));
-                case HISTORY -> ResponseEntity.ok(getBuildHistory(pipelineId));
+            return switch (dto.getJobType()) {
+                case LATEST -> ResponseEntity.ok(getLastBuildStatus(dto.getPipeLine()));
+                case HISTORY -> ResponseEntity.ok(getBuildHistory(dto.getPipeLine()));
             };
         } catch (CustomException e) {
             throw e;
@@ -131,13 +128,8 @@ public class BuildService {
         }
     }
 
-    /*
-     * 특정 job 의 마지막 build 번호 조회
-     * */
 
-    /*
-     * 특정 스테이지 실행 freestyle
-     * */
+
     public void StageJenkinsBuild(BuildRequestDto.BuildStageRequestDto dto) {
         Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
         JenkinsInfo info = pipeline.getJenkinsInfo();
@@ -149,39 +141,41 @@ public class BuildService {
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        dto.getStageToggles().forEach((key, value) ->
-                body.add("DO_" + key.toUpperCase(), String.valueOf(value)));
-        httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
-
-
-    }
-
-    public void stagePipeline1(BuildRequestDto.StageSettingRequestDto dto) {
-        Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
-        JenkinsInfo info = pipeline.getJenkinsInfo();
-        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
-
-        String xml = httpClientService.exchange(
-                info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                String.class
-        );
-        List<String> stageNames = xmlConfigParser.getPipelineStageNamesFromXml(xml);
-        String updatexml = injectParameterBlockForPipelineJob(xml, stageNames);
-
-
-        String rs = httpClientService.exchange(
-                info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
-                HttpMethod.POST,
-                new HttpEntity<>(updatexml, headers),
-                String.class
-        );
-
-        log.info(rs);
-
+        dto.getStageToggles().forEach((key, value) -> {
+            String paramKey = "RUN_" + key.toUpperCase().replace(" ", "_");
+            body.add(paramKey, String.valueOf(value));
+        });
+        String response = httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
+        log.info("Jenkins 응답 상태: {}", response);
 
     }
+//    public void stagePipeline1(BuildRequestDto.StageSettingRequestDto dto) {
+//
+//        Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
+//        JenkinsInfo info = pipeline.getJenkinsInfo();
+//        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
+//
+//        String xml = httpClientService.exchange(
+//                info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
+//                HttpMethod.GET,
+//                new HttpEntity<>(headers),
+//                String.class
+//        );
+//        List<String> stageNames = xmlConfigParser.getPipelineStageNamesFromXml(xml);
+//        String updatexml = injectParameterBlockForPipelineJob(xml, stageNames);
+//
+//
+//        String rs = httpClientService.exchange(
+//                info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
+//                HttpMethod.POST,
+//                new HttpEntity<>(updatexml, headers),
+//                String.class
+//        );
+//
+//        log.info(rs);
+//
+//
+//    }
 
 
     /*
@@ -298,8 +292,10 @@ public class BuildService {
 
     public BuildResponseDto.Stage getJobPipelineStage(UUID pipeLine) {
 
+
         Pipeline pipeline = pipelineService.getPipelineById(pipeLine);
         JenkinsInfo info = pipeline.getJenkinsInfo();
+
 
 
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
