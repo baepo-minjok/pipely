@@ -8,7 +8,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -37,6 +36,57 @@ public class RequestDto {
                 .createdAt(LocalDateTime.now())
                 .isDeleted(false)
                 .build();
+    }
+
+    @Data
+    @SuperBuilder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static abstract class BaseDto {
+
+        @Schema(
+                description = "수정에 사용할 Script 고유 식별자 (UUID)",
+                example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        private UUID scriptId;
+
+        @NotBlank
+        @Size(max = 100)
+        @Schema(
+                description = "수정할 Jenkins Job 이름",
+                example = "updated-job",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        private String name;
+
+        @Size(max = 255)
+        @Schema(
+                description = "Job 설명",
+                example = "수정된 Job 설명",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        private String description;
+
+        @NotNull
+        @Schema(
+                description = "Git webhook 트리거 사용 여부",
+                example = "false",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        private Boolean trigger;
+
+        @Size(max = 100)
+        @Pattern(
+                regexp = "^(매일|매주)\\s*(?:([월화수목금토일](?:,\\s*[월화수목금토일])*)(?:요일)?)?\\s*(오전\\s*\\d{1,2}시\\s*\\d{1,2}분?|오후\\s*\\d{1,2}시\\s*\\d{1,2}분?|\\d{1,2}:\\d{1,2})$",
+                message = "형식 예시: '매일 오후 3시 5분', '매주 월,수,금 오전 9시 30분' 등으로 입력해야 합니다."
+        )
+        @Schema(
+                description = "스케줄(cron) 설정 값",
+                example = "매주 월,수,금 오전 9시 30분",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        private String schedule;
     }
 
     @Data
@@ -215,11 +265,11 @@ public class RequestDto {
     }
 
     @Data
-    @Builder
+    @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
     @Schema(name = "CreateDto", description = "Jenkins Job 생성 요청 DTO")
-    public static class CreateDto {
+    public static class CreateDto extends BaseDto {
 
         @NotNull
         @Schema(
@@ -229,57 +279,14 @@ public class RequestDto {
         )
         private UUID infoId;
 
-        @Schema(
-                description = "Script 고유 식별자 (UUID)",
-                example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private UUID scriptId;
-
-        @NotBlank
-        @Size(max = 100)
-        @Schema(
-                description = "생성할 Jenkins Job 이름",
-                example = "sample-job",
-                requiredMode = Schema.RequiredMode.REQUIRED
-        )
-        private String name;
-
-        @Size(max = 255)
-        @Schema(
-                description = "Job 설명",
-                example = "테스트 Job",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private String description;
-
-        @NotNull
-        @Schema(
-                description = "Git webhook 트리거 사용 여부",
-                example = "true",
-                requiredMode = Schema.RequiredMode.REQUIRED
-        )
-        private Boolean trigger;
-
-        @Size(max = 100)
-        @Pattern(
-                regexp = "^(매일|매주)\\s*(?:([월화수목금토일](?:,\\s*[월화수목금토일])*)(?:요일)?)?\\s*(오전\\s*\\d{1,2}시\\s*\\d{1,2}분?|오후\\s*\\d{1,2}시\\s*\\d{1,2}분?|\\d{1,2}:\\d{1,2})$",
-                message = "형식 예시: '매일 오후 3시 5분', '매주 월,수,금 오전 9시 30분' 등으로 입력해야 합니다."
-        )
-        @Schema(
-                description = "스케줄(cron) 설정 값",
-                example = "매주 월,수,금 오전 9시 30분",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private String schedule;
     }
 
     @Data
-    @Builder
+    @SuperBuilder
     @AllArgsConstructor
     @NoArgsConstructor
     @Schema(name = "UpdateDto", description = "Jenkins Job 수정 요청 DTO")
-    public static class UpdateDto {
+    public static class UpdateDto extends BaseDto {
 
         @NotNull
         @Schema(
@@ -289,49 +296,6 @@ public class RequestDto {
         )
         private UUID pipelineId;
 
-        @Schema(
-                description = "수정에 사용할 Script 고유 식별자 (UUID)",
-                example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private UUID scriptId;
-
-        @NotBlank
-        @Size(max = 100)
-        @Schema(
-                description = "수정할 Jenkins Job 이름",
-                example = "updated-job",
-                requiredMode = Schema.RequiredMode.REQUIRED
-        )
-        private String name;
-
-        @Size(max = 255)
-        @Schema(
-                description = "Job 설명",
-                example = "수정된 Job 설명",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private String description;
-
-        @NotNull
-        @Schema(
-                description = "Git webhook 트리거 사용 여부",
-                example = "false",
-                requiredMode = Schema.RequiredMode.REQUIRED
-        )
-        private Boolean trigger;
-
-        @Size(max = 100)
-        @Pattern(
-                regexp = "^(매일|매주)\\s*(?:([월화수목금토일](?:,\\s*[월화수목금토일])*)(?:요일)?)?\\s*(오전\\s*\\d{1,2}시\\s*\\d{1,2}분?|오후\\s*\\d{1,2}시\\s*\\d{1,2}분?|\\d{1,2}:\\d{1,2})$",
-                message = "형식 예시: '매일 오후 3시 5분', '매주 월,수,금 오전 9시 30분' 등으로 입력해야 합니다."
-        )
-        @Schema(
-                description = "스케줄(cron) 설정 값",
-                example = "매주 월,수,금 오전 9시 30분",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private String schedule;
     }
 
     @Data
