@@ -114,16 +114,33 @@ public class ConfigService {
         context.put("branch", branch);
         context.put("githubUrl", githubUrl);
 
+        context.put("isK8sDeploy", scriptDto.getIsK8sDeploy());
+        context.put("tag", scriptDto.getTag());
+        context.put("sshKeyPath", scriptDto.getSshKeyPath());
+        context.put("sshPort", scriptDto.getSshPort());
+        context.put("deployTarget", scriptDto.getDeployTarget());
+        context.put("k8sPath", scriptDto.getK8sPath());
+        context.put("deploymentName", scriptDto.getDeploymentName());
+        context.put("namespace", scriptDto.getNamespace());
+        context.put("appName", scriptDto.getAppName());
+        context.put("containerName", scriptDto.getContainerName());
+        context.put("imageRepo", scriptDto.getImageRepo());
+        context.put("port", scriptDto.getPort());
+        context.put("replicas", scriptDto.getReplicas());
+
+        context.put("isEc2Deploy", scriptDto.getIsEc2Deploy());
+        context.put("ec2DeployPath", scriptDto.getEc2DeployPath());
+
         return context;
     }
 
     // config 템플릿에 사용되는 context Map 만드는 함수
-    public Map<String, Object> buildConfigContext(RequestDto.CreateDto createDto, Script script) {
+    public Map<String, Object> buildConfigContext(RequestDto.BaseDto dto, Script script) {
 
         Map<String, Object> context = new HashMap<>();
 
-        context.put("description", createDto.getDescription());
-        context.put("trigger", createDto.getTrigger());
+        context.put("description", dto.getDescription());
+        context.put("trigger", dto.getTrigger());
 
         if (script != null) {
 
@@ -139,10 +156,10 @@ public class ConfigService {
             context.put("script", injectedScript);
         }
 
-        if (createDto.getSchedule() != null) {
+        if (dto.getSchedule() != null) {
 
             // 받은 스케줄로 cron식 생성
-            String cronExpression = CronExpressionUtil.toCron(createDto.getSchedule());
+            String cronExpression = CronExpressionUtil.toCron(dto.getSchedule());
 
             context.put("cronExpression", cronExpression);
         }

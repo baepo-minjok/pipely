@@ -103,6 +103,9 @@ public enum ErrorCode {
     JENKINS_SCRIPT_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_SCRIPT_NOT_FOUND_400", "Script 정보가 존재하지않습니다."),
     JENKINS_SCRIPT_NOT_VALID(HttpStatus.BAD_REQUEST, "JENKINS_SCRIPT_NOT_VALID_400", "Script의 문법이 올바르지 않습니다."),
     JENKINS_JOB_EXIST(HttpStatus.BAD_REQUEST, "JENKINS_JOB_EXIST_400", "Jenkins에 이미 동일한 이름의 Job이 존재합니다."),
+    CANNOT_DELETE_LATEST_VERSION(HttpStatus.BAD_REQUEST,"CANNOT_DELETE_LATEST_VERSION_400","최신버전은 삭제 할 수 없습니다."),
+    VERSION_NOT_FOUND(HttpStatus.NOT_FOUND, "VERSION_NOT_FOUND_400", "해당버전을 찾을 수 없습니다."),
+    NO_PREVIOUS_VERSION(HttpStatus.BAD_REQUEST,"NO_PREVIOUS_VERSION_400","해당 파이프라인은 롤백할 이전버전이 없습니다."),
     /**
      * Jenkins/build 도메인에서 사용하는 ErrorCode
      */

@@ -46,6 +46,68 @@ pipeline {
       }
     }
     {{/isTestSelected}}
+    {{#isK8sDeploy}}
+    stage('Deploy') {
+      steps {
+        script {
+          def tag = "{{tag}}"
+          def sshOpts = "-i {{sshKeyPath}} -p {{sshPort}} -o StrictHostKeyChecking=no"
+          def scpOpts = "-i {{sshKeyPath}} -P {{sshPort}} -o StrictHostKeyChecking=no"
+
+          writeFile file: 'backend-deployment.yml', text: """
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{deploymentName}}
+  namespace: {{namespace}}
+  labels:
+    app: {{appName}}
+spec:
+  replicas: {{replicas}}
+  selector:
+    matchLabels:
+      app: {{appName}}
+  template:
+    metadata:
+      labels:
+        app: {{appName}}
+    spec:
+      containers:
+        - name: {{containerName}}
+          image: {{imageRepo}}:${tag}
+          ports:
+            - containerPort: {{port}}
+
+"""
+
+          sh """
+            ssh ${sshOpts} {{deployTarget}} "mkdir -p {{k8sPath}}"
+            scp ${scpOpts} backend-deployment.yml {{deployTarget}}:{{k8sPath}}/
+            ssh ${sshOpts} {{deployTarget}} kubectl apply -f {{k8sPath}}/backend-deployment.yml
+            ssh ${sshOpts} {{deployTarget}} kubectl rollout status deployment/{{deploymentName}} -n {{namespace}}
+            ssh ${sshOpts} {{deployTarget}} kubectl wait --for=condition=available deployment/{{deploymentName}} --timeout=120s -n {{namespace}}
+          """
+        }
+      }
+    }
+    {{/isK8sDeploy}}
+
+    {{#isEc2Deploy}}
+    stage('Deploy') {
+      steps {
+        script {
+          def sshOpts = "-i {{sshKeyPath}} -p {{sshPort}} -o StrictHostKeyChecking=no"
+
+          sh """
+            ssh ${sshOpts} {{deployTarget}} 'mkdir -p {{ec2DeployPath}}'
+            scp -i {{sshKeyPath}} -P {{sshPort}} {{buildJarPath}} {{deployTarget}}:{{ec2DeployPath}}/app.jar
+            ssh ${sshOpts} {{deployTarget}} 'pkill -f "java -jar" || true'
+            ssh ${sshOpts} {{deployTarget}} 'nohup java -jar {{ec2DeployPath}}/app.jar  > app.log 2>&1 &'
+          """
+        }
+      }
+    }
+    {{/isEc2Deploy}}
   }
   // 파이프라인 전체의 성공/실패 후 처리 정의
   post {

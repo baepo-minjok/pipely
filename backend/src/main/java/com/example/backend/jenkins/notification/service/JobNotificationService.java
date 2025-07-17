@@ -3,15 +3,18 @@ package com.example.backend.jenkins.notification.service;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
+import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
+import com.example.backend.jenkins.job.repository.PipelineRepository;
+import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import com.example.backend.jenkins.job.repository.ScriptRepository;
 import com.example.backend.jenkins.job.service.ConfigService;
+import com.example.backend.jenkins.job.service.PipelineService;
+import com.example.backend.jenkins.notification.model.JobNotification;
 import com.example.backend.jenkins.notification.model.dto.RequestDto;
 import com.example.backend.jenkins.notification.model.dto.ResponseDto;
-import com.example.backend.jenkins.notification.model.JobNotification;
-import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.notification.repository.JobNotificationRepository;
-import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.service.HttpClientService;
 import com.example.backend.util.ScriptEditUtil;
 import com.github.mustachejava.Mustache;
@@ -20,7 +23,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
@@ -48,6 +53,7 @@ import java.util.stream.Collectors;
 public class JobNotificationService {
 
     private final PipelineRepository pipelineRepository;
+    private final PipelineVersionRepository pipelineVersionRepository;
     private final ApplicationEventPublisher publisher;
     private final JobNotificationRepository notificationRepository;
     private final JenkinsClientFactory jenkinsClient;
@@ -56,9 +62,23 @@ public class JobNotificationService {
     private final ConfigService configService;
     private final HttpClientService httpClientService;
     private final MustacheFactory mf;
+    private final PipelineService pipelineService;
+
+    public static String removeInvalidXMLChars(String input) {
+        StringBuilder out = new StringBuilder();
+        for (char c : input.toCharArray()) {
+            if ((c == 0x9) || (c == 0xA) || (c == 0xD) ||
+                    ((c >= 0x20) && (c <= 0xD7FF)) ||
+                    ((c >= 0xE000) && (c <= 0xFFFD)) ||
+                    ((c >= 0x10000) && (c <= 0x10FFFF))) {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
 
     @Transactional
-    public List<JobNotification> createJobNotifications(List<RequestDto.createCredential> dtoList, UUID userId) {
+    public void createJobNotifications(List<RequestDto.createCredential> dtoList, UUID userId) {
         List<JobNotification> savedNotifications = new ArrayList<>();
         Set<UUID> affectedScriptIds = new HashSet<>();
 
@@ -98,8 +118,6 @@ public class JobNotificationService {
         for (UUID scriptId : affectedScriptIds) {
             updatePipelineConfigWithScript(scriptId);
         }
-
-        return savedNotifications;
     }
 
     public List<ResponseDto.JobNotificationListResponseDto> getUserJobNotifications(UUID userId, UUID jobId) {
@@ -186,9 +204,9 @@ public class JobNotificationService {
         List<JobNotification> notifications = notificationRepository.findAllByScriptIdAndShouldNotifyTrue(scriptId);
 
         String jobName = "";
-        Optional<Pipeline> pipelineOpt = pipelineRepository.findByScriptId(scriptId);
+        Optional<PipelineVersion> pipelineOpt = pipelineVersionRepository.findTopByScriptIdOrderByCreatedAtDesc(scriptId);
         if (pipelineOpt.isPresent()) {
-            jobName = pipelineOpt.get().getName();
+            jobName = pipelineOpt.get().getPipeline().getName();
         }
 
         String newPostBlock = createNotificationScript(jobName, notifications);
@@ -202,30 +220,45 @@ public class JobNotificationService {
             return;
         }
 
-        Pipeline pipeline = pipelineOpt.get();
-        String updatedConfigXml = updateScriptInConfigXml(pipeline.getConfig(), updatedScript);
-        pipeline.setConfig(updatedConfigXml);
-        pipeline.setUpdatedAt(LocalDateTime.now());
-        pipelineRepository.save(pipeline);
+        Pipeline pipeline = pipelineOpt.get().getPipeline();
 
-        updateJenkinsServerConfig(pipeline);
+        PipelineVersion latestVersion = pipelineService.getLatestVersion(pipeline);
+
+        String updatedConfigXml = updateScriptInConfigXml(latestVersion.getConfig(), updatedScript);
+
+        pipeline.setUpdatedAt(LocalDateTime.now());
+        Pipeline updatedPipeline = pipelineRepository.save(pipeline);
+
+        PipelineVersion newVersion = PipelineVersion.builder()
+                .pipeline(updatedPipeline)
+                .createdAt(LocalDateTime.now())
+                .config(updatedConfigXml)
+                .script(script)
+                .description(latestVersion.getDescription())
+                .isTriggered(latestVersion.getIsTriggered())
+                .schedule(latestVersion.getSchedule())
+                .build();
+
+        PipelineVersion saved = pipelineVersionRepository.save(newVersion);
+
+        updateJenkinsServerConfig(updatedPipeline, newVersion);
     }
 
-    private void updateJenkinsServerConfig(Pipeline pipeline) {
+    private void updateJenkinsServerConfig(Pipeline pipeline, PipelineVersion newVersion) {
         JenkinsInfo info = pipeline.getJenkinsInfo();
         if (info == null) {
             throw new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND);
         }
 
-        Script script = pipeline.getScript();
+        Script script = newVersion.getScript();
         if (script == null) {
             throw new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND);
         }
 
         Map<String, Object> context = new HashMap<>();
 
-        context.put("description", pipeline.getDescription());
-        context.put("trigger", pipeline.getIsTriggered());
+        context.put("description", newVersion.getDescription());
+        context.put("trigger", newVersion.getIsTriggered());
 
         if (script != null) {
             String githubUrl = Optional.ofNullable(script.getGithubUrl()).orElse("");
@@ -239,10 +272,6 @@ public class JobNotificationService {
 
         String configXml = configService.createConfig(context);
 
-        pipeline.setConfig(configXml);
-        pipeline.setUpdatedAt(LocalDateTime.now());
-        Pipeline updated = pipelineRepository.save(pipeline);
-
         String jenkinsUrl = info.getUri() + "/job/" + pipeline.getName() + "/config.xml";
         HttpEntity<String> req = new HttpEntity<>(
                 configXml,
@@ -251,8 +280,7 @@ public class JobNotificationService {
                         new MediaType("application", "xml", StandardCharsets.UTF_8)
                 )
         );
-        publisher.publishEvent(new JobNotificationEvent<>(updated.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
-
+        publisher.publishEvent(new JobNotificationEvent<>(pipeline.getId(), jenkinsUrl, HttpMethod.POST, req, String.class));
     }
 
     private String replacePostBlock(String originalScript, String newPostBlock) {
@@ -315,18 +343,5 @@ public class JobNotificationService {
             log.error("Failed to update script in config.xml", e);
             throw new CustomException(ErrorCode.JENKINS_XML_UPDATE_FAIL);
         }
-    }
-
-    public static String removeInvalidXMLChars(String input) {
-        StringBuilder out = new StringBuilder();
-        for (char c : input.toCharArray()) {
-            if ((c == 0x9) || (c == 0xA) || (c == 0xD) ||
-                    ((c >= 0x20) && (c <= 0xD7FF)) ||
-                    ((c >= 0xE000) && (c <= 0xFFFD)) ||
-                    ((c >= 0x10000) && (c <= 0x10FFFF))) {
-                out.append(c);
-            }
-        }
-        return out.toString();
     }
 }
