@@ -1,5 +1,7 @@
 package com.example.backend.jenkins.job.model.dto;
 
+import com.example.backend.exception.CustomException;
+import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
@@ -17,32 +19,44 @@ import java.util.UUID;
 public class ResponseDto {
 
     public static LightJobDto entityToLightJobDto(Pipeline pipeline) {
-        PipelineVersion pipelineVersion = pipeline.getVersionList().get(pipeline.getLatestVersion() - 1);
+
+        UUID latestVersionId = pipeline.getLatestVersionId();
+
+        PipelineVersion latestVersion = pipeline.getVersionList().stream()
+                .filter(v -> v.getId().equals(latestVersionId))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
 
         return LightJobDto.builder()
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
-                .description(pipelineVersion.getDescription())
+                .description(latestVersion.getDescription())
                 .build();
     }
 
     public static DetailJobDto entityToDetailJobDto(Pipeline pipeline) {
-        PipelineVersion pipelineVersion = pipeline.getVersionList().get(pipeline.getLatestVersion() - 1);
-        Script script = pipelineVersion.getScript();
+
+        UUID latestVersionId = pipeline.getLatestVersionId();
+
+        PipelineVersion latestVersion = pipeline.getVersionList().stream()
+                .filter(v -> v.getId().equals(latestVersionId))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
+
+        Script script = latestVersion.getScript();
 
         return DetailJobDto.builder()
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
-                .description(pipelineVersion.getDescription())
-                .trigger(pipelineVersion.getIsTriggered())
+                .description(latestVersion.getDescription())
+                .trigger(latestVersion.getIsTriggered())
                 .createdAt(pipeline.getCreatedAt())
                 .updatedAt(pipeline.getUpdatedAt())
                 .deletedAt(pipeline.getDeletedAt())
                 .lightScriptDto(entityToLightScriptDto(script))
-                .latestVersion(pipeline.getLatestVersion())
-                .stageList(toListOfStageDtos(pipelineVersion.getStageList()))
-                .isSuccessfulBuild(pipelineVersion.getIsSuccessfulBuild())
-                .schedule(pipelineVersion.getSchedule())
+                .stageList(toListOfStageDtos(latestVersion.getStageList()))
+                .isBuildSuccess(pipeline.getIsBuildSuccess())
+                .schedule(latestVersion.getSchedule())
                 .pipelineVersionList(toListOfPipelineVersionDtos(pipeline.getVersionList()))
                 .build();
     }
@@ -80,9 +94,9 @@ public class ResponseDto {
 
     public static PipelineVersionDto entityToPipelineVersionDto(PipelineVersion version) {
         return PipelineVersionDto.builder()
-                .version(version.getVersion())
+                .versionId(version.getId())
+                .name(version.getName())
                 .createdAt(version.getCreatedAt())
-                .isSuccessfulBuild(version.getIsSuccessfulBuild())
                 .build();
     }
 
@@ -144,11 +158,8 @@ public class ResponseDto {
         @Schema(description = "삭제 시간 (ISO 8601)", example = "2024-07-16T16:00:00")
         private LocalDateTime deletedAt;
 
-        @Schema(description = "파이프라인 최신 버전 번호", example = "3")
-        private Integer latestVersion;
-
         @Schema(description = "최근 빌드 성공 여부 (true: 성공, false: 실패, null: 빌드 전)", example = "true")
-        private Boolean isSuccessfulBuild;
+        private Boolean isBuildSuccess;
 
         @Schema(description = "빌드/테스트/배포 등 스케줄(cron)", example = "매일 오후 12시 30분")
         private String schedule;
@@ -232,14 +243,15 @@ public class ResponseDto {
     @Schema(name = "PipelineVersionDto", description = "파이프라인의 각 버전별 정보")
     public static class PipelineVersionDto {
 
-        @Schema(description = "파이프라인 버전 번호", example = "2")
-        private Integer version;
+
+        @Schema(description = "Pipeline Version ID", example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e")
+        private UUID versionId;
+
+        @Schema(description = "파이프라인 버전 번호", example = "버전1")
+        private String name;
 
         @Schema(description = "버전 생성 일시 (ISO 8601)", example = "2024-07-16T15:32:10")
         private LocalDateTime createdAt;
-
-        @Schema(description = "빌드 성공 여부", example = "true")
-        private Boolean isSuccessfulBuild;
     }
 
     @Data
