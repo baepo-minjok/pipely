@@ -72,12 +72,20 @@ public class Pipeline {
     )
     private LocalDateTime deletedAt;
 
-    @Column(name = "latest_version", nullable = false)
+    @Column(name = "latest_version_id", nullable = false)
     @Schema(
-            description = "가장 최신 버전 번호",
-            example = "3"
+            description = "가장 최신 버전의 Id",
+            example = "b1a7c7b2-8123-4cce-80ec-ccf79d5e2f7a"
     )
-    private Integer latestVersion;
+    private UUID latestVersionId;
+
+    @Column(name = "is_build_success")
+    @Schema(
+            description = "빌드 성공 여부 (true: 성공, false: 실패, null: 빌드 전 또는 미실행)",
+            example = "true",
+            nullable = true
+    )
+    private Boolean isBuildSuccess;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "jenkins_info_id", nullable = false)
@@ -89,7 +97,7 @@ public class Pipeline {
     private JenkinsInfo jenkinsInfo;
 
     @Builder.Default
-    @OrderBy("version ASC")
+    @OrderBy("createdAt ASC")
     @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true)
     @Schema(
             description = "파이프라인의 버전 목록",

@@ -118,12 +118,12 @@ public class ConfigService {
     }
 
     // config 템플릿에 사용되는 context Map 만드는 함수
-    public Map<String, Object> buildConfigContext(RequestDto.CreateDto createDto, Script script) {
+    public Map<String, Object> buildConfigContext(RequestDto.BaseDto dto, Script script) {
 
         Map<String, Object> context = new HashMap<>();
 
-        context.put("description", createDto.getDescription());
-        context.put("trigger", createDto.getTrigger());
+        context.put("description", dto.getDescription());
+        context.put("trigger", dto.getTrigger());
 
         if (script != null) {
 
@@ -139,10 +139,10 @@ public class ConfigService {
             context.put("script", injectedScript);
         }
 
-        if (createDto.getSchedule() != null) {
+        if (dto.getSchedule() != null) {
 
             // 받은 스케줄로 cron식 생성
-            String cronExpression = CronExpressionUtil.toCron(createDto.getSchedule());
+            String cronExpression = CronExpressionUtil.toCron(dto.getSchedule());
 
             context.put("cronExpression", cronExpression);
         }
