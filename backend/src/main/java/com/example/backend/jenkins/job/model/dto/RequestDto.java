@@ -137,14 +137,6 @@ public class RequestDto {
         )
         private Boolean isTestSelected;
 
-        @NotNull
-        @Schema(
-                description = "배포 스테이지 선택 여부",
-                example = "false",
-                requiredMode = Schema.RequiredMode.REQUIRED
-        )
-        private Boolean isDeploySelected;
-
         @Schema(
                 description = "Kubernetes 배포 여부",
                 example = "true",
@@ -159,30 +151,6 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String tag;
-
-        @Size(max = 200)
-        @Schema(
-                description = "SSH 키 경로 (ex: ~/.ssh/id_rsa)",
-                example = "~/.ssh/id_rsa",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private String sshKeyPath;
-
-        @Size(max = 10)
-        @Schema(
-                description = "SSH 포트 (기본: 22)",
-                example = "22",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private String sshPort;
-
-        @Size(max = 100)
-        @Schema(
-                description = "배포 대상 서버 (ex: user@ip)",
-                example = "ubuntu@1.2.3.4",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private String deployTarget;
 
         @Size(max = 200)
         @Schema(
@@ -262,6 +230,30 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String ec2DeployPath;
+
+        @Size(max = 200)
+        @Schema(
+                description = "SSH 키 경로 (ex: ~/.ssh/id_rsa)",
+                example = "~/.ssh/id_rsa",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        private String sshKeyPath;
+
+        @Size(max = 10)
+        @Schema(
+                description = "SSH 포트 (기본: 22)",
+                example = "22",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        private String sshPort;
+
+        @Size(max = 100)
+        @Schema(
+                description = "배포 대상 서버 (ex: user@ip)",
+                example = "ubuntu@1.2.3.4",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        private String deployTarget;
     }
 
     @Data
