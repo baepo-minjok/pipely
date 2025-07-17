@@ -42,6 +42,7 @@ public class PipelineService {
     private final ScriptEditUtil scriptEditUtil;
     private final PipelineRepository pipelineRepository;
     private final CompensationService compensationService;
+    private final StageService stageService;
     private final PipelineVersionRepository pipelineVersionRepository;
 
     /**
@@ -185,6 +186,11 @@ public class PipelineService {
         }
     }
 
+    public void updateStages(PipelineVersion pipelineVersion, Script script) {
+        stageService.deleteByPipelineVersionId(pipelineVersion.getId());
+        createStages(pipelineVersion, script);
+    }
+
     private List<String> extractStageNames(Script script) {
         if (script == null) return Collections.emptyList();
         return scriptEditUtil.extractStageNames(script.getScript())
@@ -292,7 +298,7 @@ public class PipelineService {
         pipelineVersion.setConfig(config);
         pipelineVersion.setScript(script);
 
-        createStages(pipelineVersion, script);
+        updateStages(pipelineVersion, script);
 
         pipelineVersionRepository.save(pipelineVersion);
         pipelineVersionRepository.flush();
