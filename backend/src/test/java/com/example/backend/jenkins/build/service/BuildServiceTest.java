@@ -1,7 +1,5 @@
 package com.example.backend.jenkins.build.service;
 
-import com.example.backend.exception.CustomException;
-import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;

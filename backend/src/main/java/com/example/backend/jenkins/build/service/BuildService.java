@@ -2,7 +2,6 @@ package com.example.backend.jenkins.build.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
-import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
@@ -25,8 +24,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -37,81 +34,16 @@ public class BuildService {
     private final PipelineService pipelineService;
     private final XmlConfigParser xmlConfigParser;
 
-    public static String injectParameterBlockForPipelineJob(String xml, List<String> stages) {
-        // 1. 기존 파라미터 목록 파싱
-        Set<String> existingParams = new HashSet<>();
-        Matcher matcher = Pattern.compile("<name>(DO_\\w+)</name>").matcher(xml);
-        while (matcher.find()) {
-            existingParams.add(matcher.group(1));
-        }
 
-        // 2. 새 파라미터 XML 생성
-        StringBuilder newParamDefs = new StringBuilder();
-        for (String stage : stages) {
-            String paramName = "DO_" + stage.toUpperCase();
-            if (!existingParams.contains(paramName)) {
-                newParamDefs.append("        <hudson.model.BooleanParameterDefinition>\n")
-                        .append("          <name>").append(paramName).append("</name>\n")
-                        .append("          <defaultValue>true</defaultValue>\n")
-                        .append("          <description>").append(stage.toLowerCase()).append(" step toggle</description>\n")
-                        .append("        </hudson.model.BooleanParameterDefinition>\n");
-            }
-        }
 
-        // 3. config.xml에 파라미터 블록 병합
-        if (newParamDefs.length() > 0) {
-            if (xml.contains("<parameterDefinitions>")) {
-                xml = xml.replaceFirst("</parameterDefinitions>", newParamDefs + "    </parameterDefinitions>");
-            } else if (xml.contains("<properties>") && xml.contains("</properties>")) {
-                String paramBlock =
-                        "<hudson.model.ParametersDefinitionProperty>\n" +
-                                "    <parameterDefinitions>\n" +
-                                newParamDefs +
-                                "    </parameterDefinitions>\n" +
-                                "</hudson.model.ParametersDefinitionProperty>\n";
-                xml = xml.replaceFirst("</properties>", paramBlock + "</properties>");
-            } else {
-                // properties 태그 자체가 없는 경우
-                String block =
-                        "<properties>\n" +
-                                "  <hudson.model.ParametersDefinitionProperty>\n" +
-                                "    <parameterDefinitions>\n" +
-                                newParamDefs +
-                                "    </parameterDefinitions>\n" +
-                                "  </hudson.model.ParametersDefinitionProperty>\n" +
-                                "</properties>\n";
-                xml = xml.replaceFirst("<definition", block + "<definition");
-            }
-        }
 
-        // 4. <script> 블록 추출 및 수정
-        Matcher scriptMatcher = Pattern.compile("<script>(<!\\[CDATA\\[)?(.*?)(\\]\\]>)?</script>", Pattern.DOTALL).matcher(xml);
-        if (scriptMatcher.find()) {
-            String scriptContent = scriptMatcher.group(2);
-            String modifiedScript = injectStageConditions(scriptContent, stages);
-            String newScriptTag = "<script>" + modifiedScript + "</script>";
-            xml = xml.replace(scriptMatcher.group(0), newScriptTag);
-        }
-
-        return xml;
-    }
-
-    private static String injectStageConditions(String script, List<String> stages) {
-        for (String stage : stages) {
-            String stageName = stage.substring(0, 1).toUpperCase() + stage.substring(1).toLowerCase();
-            // 정규표현식으로 stage 찾기
-            String pattern = "stage\\([\"']" + stageName + "[\"']\\)\\s*\\{";
-            String replacement = "stage('" + stageName + "') {\n    when {\n        expression { params.DO_" + stage.toUpperCase() + " }\n    }";
-            script = script.replaceFirst(pattern, replacement);
-        }
-        return script;
-    }
 
     public ResponseEntity<?> getBuildInfo(BuildRequestDto.getBuildHistory dto) {
 
-        Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
 
 
+
+            Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
 
 
         log.info("빌드 정보 요청 - jobName: {}, jobType: {}", pipeline.getName(), dto.getJobType());
@@ -132,6 +64,7 @@ public class BuildService {
 
     public void StageJenkinsBuild(BuildRequestDto.BuildStageRequestDto dto) {
         Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
+
         JenkinsInfo info = pipeline.getJenkinsInfo();
 
         String triggerUrl = info.getUri() + "/job/" + pipeline.getName() + "/buildWithParameters";
@@ -149,33 +82,7 @@ public class BuildService {
         log.info("Jenkins 응답 상태: {}", response);
 
     }
-//    public void stagePipeline1(BuildRequestDto.StageSettingRequestDto dto) {
-//
-//        Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
-//        JenkinsInfo info = pipeline.getJenkinsInfo();
-//        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
-//
-//        String xml = httpClientService.exchange(
-//                info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
-//                HttpMethod.GET,
-//                new HttpEntity<>(headers),
-//                String.class
-//        );
-//        List<String> stageNames = xmlConfigParser.getPipelineStageNamesFromXml(xml);
-//        String updatexml = injectParameterBlockForPipelineJob(xml, stageNames);
-//
-//
-//        String rs = httpClientService.exchange(
-//                info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
-//                HttpMethod.POST,
-//                new HttpEntity<>(updatexml, headers),
-//                String.class
-//        );
-//
-//        log.info(rs);
-//
-//
-//    }
+
 
 
     /*
@@ -208,6 +115,7 @@ public class BuildService {
      *
      * */
     public BuildResponseDto.BuildLogDto getBuildLog(BuildRequestDto.GetLogRequestDto dto) {
+
 
         Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
         JenkinsInfo info = pipeline.getJenkinsInfo();
