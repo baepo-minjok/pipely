@@ -130,7 +130,7 @@ class BuildServiceTest {
         when(httpClientService.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
                 .thenReturn("Build triggered");
 
-        assertDoesNotThrow(() -> buildService.StageJenkinsBuild(dto, user));
+        assertDoesNotThrow(() -> buildService.StageJenkinsBuild(dto));
     }
 
     @Test
@@ -166,7 +166,7 @@ Finished: SUCCESS
                 .thenReturn(mockLog);
 
         // when
-        BuildResponseDto.BuildLogDto result = buildService.getBuildLog(dto, user);
+        BuildResponseDto.BuildLogDto result = buildService.getBuildLog(dto);
 
         // then
         assertNotNull(result);
@@ -195,7 +195,7 @@ Finished: SUCCESS
                 contains("progressiveText"), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class))
         ).thenReturn(mockLog);
 
-        BuildResponseDto.BuildStreamLogDto result = buildService.getStreamLog(pipelineId, user);
+        BuildResponseDto.BuildStreamLogDto result = buildService.getStreamLog(pipelineId);
 
         assertEquals(
                 Arrays.asList(mockLog.split("\\r?\\n")),

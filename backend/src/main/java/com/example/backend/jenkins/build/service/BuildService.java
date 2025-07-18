@@ -1,12 +1,10 @@
 package com.example.backend.jenkins.build.service;
 
-import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
-import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.service.PipelineService;
 import com.example.backend.parser.XmlConfigParser;
@@ -26,8 +24,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -37,17 +33,14 @@ public class BuildService {
     private final HttpClientService httpClientService;
     private final PipelineService pipelineService;
     private final XmlConfigParser xmlConfigParser;
-    private final JenkinsInfoService jenkinsInfoService;
 
 
 
 
 
-    public ResponseEntity<?> getBuildInfo(BuildRequestDto.getBuildHistory dto, Users user) {
+    public ResponseEntity<?> getBuildInfo(BuildRequestDto.getBuildHistory dto) {
 
-       try {} catch (RuntimeException e) {
-           throw new RuntimeException(e);
-       }
+
 
 
             Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
@@ -69,7 +62,7 @@ public class BuildService {
 
 
 
-    public void StageJenkinsBuild(BuildRequestDto.BuildStageRequestDto dto, Users user) {
+    public void StageJenkinsBuild(BuildRequestDto.BuildStageRequestDto dto) {
         Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
         JenkinsInfo info = pipeline.getJenkinsInfo();
 
@@ -88,33 +81,7 @@ public class BuildService {
         log.info("Jenkins 응답 상태: {}", response);
 
     }
-//    public void stagePipeline1(BuildRequestDto.StageSettingRequestDto dto) {
-//
-//        Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
-//        JenkinsInfo info = pipeline.getJenkinsInfo();
-//        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
-//
-//        String xml = httpClientService.exchange(
-//                info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
-//                HttpMethod.GET,
-//                new HttpEntity<>(headers),
-//                String.class
-//        );
-//        List<String> stageNames = xmlConfigParser.getPipelineStageNamesFromXml(xml);
-//        String updatexml = injectParameterBlockForPipelineJob(xml, stageNames);
-//
-//
-//        String rs = httpClientService.exchange(
-//                info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
-//                HttpMethod.POST,
-//                new HttpEntity<>(updatexml, headers),
-//                String.class
-//        );
-//
-//        log.info(rs);
-//
-//
-//    }
+
 
 
     /*
@@ -146,7 +113,7 @@ public class BuildService {
      * job 의 특정 빌드 번호의 빌드 로그 조회
      *
      * */
-    public BuildResponseDto.BuildLogDto getBuildLog(BuildRequestDto.GetLogRequestDto dto, Users user) {
+    public BuildResponseDto.BuildLogDto getBuildLog(BuildRequestDto.GetLogRequestDto dto) {
 
 
         Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
@@ -173,7 +140,7 @@ public class BuildService {
      * 특정 job의 실시간 빌드 조회
      *
      * */
-    public BuildResponseDto.BuildStreamLogDto getStreamLog(UUID pipeLine, Users user) {
+    public BuildResponseDto.BuildStreamLogDto getStreamLog(UUID pipeLine) {
 
 
         Pipeline pipeline = pipelineService.getPipelineById(pipeLine);
@@ -230,7 +197,7 @@ public class BuildService {
      *
      *  */
 
-    public BuildResponseDto.Stage getJobPipelineStage(UUID pipeLine, Users user) {
+    public BuildResponseDto.Stage getJobPipelineStage(UUID pipeLine) {
 
 
         Pipeline pipeline = pipelineService.getPipelineById(pipeLine);

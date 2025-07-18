@@ -69,7 +69,7 @@ class BuildControllerTest {
         UUID pipelineId = UUID.randomUUID();
         BuildResponseDto.Stage stage = new BuildResponseDto.Stage(List.of("BUILD", "TEST"));
 
-        when(buildService.getJobPipelineStage(any(), user)).thenReturn(stage);
+        when(buildService.getJobPipelineStage(any())).thenReturn(stage);
 
         mockMvc.perform(get("/api/build/stage")
                         .param("pipeLine", pipelineId.toString()))
@@ -115,7 +115,7 @@ class BuildControllerTest {
 
         doReturn(responseEntity)
                 .when(buildService)
-                .getBuildInfo(any(BuildRequestDto.getBuildHistory.class), user);
+                .getBuildInfo(any(BuildRequestDto.getBuildHistory.class));
 
         mockMvc.perform(post("/api/build/builds")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -162,7 +162,7 @@ class BuildControllerTest {
 
         doReturn(ResponseEntity.ok(BaseResponse.success(history)))
                 .when(buildService)
-                .getBuildInfo(any(BuildRequestDto.getBuildHistory.class), user);
+                .getBuildInfo(any(BuildRequestDto.getBuildHistory.class));
 
 
         mockMvc.perform(post("/api/build/builds")
@@ -188,7 +188,7 @@ class BuildControllerTest {
         UUID pipelineId = UUID.randomUUID();
         BuildRequestDto.GetLogRequestDto dto = new BuildRequestDto.GetLogRequestDto("42", pipelineId);
 
-        when(buildService.getBuildLog(any(), user))
+        when(buildService.getBuildLog(any()))
                 .thenReturn(new BuildResponseDto.BuildLogDto(List.of("Log contents")));
 
         mockMvc.perform(post("/api/build/log")
@@ -205,7 +205,7 @@ class BuildControllerTest {
     void 빌드_실시간_로그_조회() throws Exception {
         UUID pipelineId = UUID.randomUUID();
 
-        when(buildService.getStreamLog(any(), user))
+        when(buildService.getStreamLog(any()))
                 .thenReturn(BuildResponseDto.BuildStreamLogDto.getStreamLog("Realtime log"));
 
         mockMvc.perform(get("/api/build/streamlog")
