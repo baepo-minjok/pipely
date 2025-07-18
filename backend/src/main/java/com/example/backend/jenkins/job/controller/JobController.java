@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -63,6 +64,7 @@ public class JobController {
                 .body(BaseResponse.success("create job success"));
     }
 
+
     @Operation(
             summary = "기존 Job 수정",
             description = """
@@ -94,6 +96,7 @@ public class JobController {
                 .body(BaseResponse.success("update job success"));
     }
 
+
     @Operation(
             summary = "Job soft-delete",
             description = "지정한 Job을 소프트 삭제 처리합니다. (isDeleted=true, 삭제시간 기록)"
@@ -117,6 +120,7 @@ public class JobController {
         return ResponseEntity.ok()
                 .body(BaseResponse.success("soft-delete job success"));
     }
+
 
     @Operation(
             summary = "Job hard-delete",
@@ -142,6 +146,7 @@ public class JobController {
                 .body(BaseResponse.success("hard-delete job success"));
     }
 
+
     @Operation(
             summary = "Job 목록 조회",
             description = "JenkinsInfo에 연결된 모든 Job을 조회합니다."
@@ -164,6 +169,7 @@ public class JobController {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(pipelineService.getLightJobs(jenkinsInfoId)));
     }
+
 
     @Operation(
             summary = "Job 상세 조회",
@@ -188,6 +194,7 @@ public class JobController {
                 .body(BaseResponse.success(pipelineService.getDetailJob(jobId)));
     }
 
+
     @Operation(
             summary = "삭제된 Job 목록 조회",
             description = "JenkinsInfo에 연결된 삭제된 Job 목록을 조회합니다."
@@ -211,6 +218,7 @@ public class JobController {
                 .body(BaseResponse.success(pipelineService.getDeletedLightJobs(jenkinsInfoId)));
     }
 
+
     @Operation(
             summary = "파이프라인 버전 리스트 조회",
             description = "지정된 파이프라인 ID에 대해 모든 버전 기록을 반환합니다."
@@ -228,6 +236,7 @@ public class JobController {
         return ResponseEntity.ok().body(BaseResponse.success(versions));
     }
 
+
     @Operation(summary = "특정 파이프라인 버전 삭제", description = "파이프라인의 특정 버전 정보를 삭제합니다. latestVersion은 삭제할 수 없습니다.")
     @DeleteMapping("/{pipelineId}/version/{versionId}")
     public ResponseEntity<BaseResponse<String>> deletePipelineVersion(
@@ -240,24 +249,49 @@ public class JobController {
     }
 
 
-    /*@Operation(summary = "최신 버전 롤백", description = "현재 최신 파이프라인 버전을 삭제하고, 직전 버전으로 롤백합니다.")
-    @PutMapping("/{pipelineId}/rollback/previous")
-    public ResponseEntity<BaseResponse<String>> rollbackToPreviousVersion(
-            @Parameter(description = "파이프라인 ID", required = true) @PathVariable UUID pipelineId) {
-
-        pipelineService.rollbackToPreviousVersion(pipelineId);
-        return ResponseEntity.ok(BaseResponse.success("Rollback to previous version successful"));
+    @Operation(
+            summary = "파이프라인 버전 스냅샷 생성",
+            description = "파이프라인 버전 ID를 기반으로 새로운 스냅샷 버전을 생성합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "스냅샷 생성 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 파라미터"),
+            @ApiResponse(responseCode = "404", description = "해당 버전 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 오류")
+    })
+    @PostMapping("/version/{pipelineVersionId}/snapshot")
+    public ResponseEntity<BaseResponse<String>> snapshotVersion(
+            @Parameter(description = "스냅샷 생성 대상이 될 파이프라인 버전 ID", required = true, example = "c2f4a511-3e55-4db5-b9b3-0123456789ab")
+            @PathVariable UUID pipelineVersionId,
+            @Parameter(description = "생성할 스냅샷 이름", required = true, example = "My Snapshot")
+            @RequestParam @NotBlank String snapshotName
+    ) {
+        pipelineService.snapshotVersion(pipelineVersionId, snapshotName);
+        return ResponseEntity.ok().body(BaseResponse.success("snapshot create success"));
     }
 
-    @Operation(summary = "특정 버전 롤백", description = "지정된 파이프라인 버전으로 롤백합니다. 기존 버전으로 최신 버전 값을 바꿉니다.")
-    @PutMapping("/{pipelineId}/rollback/{version}")
-    public ResponseEntity<BaseResponse<String>> rollbackToSpecificVersion(
-            @Parameter(description = "파이프라인 ID", required = true) @PathVariable UUID pipelineId,
-            @Parameter(description = "롤백 대상 버전", required = true) @PathVariable int version) {
 
-        pipelineService.rollbackToSpecificVersion(pipelineId, version);
-        return ResponseEntity.ok(BaseResponse.success("Rollback to version " + version + " successful"));
-    }*/
+    @Operation(
+            summary = "스냅샷 버전으로 변경",
+            description = "선택한 스냅샷 버전으로 파이프라인을 변경합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "변경 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 파라미터"),
+            @ApiResponse(responseCode = "404", description = "해당 파이프라인 또는 스냅샷 ID를 찾을 수 없음"),
+            @ApiResponse(responseCode = "500", description = "서버 오류")
+    })
+    @PreAuthorize("@pipelineService.isOwner(#user, #pipelineId)")
+    @PostMapping("/{pipelineId}/rollback")
+    public ResponseEntity<BaseResponse<String>> rollbackToSnapshot(
+            @Parameter(description = "변경 대상 파이프라인 ID", required = true, example = "f3a0e120-4a59-4bcf-b95f-abcdef123456")
+            @PathVariable UUID pipelineId,
+            @Parameter(description = "변경할 스냅샷 버전 ID", required = true, example = "a1b2c3d4-e5f6-7890-abcd-1234567890ef")
+            @RequestParam @NotNull UUID snapshotVersionId
+    ) {
+        pipelineService.rollbackToSnapshot(pipelineId, snapshotVersionId);
+        return ResponseEntity.ok().body(BaseResponse.success("snapshot update success"));
+    }
 
 
     @Operation(

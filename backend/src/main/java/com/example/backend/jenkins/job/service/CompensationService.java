@@ -4,19 +4,23 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
+import com.example.backend.jenkins.job.model.Stage;
+import com.example.backend.jenkins.job.model.dto.SnapshotRollbackDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
+import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class CompensationService {
     private final PipelineRepository pipelineRepository;
+    private final PipelineVersionRepository pipelineVersionRepository;
 
     @Transactional
     public void deletePipeline(UUID pipelineId) {
@@ -33,24 +37,31 @@ public class CompensationService {
     }
 
     @Transactional
-    public void rollbackLatestVersion(Pipeline pipeline) {
-
-        // 최신 버전 찾기
-        PipelineVersion latestVersion = pipeline.getVersionList().stream()
-                .filter(v -> v.getId().equals(pipeline.getLatestVersionId()))
-                .findFirst()
+    public void rollbackLatestVersion(SnapshotRollbackDto dto) {
+        Pipeline pipeline = pipelineRepository.findById(dto.getPipelineId())
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_PIPELINE_NOT_FOUND));
+        PipelineVersion version = pipelineVersionRepository.findById(dto.getVersionId())
                 .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
 
-        // 리스트에서 제거 -> 매핑되어있는 파이프라인도 삭제됨
-        pipeline.getVersionList().remove(latestVersion);
-
-        // 이전버전 중 가장 최신버전
-        PipelineVersion target = pipeline.getVersionList().stream()
-                .max(Comparator.comparing(PipelineVersion::getCreatedAt))
-                .orElseThrow(() -> new CustomException(ErrorCode.NO_PREVIOUS_VERSION));
-
-        pipeline.setLatestVersionId(target.getId());
+        version.setName(dto.getName());
+        version.setIsTriggered(dto.isTriggered());
+        version.setConfig(dto.getConfig());
+        version.setSchedule(dto.getSchedule());
+        version.setDescription(dto.getDescription());
+        List<Stage> stages = version.getStageList();
+        // 마지막에 추가 됐던 stage 삭제
+        if (!stages.isEmpty()) {
+            stages.remove(stages.size() - 1);
+        }
+        version.setStageList(stages);
+        pipelineVersionRepository.save(version);
+        pipeline.setLatestVersionId(version.getId());
         pipelineRepository.save(pipeline);
 
+    }
+
+    public void rollbackPipelineLatestVersion(Pipeline pipeline, UUID previousVersionId) {
+        pipeline.setLatestVersionId(previousVersionId);
+        pipelineRepository.save(pipeline);
     }
 }
