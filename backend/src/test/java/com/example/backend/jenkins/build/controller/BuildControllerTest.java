@@ -159,7 +159,6 @@ class BuildControllerTest {
         );
 
 
-
         doReturn(ResponseEntity.ok(BaseResponse.success(history)))
                 .when(buildService)
                 .getBuildInfo(any(BuildRequestDto.getBuildHistory.class));
@@ -177,8 +176,6 @@ class BuildControllerTest {
 
 
     }
-
-
 
 
     @WithMockUser
