@@ -1,7 +1,5 @@
 package com.example.backend.jenkins.build.service;
 
-import com.example.backend.exception.CustomException;
-import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
@@ -132,7 +130,7 @@ class BuildServiceTest {
         when(httpClientService.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
                 .thenReturn("Build triggered");
 
-        assertDoesNotThrow(() -> buildService.StageJenkinsBuild(dto));
+        assertDoesNotThrow(() -> buildService.StageJenkinsBuild(dto, user));
     }
 
     @Test
@@ -168,7 +166,7 @@ Finished: SUCCESS
                 .thenReturn(mockLog);
 
         // when
-        BuildResponseDto.BuildLogDto result = buildService.getBuildLog(dto);
+        BuildResponseDto.BuildLogDto result = buildService.getBuildLog(dto, user);
 
         // then
         assertNotNull(result);
@@ -197,7 +195,7 @@ Finished: SUCCESS
                 contains("progressiveText"), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class))
         ).thenReturn(mockLog);
 
-        BuildResponseDto.BuildStreamLogDto result = buildService.getStreamLog(pipelineId);
+        BuildResponseDto.BuildStreamLogDto result = buildService.getStreamLog(pipelineId, user);
 
         assertEquals(
                 Arrays.asList(mockLog.split("\\r?\\n")),

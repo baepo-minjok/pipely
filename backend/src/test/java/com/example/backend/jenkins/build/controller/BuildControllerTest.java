@@ -23,11 +23,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.*;
 
-import static com.example.backend.exception.BaseResponse.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -71,7 +69,7 @@ class BuildControllerTest {
         UUID pipelineId = UUID.randomUUID();
         BuildResponseDto.Stage stage = new BuildResponseDto.Stage(List.of("BUILD", "TEST"));
 
-        when(buildService.getJobPipelineStage(any())).thenReturn(stage);
+        when(buildService.getJobPipelineStage(any(), user)).thenReturn(stage);
 
         mockMvc.perform(get("/api/build/stage")
                         .param("pipeLine", pipelineId.toString()))
@@ -117,7 +115,7 @@ class BuildControllerTest {
 
         doReturn(responseEntity)
                 .when(buildService)
-                .getBuildInfo(any(BuildRequestDto.getBuildHistory.class));
+                .getBuildInfo(any(BuildRequestDto.getBuildHistory.class), user);
 
         mockMvc.perform(post("/api/build/builds")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -164,7 +162,7 @@ class BuildControllerTest {
 
         doReturn(ResponseEntity.ok(BaseResponse.success(history)))
                 .when(buildService)
-                .getBuildInfo(any(BuildRequestDto.getBuildHistory.class));
+                .getBuildInfo(any(BuildRequestDto.getBuildHistory.class), user);
 
 
         mockMvc.perform(post("/api/build/builds")
@@ -190,7 +188,7 @@ class BuildControllerTest {
         UUID pipelineId = UUID.randomUUID();
         BuildRequestDto.GetLogRequestDto dto = new BuildRequestDto.GetLogRequestDto("42", pipelineId);
 
-        when(buildService.getBuildLog(any()))
+        when(buildService.getBuildLog(any(), user))
                 .thenReturn(new BuildResponseDto.BuildLogDto(List.of("Log contents")));
 
         mockMvc.perform(post("/api/build/log")
@@ -207,7 +205,7 @@ class BuildControllerTest {
     void 빌드_실시간_로그_조회() throws Exception {
         UUID pipelineId = UUID.randomUUID();
 
-        when(buildService.getStreamLog(any()))
+        when(buildService.getStreamLog(any(), user))
                 .thenReturn(BuildResponseDto.BuildStreamLogDto.getStreamLog("Realtime log"));
 
         mockMvc.perform(get("/api/build/streamlog")
