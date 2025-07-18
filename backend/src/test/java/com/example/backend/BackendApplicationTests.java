@@ -5,7 +5,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
-@Import(TestJpaAuditingConfig.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 class BackendApplicationTests {
