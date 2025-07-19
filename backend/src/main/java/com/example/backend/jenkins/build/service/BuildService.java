@@ -34,23 +34,18 @@ public class BuildService {
     private final PipelineService pipelineService;
     private final XmlConfigParser xmlConfigParser;
 
-
-
-
-
+    /**
+     * 빌드 이력(최신 또는 전체) 정보를 조회한다.
+     * @param dto 빌드 이력 조회 요청 DTO (jobType, jobId 포함)
+     * @return ResponseEntity<?> 최신 빌드 또는 전체 이력 정보 반환
+     */
     public ResponseEntity<?> getBuildInfo(BuildRequestDto.getBuildHistory dto) {
-
-
-
-
-            Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
-
-
+        Pipeline pipeline = pipelineService.getPipelineById(dto.getJobId());
         log.info("빌드 정보 요청 - jobName: {}, jobType: {}", pipeline.getName(), dto.getJobType());
         try {
             return switch (dto.getJobType()) {
-                case LATEST -> ResponseEntity.ok(getLastBuildStatus(dto.getPipeLine()));
-                case HISTORY -> ResponseEntity.ok(getBuildHistory(dto.getPipeLine()));
+                case LATEST -> ResponseEntity.ok(getLastBuildStatus(dto.getJobId()));
+                case HISTORY -> ResponseEntity.ok(getBuildHistory(dto.getJobId()));
             };
         } catch (CustomException e) {
             throw e;
@@ -60,19 +55,16 @@ public class BuildService {
         }
     }
 
-
-
+    /**
+     * Jenkins 파이프라인의 특정 스테이지 실행을 트리거한다.
+     * @param dto 실행할 스테이지 맵 및 파이프라인 ID
+     */
     public void StageJenkinsBuild(BuildRequestDto.BuildStageRequestDto dto) {
-        Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
-
+        Pipeline pipeline = pipelineService.getPipelineById(dto.getJobId());
         JenkinsInfo info = pipeline.getJenkinsInfo();
-
         String triggerUrl = info.getUri() + "/job/" + pipeline.getName() + "/buildWithParameters";
         log.info("Jenkins Trigger URL = {}", triggerUrl);
-
-
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
-
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         dto.getStageToggles().forEach((key, value) -> {
             String paramKey = "RUN_" + key.toUpperCase().replace(" ", "_");
@@ -80,15 +72,14 @@ public class BuildService {
         });
         String response = httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
         log.info("Jenkins 응답 상태: {}", response);
-
     }
 
-
-
-    /*
-     * 특정 job 빌드 내역 조회
-     * */
-    public List<BuildResponseDto.BuildInfo> getBuildHistory( UUID pipelineId) {
+    /**
+     * 전체 빌드 이력을 조회한다.
+     * @param pipelineId 파이프라인 UUID
+     * @return 빌드 정보 리스트
+     */
+    public List<BuildResponseDto.BuildInfo> getBuildHistory(UUID pipelineId) {
         String response = JenkinsGetResponse(pipelineId);
         try {
             Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
@@ -99,6 +90,11 @@ public class BuildService {
         }
     }
 
+    /**
+     * 최신 빌드 정보 1건을 반환한다.
+     * @param pipelineId 파이프라인 UUID
+     * @return 최신 빌드 정보
+     */
     public BuildResponseDto.BuildInfo getLastBuildStatus(UUID pipelineId) {
         String response = JenkinsGetResponse(pipelineId);
         try {
@@ -110,19 +106,16 @@ public class BuildService {
         }
     }
 
-    /*
-     * job 의 특정 빌드 번호의 빌드 로그 조회
-     *
-     * */
+    /**
+     * 빌드 번호 기준으로 Jenkins 콘솔 전체 로그를 조회한다.
+     * @param dto 빌드 번호, 파이프라인 UUID 포함
+     * @return 로그 응답 DTO
+     */
     public BuildResponseDto.BuildLogDto getBuildLog(BuildRequestDto.GetLogRequestDto dto) {
-
-
-        Pipeline pipeline = pipelineService.getPipelineById(dto.getPipeLine());
+        Pipeline pipeline = pipelineService.getPipelineById(dto.getJobId());
         JenkinsInfo info = pipeline.getJenkinsInfo();
         String url = info.getUri() + "/job/" + pipeline.getName() + "/" + dto.getBuildNumber() + "/console";
-
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
-
         try {
             String response = httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
             Document doc = Jsoup.parse(response);
@@ -133,81 +126,53 @@ public class BuildService {
             throw new CustomException(ErrorCode.JENKINS_CONSOLE_LOG_PARSE_ERROR);
         }
     }
-    /*
-     * cron 시간 읽어옴
-     * */
 
-    /*
-     * 특정 job의 실시간 빌드 조회
-     *
-     * */
-    public BuildResponseDto.BuildStreamLogDto getStreamLog(UUID pipeLine) {
-
-
-        Pipeline pipeline = pipelineService.getPipelineById(pipeLine);
+    /**
+     * 실시간 빌드 로그(progressiveText)를 조회한다.
+     * @param jobId 파이프라인 UUID
+     * @return 실시간 로그 DTO
+     */
+    public BuildResponseDto.BuildStreamLogDto getStreamLog(UUID jobId) {
+        Pipeline pipeline = pipelineService.getPipelineById(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
-        // 2. 마지막 빌드 번호 조회
         String lastBuildUri = info.getUri() + "/job/" + pipeline.getName() + "/lastBuild/buildNumber";
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
         HttpEntity<Void> entity = new HttpEntity<>(headers);
-
         String lastBuildResponse = httpClientService.exchange(
                 lastBuildUri, HttpMethod.GET, entity, String.class
         );
-
         int lastBuildNumber = Integer.parseInt(lastBuildResponse.trim());
-
-        // 3. progressive 로그 URI 구성
         URI logUri = UriComponentsBuilder
                 .fromHttpUrl(info.getUri() + "/job/" + pipeline.getName() + "/" + lastBuildNumber + "/logText/progressiveText")
                 .build().toUri();
-
-        // 4. 로그 내용 요청 및 반환
         HttpHeaders logHeaders = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
         String logResponse = httpClientService.exchange(logUri.toString(), HttpMethod.GET, new HttpEntity<>(logHeaders), String.class);
-
         return BuildResponseDto.BuildStreamLogDto.getStreamLog(logResponse);
     }
 
-
-
-
-    /*
-     *
-     * */
+    /**
+     * Jenkins 파이프라인 빌드 정보 API를 호출한다.
+     * @param pipelineId 파이프라인 UUID
+     * @return Jenkins JSON Raw String
+     */
     public String JenkinsGetResponse(UUID pipelineId) {
         Pipeline pipeline = pipelineService.getPipelineById(pipelineId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
-
         String url = info.getUri() + "/job/" + pipeline.getName() + "/api/json"
                 + "?tree=builds[number,result,timestamp,duration,building,id,url,actions[causes[userId,userName]]]";
-
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
-
         return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
-
-
-
-
-
-    /*
-     *
-     *
-     *
-     *  */
-
-    public BuildResponseDto.Stage getJobPipelineStage(UUID pipeLine) {
-
-
-        Pipeline pipeline = pipelineService.getPipelineById(pipeLine);
+    /**
+     * 파이프라인(Jenkins Job)에 등록된 스테이지 목록을 추출한다.
+     * @param jobId 파이프라인 UUID
+     * @return Stage DTO(스테이지 이름 리스트)
+     */
+    public BuildResponseDto.Stage getJobPipelineStage(UUID jobId) {
+        Pipeline pipeline = pipelineService.getPipelineById(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
-
-
-
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
-
         String xml = httpClientService.exchange(
                 info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
                 HttpMethod.GET,
@@ -216,12 +181,5 @@ public class BuildService {
         );
         List<String> stageNames = xmlConfigParser.getPipelineStageNamesFromXml(xml);
         return new BuildResponseDto.Stage(stageNames);
-
-
     }
-
-
-
 }
-
-
