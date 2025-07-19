@@ -8,26 +8,21 @@ import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
-import com.example.backend.jenkins.job.model.Stage;
+import com.example.backend.jenkins.job.model.VersionStage;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
-import com.example.backend.jenkins.job.model.dto.SnapshotRollbackDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import com.example.backend.service.HttpClientService;
 import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -62,7 +57,7 @@ public class PipelineService {
         //파이프라인 & 파이프라인 버전 저장
         Pipeline pipeline = savePipeline(dto, info, script, config, name);
 
-        callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
+        httpClientService.callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
                 config, info, HttpMethod.POST,
                 () -> compensationService.deletePipeline(pipeline.getId()));
     }
@@ -75,15 +70,6 @@ public class PipelineService {
         Pipeline pipeline = getPipelineById(dto.getPipelineId());
         PipelineVersion version = getPipelineVersionById(pipeline.getLatestVersionId());
 
-        SnapshotRollbackDto rollbackDto = SnapshotRollbackDto.builder()
-                .versionId(version.getId())
-                .name(version.getName())
-                .isTriggered(version.getIsTriggered())
-                .config(version.getConfig())
-                .description(version.getDescription())
-                .schedule(version.getSchedule())
-                .pipelineId(pipeline.getId())
-                .build();
         JenkinsInfo info = pipeline.getJenkinsInfo();
         String preName = pipeline.getName();
         boolean isRenamed = isRenamed(preName, dto);
@@ -97,42 +83,42 @@ public class PipelineService {
             ensureUniqueName(info.getId(), dto.getName(), pipeline);
 
             // 기존 job 삭제 요청
-            deleteJobOnJenkins(info, preName, () -> compensationService.rollbackLatestVersion(rollbackDto));
+            httpClientService.deleteJobOnJenkins(info, preName,
+                    () -> compensationService.rollback(version));
             // 생성 요청
-            callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
+            httpClientService.callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
                     config, info, HttpMethod.POST,
-                    () -> compensationService.rollbackLatestVersion(rollbackDto));
+                    () -> compensationService.reCreateJob(version, info, preName));
         } else {        // 수정할 Job 이름이 같을 때
             // 수정 요청
-            callJenkins(info.getUri() + "/job/" + dto.getName() + "/config.xml",
-                    config, info, HttpMethod.POST, () -> compensationService.rollbackLatestVersion(rollbackDto));
+            httpClientService.callJenkins(info.getUri() + "/job/" + dto.getName() + "/config.xml",
+                    config, info, HttpMethod.POST, () -> compensationService.rollback(version));
         }
     }
 
     @Transactional
-    public void snapshotVersion(UUID pipelineVersionId, String snapshotName) {
-        //스냅샷할 버전
-        PipelineVersion version = pipelineVersionRepository.findById(pipelineVersionId)
-                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
+    public void snapshotVersion(UUID pipelineId, String snapshotName) {
+        Pipeline pipeline = getPipelineById(pipelineId);
+        PipelineVersion version = getLatestVersion(pipeline);
 
-        PipelineVersion snapshot = PipelineVersion.builder()
-                .name(snapshotName)
-                .description(version.getDescription())
-                .isTriggered(version.getIsTriggered())
-                .schedule(version.getSchedule())
-                .createdAt(LocalDateTime.now())
-                .config(version.getConfig())
-                .script(version.getScript())
-                .stageList(new ArrayList<>(version.getStageList()))
-                .pipeline(version.getPipeline())
-                .build();
+        PipelineVersion snapshot = PipelineVersion.replicateEntity(version, snapshotName);
 
-        version.getPipeline().getVersionList().add(snapshot);
+        List<VersionStage> copiedStages = new ArrayList<>();
+        for (VersionStage orig : version.getStageList()) {
+            VersionStage copied = VersionStage.builder()
+                    .orderIndex(orig.getOrderIndex())
+                    .stage(orig.getStage())
+                    .pipelineVersion(snapshot)
+                    .build();
+            copiedStages.add(copied);
+        }
+        snapshot.setStageList(copiedStages);
+
+        pipeline.getVersionList().add(snapshot);
 
         pipelineVersionRepository.save(snapshot);
-        pipelineVersionRepository.flush();
+        pipelineRepository.save(pipeline);
     }
-
 
     public Pipeline getPipelineById(UUID id) {
         return pipelineRepository.findWithInfoAndScriptById(id)
@@ -145,7 +131,7 @@ public class PipelineService {
         pipeline.setDeletedAt(LocalDateTime.now());
         pipeline.setIsDeleted(true);
         pipelineRepository.save(pipeline);
-        deleteJobOnJenkins(pipeline.getJenkinsInfo(), pipeline.getName(), () -> compensationService.softDeletePipeline(pipeline, null, false));
+        httpClientService.deleteJobOnJenkins(pipeline.getJenkinsInfo(), pipeline.getName(), () -> compensationService.softDeletePipeline(pipeline, null, false));
     }
 
     @Transactional
@@ -215,31 +201,6 @@ public class PipelineService {
         return saved;
     }
 
-    private void createStages(PipelineVersion pipelineVersion, Script script) {
-        List<String> names = extractStageNames(script);
-        for (int i = 0; i < names.size(); i++) {
-            Stage stage = Stage.builder()
-                    .orderIndex(i)
-                    .name(names.get(i))
-                    .pipelineVersion(pipelineVersion)
-                    .build();
-            pipelineVersion.getStageList().add(stage);
-        }
-    }
-
-    public void updateStages(PipelineVersion pipelineVersion, Script script) {
-        stageService.deleteByPipelineVersionId(pipelineVersion.getId());
-        createStages(pipelineVersion, script);
-    }
-
-    private List<String> extractStageNames(Script script) {
-        if (script == null) return Collections.emptyList();
-        return scriptEditUtil.extractStageNames(script.getScript())
-                .stream()
-                .map(s -> s.toUpperCase().replaceAll("\\W+", "_"))
-                .collect(Collectors.toList());
-    }
-
     private void applyPipelineChanges(Pipeline pipeline, RequestDto.UpdateDto dto, Script script, String config) {
         pipeline.setName(dto.getName());
         pipeline.setUpdatedAt(LocalDateTime.now());
@@ -249,38 +210,6 @@ public class PipelineService {
         pipelineRepository.save(pipeline);
         pipelineRepository.flush();
     }
-
-    private void callJenkins(String url, String body, JenkinsInfo info, HttpMethod method, Runnable onError) {
-        HttpEntity<String> req = new HttpEntity<>(
-                body,
-                httpClientService.buildHeaders(
-                        info,
-                        new MediaType("application", "xml", StandardCharsets.UTF_8)
-                )
-        );
-        try {
-            httpClientService.exchange(url, method, req, String.class);
-        } catch (Exception e) {
-            if (onError != null) onError.run();
-            throw e;
-        }
-    }
-
-    private void deleteJobOnJenkins(JenkinsInfo info, String name, Runnable onError) {
-        String url = info.getUri() + "/job/" + name + "/doDelete";
-        HttpEntity<String> req = new HttpEntity<>(
-                httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED)
-        );
-        try {
-            httpClientService.exchange(url, HttpMethod.POST, req, String.class);
-        } catch (CustomException e) {
-            if (!ErrorCode.INVALID_ENDPOINT.equals(e.getErrorCode())) {
-                if (onError != null) onError.run();
-                throw e;
-            }
-        }
-    }
-
 
     @Transactional
     public void restorationJob(UUID pipelineId) {
@@ -295,7 +224,7 @@ public class PipelineService {
 
         String config = pipelineVersion.getConfig();
 
-        callJenkins(info.getUri() + "/createItem?name=" + pipeline.getName(),
+        httpClientService.callJenkins(info.getUri() + "/createItem?name=" + pipeline.getName(),
                 config, info, HttpMethod.POST,
                 () -> compensationService.softDeletePipeline(pipeline, time, true));
     }
@@ -330,12 +259,12 @@ public class PipelineService {
                 .script(script)
                 .pipeline(pipeline)
                 .build();
+        PipelineVersion savedVersion = pipelineVersionRepository.save(version);
 
-        createStages(version, script);
+        stageService.createStages(savedVersion, script);
 
         pipeline.getVersionList().add(version);
 
-        PipelineVersion savedVersion = pipelineVersionRepository.save(version);
         pipelineVersionRepository.flush();
         return savedVersion.getId();
     }
@@ -348,7 +277,7 @@ public class PipelineService {
         pipelineVersion.setConfig(config);
         pipelineVersion.setScript(script);
 
-        updateStages(pipelineVersion, script);
+        stageService.updateStages(pipelineVersion, script);
 
         pipelineVersionRepository.save(pipelineVersion);
         pipelineVersionRepository.flush();
@@ -391,7 +320,7 @@ public class PipelineService {
         pipeline.setLatestVersionId(snapshotVersionId);
         pipelineRepository.save(pipeline);
 
-        callJenkins(info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
+        httpClientService.callJenkins(info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
                 config, info, HttpMethod.POST, () -> compensationService.rollbackPipelineLatestVersion(pipeline, previousVersionId));
     }
 

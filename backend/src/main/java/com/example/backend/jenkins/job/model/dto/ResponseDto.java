@@ -5,7 +5,7 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
-import com.example.backend.jenkins.job.model.Stage;
+import com.example.backend.jenkins.job.model.VersionStage;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -100,13 +100,13 @@ public class ResponseDto {
                 .build();
     }
 
-    public static List<StageDto> toListOfStageDtos(List<Stage> stageList) {
+    public static List<StageDto> toListOfStageDtos(List<VersionStage> stageList) {
         return stageList.stream().map(ResponseDto::entityToStageDto).toList();
     }
 
-    public static StageDto entityToStageDto(Stage stage) {
+    public static StageDto entityToStageDto(VersionStage vs) {
         return StageDto.builder()
-                .stageName(stage.getName())
+                .stageName(vs.getStage().getName())
                 .build();
     }
 

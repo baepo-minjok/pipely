@@ -98,7 +98,7 @@ public class PipelineVersion {
             description = "해당 버전에서 사용되는 Stage 리스트",
             implementation = Stage.class
     )
-    private List<Stage> stageList = new ArrayList<>();
+    private List<VersionStage> stageList = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pipeline_id")
@@ -108,4 +108,18 @@ public class PipelineVersion {
             hidden = true
     )
     private Pipeline pipeline;
+
+    public static PipelineVersion replicateEntity(PipelineVersion entity, String newName) {
+        return PipelineVersion.builder()
+                .name(newName)
+                .description(entity.getDescription())
+                .isTriggered(entity.getIsTriggered())
+                .schedule(entity.getSchedule())
+                .config(entity.getConfig())
+                .script(entity.getScript())
+                .stageList(new ArrayList<>())
+                .pipeline(entity.getPipeline())
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
 }

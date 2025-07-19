@@ -12,6 +12,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CancellationException;
 
 @Slf4j
@@ -87,6 +88,37 @@ public class HttpClientService {
         headers.setContentType(mediaType);
 
         return headers;
+    }
+
+    public void callJenkins(String url, String body, JenkinsInfo info, HttpMethod method, Runnable onError) {
+        HttpEntity<String> req = new HttpEntity<>(
+                body,
+                buildHeaders(
+                        info,
+                        new MediaType("application", "xml", StandardCharsets.UTF_8)
+                )
+        );
+        try {
+            exchange(url, method, req, String.class);
+        } catch (Exception e) {
+            if (onError != null) onError.run();
+            throw e;
+        }
+    }
+
+    public void deleteJobOnJenkins(JenkinsInfo info, String name, Runnable onError) {
+        String url = info.getUri() + "/job/" + name + "/doDelete";
+        HttpEntity<String> req = new HttpEntity<>(
+                buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED)
+        );
+        try {
+            exchange(url, HttpMethod.POST, req, String.class);
+        } catch (CustomException e) {
+            if (!ErrorCode.INVALID_ENDPOINT.equals(e.getErrorCode())) {
+                if (onError != null) onError.run();
+                throw e;
+            }
+        }
     }
 }
 
