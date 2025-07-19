@@ -259,14 +259,14 @@ public class JobController {
             @ApiResponse(responseCode = "404", description = "해당 버전 ID를 찾을 수 없음"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    @PostMapping("/version/{pipelineVersionId}/snapshot")
+    @PostMapping("/version/{jobId}/snapshot")
     public ResponseEntity<BaseResponse<String>> snapshotVersion(
             @Parameter(description = "스냅샷 생성 대상이 될 파이프라인 버전 ID", required = true, example = "c2f4a511-3e55-4db5-b9b3-0123456789ab")
-            @PathVariable UUID pipelineVersionId,
+            @PathVariable UUID jobId,
             @Parameter(description = "생성할 스냅샷 이름", required = true, example = "My Snapshot")
             @RequestParam @NotBlank String snapshotName
     ) {
-        pipelineService.snapshotVersion(pipelineVersionId, snapshotName);
+        pipelineService.snapshotVersion(jobId, snapshotName);
         return ResponseEntity.ok().body(BaseResponse.success("snapshot create success"));
     }
 
