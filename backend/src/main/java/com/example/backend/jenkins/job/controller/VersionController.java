@@ -39,7 +39,7 @@ public class VersionController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PreAuthorize("@versionService.isOwner(#user, #versionId)")
-    @DeleteMapping("/version/{versionId}")
+    @DeleteMapping("/{versionId}")
     public ResponseEntity<BaseResponse<String>> deleteJobVersion(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @Parameter(description = "삭제할 파이프라인 버전 Id", required = true, example = "c2f4a511-3e55-4db5-b9b3-0123456789ab")
@@ -59,7 +59,7 @@ public class VersionController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PreAuthorize("@pipelineService.isOwner(#user, #jobId)")
-    @PostMapping("/version/{jobId}/snapshot")
+    @PostMapping("/{jobId}/snapshot")
     public ResponseEntity<BaseResponse<String>> snapshotVersion(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @Parameter(description = "스냅샷을 생성할 Job Id", required = true, example = "c2f4a511-3e55-4db5-b9b3-0123456789ab")

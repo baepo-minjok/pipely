@@ -66,8 +66,17 @@ public class CompensationService {
         httpClientService.exchange(url, HttpMethod.POST, req, String.class);
     }
 
-    public void rollbackPipelineLatestVersion(Pipeline pipeline, UUID previousVersionId) {
-        pipeline.setLatestVersionId(previousVersionId);
-        pipelineRepository.save(pipeline);
+    public void rollbackPipelineLatestVersion(PipelineVersion latestVersion, PipelineVersion previousVersion) {
+        Script script = previousVersion.getScript();
+
+        latestVersion.setDescription(previousVersion.getDescription());
+        latestVersion.setIsTriggered(previousVersion.getIsTriggered());
+        latestVersion.setSchedule(previousVersion.getSchedule());
+        latestVersion.setConfig(previousVersion.getConfig());
+        latestVersion.setScript(script);
+
+        stageService.updateStages(latestVersion, script);
+
+        pipelineVersionRepository.save(latestVersion);
     }
 }

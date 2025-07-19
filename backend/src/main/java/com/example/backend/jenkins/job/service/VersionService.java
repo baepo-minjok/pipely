@@ -6,6 +6,7 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
+import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.VersionStage;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
@@ -25,6 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class VersionService {
 
+    private final StageService stageService;
     private final PipelineService pipelineService;
     private final HttpClientService httpClientService;
     private final PipelineRepository pipelineRepository;
@@ -52,22 +54,30 @@ public class VersionService {
 
     @Transactional
     public void rollbackToSnapshot(UUID snapshotVersionId) {
-        PipelineVersion version = getPipelineVersionById(snapshotVersionId);
-        Pipeline pipeline = version.getPipeline();
-
-        UUID previousVersionId = pipeline.getLatestVersionId();
+        PipelineVersion target = getPipelineVersionById(snapshotVersionId);
+        Pipeline pipeline = target.getPipeline();
 
         JenkinsInfo info = pipeline.getJenkinsInfo();
-        String config = version.getConfig();
+        PipelineVersion previousVersion = pipelineService.getLatestVersion(pipeline);
+        PipelineVersion latestVersion = pipelineService.getLatestVersion(pipeline);
+
+        String config = target.getConfig();
+        Script script = target.getScript();
+
+        latestVersion.setDescription(target.getDescription());
+        latestVersion.setIsTriggered(target.getIsTriggered());
+        latestVersion.setSchedule(target.getSchedule());
+        latestVersion.setConfig(config);
+        latestVersion.setScript(script);
+
+        stageService.updateStages(latestVersion, script);
 
         //snapshot 버전으로 변경
-        pipeline.setLatestVersionId(snapshotVersionId);
-        pipelineRepository.save(pipeline);
-        pipelineRepository.flush();
+        PipelineVersion savedPipelineVersion = pipelineVersionRepository.save(latestVersion);
+        pipelineVersionRepository.flush();
 
         httpClientService.callJenkins(info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
-                config, info, HttpMethod.POST, () -> compensationService.rollbackPipelineLatestVersion(pipeline, previousVersionId));
-
+                config, info, HttpMethod.POST, () -> compensationService.rollbackPipelineLatestVersion(savedPipelineVersion, previousVersion));
 
     }
 
