@@ -82,7 +82,7 @@ class BuildControllerTest {
     @DisplayName("특정 스테이지 실행")
     void 특정_스테이지_실행() throws Exception {
         UUID jobId = UUID.randomUUID();
-        BuildRequestDto.BuildStageRequestDto dto = new BuildRequestDto.BuildStageRequestDto(Map.of("TEST", true), jobId);
+        BuildRequestDto.BuildStageRequestDto dto = new BuildRequestDto.BuildStageRequestDto(List.of("Git clone","Build"), jobId);
 
         mockMvc.perform(post("/api/build/stage/trigger")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -23,7 +23,6 @@ public class BuildRequestDto {
                 example = "{\"TEST\": true, \"DEPLOY\": false}",
                 requiredMode = RequiredMode.REQUIRED
         )
-//        private Map<String, Boolean> stageToggles;
         private List<String> stageBuilds;
 
         @Schema(
