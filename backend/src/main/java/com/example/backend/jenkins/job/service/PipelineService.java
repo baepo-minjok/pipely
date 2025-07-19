@@ -8,13 +8,11 @@ import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
-import com.example.backend.jenkins.job.model.VersionStage;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import com.example.backend.service.HttpClientService;
-import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
@@ -22,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -36,7 +33,6 @@ public class PipelineService {
     private final JenkinsInfoService jenkinsInfoService;
     private final ConfigService configService;
     private final ScriptService scriptService;
-    private final ScriptEditUtil scriptEditUtil;
     private final PipelineRepository pipelineRepository;
     private final CompensationService compensationService;
     private final StageService stageService;
@@ -94,30 +90,6 @@ public class PipelineService {
             httpClientService.callJenkins(info.getUri() + "/job/" + dto.getName() + "/config.xml",
                     config, info, HttpMethod.POST, () -> compensationService.rollback(version));
         }
-    }
-
-    @Transactional
-    public void snapshotVersion(UUID pipelineId, String snapshotName) {
-        Pipeline pipeline = getPipelineById(pipelineId);
-        PipelineVersion version = getLatestVersion(pipeline);
-
-        PipelineVersion snapshot = PipelineVersion.replicateEntity(version, snapshotName);
-
-        List<VersionStage> copiedStages = new ArrayList<>();
-        for (VersionStage orig : version.getStageList()) {
-            VersionStage copied = VersionStage.builder()
-                    .orderIndex(orig.getOrderIndex())
-                    .stage(orig.getStage())
-                    .pipelineVersion(snapshot)
-                    .build();
-            copiedStages.add(copied);
-        }
-        snapshot.setStageList(copiedStages);
-
-        pipeline.getVersionList().add(snapshot);
-
-        pipelineVersionRepository.save(snapshot);
-        pipelineRepository.save(pipeline);
     }
 
     public Pipeline getPipelineById(UUID id) {
@@ -229,13 +201,6 @@ public class PipelineService {
                 () -> compensationService.softDeletePipeline(pipeline, time, true));
     }
 
-    public List<ResponseDto.PipelineVersionDto> getPipelineVersions(UUID pipelineId) {
-        Pipeline pipeline = getPipelineById(pipelineId);
-        return pipeline.getVersionList().stream()
-                .map(ResponseDto::entityToPipelineVersionDto)
-                .toList();
-    }
-
     public PipelineVersion getLatestVersion(Pipeline pipeline) {
         return pipelineVersionRepository.findWithScriptAndStageListById(pipeline.getLatestVersionId())
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
@@ -243,7 +208,7 @@ public class PipelineService {
 
     public PipelineVersion getPipelineVersionById(UUID pipelineVersionId) {
         return pipelineVersionRepository.findById(pipelineVersionId)
-                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
     }
 
     //새 버전 저장
@@ -281,47 +246,6 @@ public class PipelineService {
 
         pipelineVersionRepository.save(pipelineVersion);
         pipelineVersionRepository.flush();
-    }
-
-    // 특정 파이프라인버전 삭제
-    // 조건: 가장 최신 버전은 삭제 할 수 없음
-    @Transactional
-    public void deletePipelineVersion(UUID pipelineId, UUID pipelineVersionId) {
-        Pipeline pipeline = getPipelineById(pipelineId);
-
-        // 최신 버전은 삭제 불가
-        if (pipeline.getLatestVersionId() != null && pipeline.getLatestVersionId().equals(pipelineVersionId)) {
-            throw new CustomException(ErrorCode.CANNOT_DELETE_LATEST_VERSION);
-        }
-
-        // 삭제할 대상 버전 찾기
-        PipelineVersion toDelete = pipeline.getVersionList().stream()
-                .filter(v -> v.getId().equals(pipelineVersionId))
-                .findFirst()
-                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
-
-        // 파이프라인의 버전 리스트에서 해당 버전 제거 (Cascade 설정으로 DB에서도 삭제됨)
-        pipeline.getVersionList().remove(toDelete);
-        pipelineRepository.save(pipeline);
-
-    }
-
-    @Transactional
-    public void rollbackToSnapshot(UUID pipelineId, UUID snapshotVersionId) {
-        Pipeline pipeline = getPipelineById(pipelineId);
-        PipelineVersion version = getPipelineVersionById(snapshotVersionId);
-
-        UUID previousVersionId = pipeline.getLatestVersionId();
-
-        JenkinsInfo info = pipeline.getJenkinsInfo();
-        String config = version.getConfig();
-
-        //snapshot 버전으로 변경
-        pipeline.setLatestVersionId(snapshotVersionId);
-        pipelineRepository.save(pipeline);
-
-        httpClientService.callJenkins(info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
-                config, info, HttpMethod.POST, () -> compensationService.rollbackPipelineLatestVersion(pipeline, previousVersionId));
     }
 
 }

@@ -25,7 +25,7 @@ public class ResponseDto {
         PipelineVersion latestVersion = pipeline.getVersionList().stream()
                 .filter(v -> v.getId().equals(latestVersionId))
                 .findFirst()
-                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
 
         return LightJobDto.builder()
                 .pipelineId(pipeline.getId())
@@ -41,7 +41,7 @@ public class ResponseDto {
         PipelineVersion latestVersion = pipeline.getVersionList().stream()
                 .filter(v -> v.getId().equals(latestVersionId))
                 .findFirst()
-                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
 
         Script script = latestVersion.getScript();
 
