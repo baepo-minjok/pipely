@@ -19,8 +19,8 @@ public class BuildRequestDto {
     public static class BuildStageRequestDto {
 
         @Schema(
-                description = "스테이지 실행 여부 맵 (예: {\"TEST\": true})",
-                example = "{\"TEST\": true, \"DEPLOY\": false}",
+                description = "스테이지 실행 여부 List (예: {\"TEST\",\"Build\"})",
+                example = "{\"Build\", \"Test\"}",
                 requiredMode = RequiredMode.REQUIRED
         )
         private List<String> stageBuilds;
