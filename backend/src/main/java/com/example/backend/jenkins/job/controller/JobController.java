@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -217,82 +216,6 @@ public class JobController {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(pipelineService.getDeletedLightJobs(jenkinsInfoId)));
     }
-
-
-    @Operation(
-            summary = "파이프라인 버전 리스트 조회",
-            description = "지정된 파이프라인 ID에 대해 모든 버전 기록을 반환합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "파이프라인 버전 리스트 조회 성공"),
-            @ApiResponse(responseCode = "404", description = "존재하지 않는 Pipeline Id")
-    })
-    @GetMapping("/pipelines/{id}/versions")
-
-    public ResponseEntity<BaseResponse<List<ResponseDto.PipelineVersionDto>>> getVersions(
-            @Parameter(description = "버전을 조회할 파이프라인 ID", example = "b1a7c7b2-8123-4cce-80ec-ccf79d5e2f7a")
-            @PathVariable UUID id) {
-        List<ResponseDto.PipelineVersionDto> versions = pipelineService.getPipelineVersions(id);
-        return ResponseEntity.ok().body(BaseResponse.success(versions));
-    }
-
-
-    @Operation(summary = "특정 파이프라인 버전 삭제", description = "파이프라인의 특정 버전 정보를 삭제합니다. latestVersion은 삭제할 수 없습니다.")
-    @DeleteMapping("/{pipelineId}/version/{versionId}")
-    public ResponseEntity<BaseResponse<String>> deletePipelineVersion(
-            @Parameter(description = "삭제할 파이프라인이 속한 Pipeline의 UUID", example = "a2f1b6d3-1a9e-4a61-a5f5-91aef7e7b7ee")
-            @PathVariable UUID pipelineId,
-            @Parameter(description = "삭제할 파이프라인 버전 번호", example = "3")
-            @PathVariable UUID versionId) {
-        pipelineService.deletePipelineVersion(pipelineId, versionId);
-        return ResponseEntity.ok().body(BaseResponse.success("delete pipeline success"));
-    }
-
-
-    @Operation(
-            summary = "파이프라인 버전 스냅샷 생성",
-            description = "파이프라인 버전 ID를 기반으로 새로운 스냅샷 버전을 생성합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "스냅샷 생성 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 파라미터"),
-            @ApiResponse(responseCode = "404", description = "해당 버전 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
-    })
-    @PostMapping("/version/{jobId}/snapshot")
-    public ResponseEntity<BaseResponse<String>> snapshotVersion(
-            @Parameter(description = "스냅샷 생성 대상이 될 파이프라인 버전 ID", required = true, example = "c2f4a511-3e55-4db5-b9b3-0123456789ab")
-            @PathVariable UUID jobId,
-            @Parameter(description = "생성할 스냅샷 이름", required = true, example = "My Snapshot")
-            @RequestParam @NotBlank String snapshotName
-    ) {
-        pipelineService.snapshotVersion(jobId, snapshotName);
-        return ResponseEntity.ok().body(BaseResponse.success("snapshot create success"));
-    }
-
-
-    @Operation(
-            summary = "스냅샷 버전으로 변경",
-            description = "선택한 스냅샷 버전으로 파이프라인을 변경합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "변경 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 파라미터"),
-            @ApiResponse(responseCode = "404", description = "해당 파이프라인 또는 스냅샷 ID를 찾을 수 없음"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
-    })
-    @PreAuthorize("@pipelineService.isOwner(#user, #pipelineId)")
-    @PostMapping("/{pipelineId}/rollback")
-    public ResponseEntity<BaseResponse<String>> rollbackToSnapshot(
-            @Parameter(description = "변경 대상 파이프라인 ID", required = true, example = "f3a0e120-4a59-4bcf-b95f-abcdef123456")
-            @PathVariable UUID pipelineId,
-            @Parameter(description = "변경할 스냅샷 버전 ID", required = true, example = "a1b2c3d4-e5f6-7890-abcd-1234567890ef")
-            @RequestParam @NotNull UUID snapshotVersionId
-    ) {
-        pipelineService.rollbackToSnapshot(pipelineId, snapshotVersionId);
-        return ResponseEntity.ok().body(BaseResponse.success("snapshot update success"));
-    }
-
 
     @Operation(
             summary = "삭제된 Job 복구",

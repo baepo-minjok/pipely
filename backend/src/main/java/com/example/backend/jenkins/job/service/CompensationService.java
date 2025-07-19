@@ -1,12 +1,9 @@
 package com.example.backend.jenkins.job.service;
 
-import com.example.backend.exception.CustomException;
-import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
-import com.example.backend.jenkins.job.model.dto.SnapshotRollbackDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import com.example.backend.service.HttpClientService;
@@ -67,30 +64,6 @@ public class CompensationService {
                 )
         );
         httpClientService.exchange(url, HttpMethod.POST, req, String.class);
-    }
-
-    @Transactional
-    public void rollbackLatestVersion(SnapshotRollbackDto dto) {
-        Pipeline pipeline = pipelineRepository.findById(dto.getPipelineId())
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_PIPELINE_NOT_FOUND));
-        PipelineVersion version = pipelineVersionRepository.findById(dto.getVersionId())
-                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
-
-        version.setName(dto.getName());
-        version.setIsTriggered(dto.isTriggered());
-        version.setConfig(dto.getConfig());
-        version.setSchedule(dto.getSchedule());
-        version.setDescription(dto.getDescription());
-        /*List<Stage> stages = version.getStageList();
-        // 마지막에 추가 됐던 stage 삭제
-        if (!stages.isEmpty()) {
-            stages.remove(stages.size() - 1);
-        }
-        version.setStageList(stages);*/
-        pipelineVersionRepository.save(version);
-        pipeline.setLatestVersionId(version.getId());
-        pipelineRepository.save(pipeline);
-
     }
 
     public void rollbackPipelineLatestVersion(Pipeline pipeline, UUID previousVersionId) {
