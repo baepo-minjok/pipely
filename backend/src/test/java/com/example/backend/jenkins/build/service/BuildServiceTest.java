@@ -123,7 +123,7 @@ class BuildServiceTest {
     void stageJenkinsBuild_success() {
         BuildRequestDto.BuildStageRequestDto dto = new BuildRequestDto.BuildStageRequestDto();
         dto.setJobId(jobId);
-        dto.setStageToggles(Map.of("Build", true, "Test", false));
+        dto.setStageBuilds(List.of("Git clone","Build"));
 
         when(pipelineService.getPipelineById(jobId)).thenReturn(mockPipeline);
         when(httpClientService.buildHeaders(mockJenkinsInfo, MediaType.APPLICATION_FORM_URLENCODED)).thenReturn(new HttpHeaders());

@@ -68,10 +68,10 @@ public class BuildService {
         log.info("Jenkins Trigger URL = {}", triggerUrl);
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        dto.getStageToggles().forEach((key, value) -> {
-            String paramKey = "RUN_" + key.toUpperCase().replace(" ", "_");
-            body.add(paramKey, String.valueOf(value));
-        });
+        for (String stage : dto.getStageBuilds()) {
+            String paramKey = "RUN_" + stage.toUpperCase().replace(" ", "_");
+            body.add(paramKey, "false");
+        }
         String response = httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
         log.info("Jenkins 응답 상태: {}", response);
     }
@@ -141,6 +141,7 @@ public class BuildService {
     public BuildResponseDto.BuildStreamLogDto getStreamLog(UUID jobId) {
         Pipeline pipeline = pipelineService.getPipelineById(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
+
         String lastBuildUri = info.getUri() + "/job/" + pipeline.getName() + "/lastBuild/buildNumber";
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
         HttpEntity<Void> entity = new HttpEntity<>(headers);
