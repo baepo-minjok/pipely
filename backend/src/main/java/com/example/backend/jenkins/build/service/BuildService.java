@@ -36,6 +36,7 @@ public class BuildService {
 
     /**
      * 빌드 이력(최신 또는 전체) 정보를 조회한다.
+     *
      * @param dto 빌드 이력 조회 요청 DTO (jobType, jobId 포함)
      * @return ResponseEntity<?> 최신 빌드 또는 전체 이력 정보 반환
      */
@@ -57,6 +58,7 @@ public class BuildService {
 
     /**
      * Jenkins 파이프라인의 특정 스테이지 실행을 트리거한다.
+     *
      * @param dto 실행할 스테이지 맵 및 파이프라인 ID
      */
     public void StageJenkinsBuild(BuildRequestDto.BuildStageRequestDto dto) {
@@ -76,6 +78,7 @@ public class BuildService {
 
     /**
      * 전체 빌드 이력을 조회한다.
+     *
      * @param pipelineId 파이프라인 UUID
      * @return 빌드 정보 리스트
      */
@@ -92,6 +95,7 @@ public class BuildService {
 
     /**
      * 최신 빌드 정보 1건을 반환한다.
+     *
      * @param pipelineId 파이프라인 UUID
      * @return 최신 빌드 정보
      */
@@ -108,6 +112,7 @@ public class BuildService {
 
     /**
      * 빌드 번호 기준으로 Jenkins 콘솔 전체 로그를 조회한다.
+     *
      * @param dto 빌드 번호, 파이프라인 UUID 포함
      * @return 로그 응답 DTO
      */
@@ -129,6 +134,7 @@ public class BuildService {
 
     /**
      * 실시간 빌드 로그(progressiveText)를 조회한다.
+     *
      * @param jobId 파이프라인 UUID
      * @return 실시간 로그 DTO
      */
@@ -152,6 +158,7 @@ public class BuildService {
 
     /**
      * Jenkins 파이프라인 빌드 정보 API를 호출한다.
+     *
      * @param pipelineId 파이프라인 UUID
      * @return Jenkins JSON Raw String
      */
@@ -166,6 +173,7 @@ public class BuildService {
 
     /**
      * 파이프라인(Jenkins Job)에 등록된 스테이지 목록을 추출한다.
+     *
      * @param jobId 파이프라인 UUID
      * @return Stage DTO(스테이지 이름 리스트)
      */

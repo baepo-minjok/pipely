@@ -107,7 +107,7 @@ public class BuildController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "성공")
-            ,@ApiResponse(responseCode = "403", description = "권한 없음"),
+            , @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "실시간 로그를 찾을 수 없음")
     })
     @GetMapping(value = "/streamlog")
