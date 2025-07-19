@@ -23,7 +23,8 @@ public class BuildRequestDto {
                 example = "{\"TEST\": true, \"DEPLOY\": false}",
                 requiredMode = RequiredMode.REQUIRED
         )
-        private Map<String, Boolean> stageToggles;
+//        private Map<String, Boolean> stageToggles;
+        private List<String> stageBuilds;
 
         @Schema(
                 description = "파이프라인 UUID",
