@@ -72,7 +72,7 @@ class BuildControllerTest {
         when(buildService.getJobPipelineStage(any())).thenReturn(stage);
 
         mockMvc.perform(get("/api/build/stage")
-                        .param("pipeLine", jobId.toString()))
+                        .param("jobId", jobId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.stage").isArray());
     }
@@ -206,7 +206,7 @@ class BuildControllerTest {
                 .thenReturn(BuildResponseDto.BuildStreamLogDto.getStreamLog("Realtime log"));
 
         mockMvc.perform(get("/api/build/streamlog")
-                        .param("pipeLine", jobId.toString()))
+                        .param("jobId", jobId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.log[0]").value("Realtime log"));
     }
