@@ -40,9 +40,23 @@ public class JobNotification {
     @Column(name = "should_notify")
     private Boolean shouldNotify;
 
-    private String channel;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "channel", nullable = false)
+    private Channel channel;
 
     private String webhookUrl;
 
-    private String eventType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "event_type", nullable = false)
+    private EventType eventType;
+
+    public enum EventType {
+        BUILD_SUCCESS,
+        BUILD_FAIL
+    }
+
+    public enum Channel {
+        SLACK,
+        DISCORD
+    }
 }
