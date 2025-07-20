@@ -84,7 +84,7 @@ public class JobController {
             description = "수정할 Job 정보"
     )
     @PreAuthorize("@pipelineService.isOwner(#user, #requestDto.pipelineId)")
-    @PutMapping
+    @PutMapping("/update")
     public ResponseEntity<BaseResponse<String>> update(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid RequestDto.UpdateDto requestDto

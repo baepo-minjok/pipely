@@ -2,6 +2,7 @@ package com.example.backend.jenkins.job.model.dto;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.notification.model.JobNotification;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,6 +14,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class RequestDto {
@@ -258,6 +260,12 @@ public class RequestDto {
         )
         private UUID infoId;
 
+        @Schema(
+                description = "Job 생성 시 함께 등록할 알림 설정 리스트",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        private List<createCredential> notificationList;
+
     }
 
     @EqualsAndHashCode(callSuper = true)
@@ -274,6 +282,12 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
         private UUID pipelineId;
+
+        @Schema(
+                description = "Job 수정 시 함께 수정/삭제/추가할 알림 설정 리스트",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        private List<updateCredential> notificationList;
 
     }
 
@@ -296,5 +310,76 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String script;
+    }
+
+    @Data
+    @Schema(name = "CreateCredentialDto", description = "Job 알림 생성 요청 DTO")
+    public static class createCredential {
+
+        @Schema(description = "알림 설명", example = "디스코드 빌드 성공 알림")
+        private String name;
+
+        @Schema(description = "이벤트 유형", example = "BUILD_SUCCESS")
+        private JobNotification.EventType eventType;
+
+        @Schema(description = "알림 채널", example = "DISCORD")
+        private JobNotification.Channel channel;
+
+        @Schema(description = "Webhook URL", example = "https://discord.com/api/webhooks/...")
+        private String webhookUrl;
+
+        @Schema(description = "알림 여부", example = "true")
+        private Boolean shouldNotify;
+
+        public JobNotification toEntity(UUID pipelineId, String credentialName, UUID scriptId) {
+            return JobNotification.builder()
+                    .pipelineId(pipelineId)
+                    .scriptId(scriptId)
+                    .name(this.name)
+                    .createdAt(LocalDateTime.now())
+                    .shouldNotify(this.shouldNotify)
+                    .channel(this.channel)
+                    .webhookUrl(this.webhookUrl)
+                    .eventType(this.eventType)
+                    .credentialName(credentialName)
+                    .build();
+        }
+    }
+
+    @Data
+    @Schema(name = "updateCredential", description = "Job 알림 수정 요청 DTO")
+    public static class updateCredential {
+
+        @Schema(description = "알림 Credential 이름", example = "DISCORD_1472d5da_BUILD_SUCCESS_5850a9c6")
+        private String credentialName;
+
+        @Schema(description = "알림 설명", example = "디스코드 빌드 성공 알림")
+        private String name;
+
+        @Schema(description = "Webhook URL", example = "https://discord.com/api/webhooks/...")
+        private String webhookUrl;
+
+        @Schema(description = "알림 여부", example = "true")
+        private Boolean shouldNotify;
+
+        @Schema(description = "이벤트 유형", example = "BUILD_SUCCESS")
+        private JobNotification.EventType eventType;
+
+        @Schema(description = "알림 채널", example = "DISCORD")
+        private JobNotification.Channel channel;
+
+        public JobNotification toEntity(UUID pipelineId, String credentialName, UUID scriptId) {
+            return JobNotification.builder()
+                    .credentialName(credentialName)
+                    .pipelineId(pipelineId)
+                    .scriptId(scriptId)
+                    .name(this.name)
+                    .channel(this.channel)
+                    .eventType(this.eventType)
+                    .webhookUrl(this.webhookUrl)
+                    .shouldNotify(this.shouldNotify)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+        }
     }
 }
