@@ -2,7 +2,6 @@ package com.example.backend.jenkins.build.controller;
 
 import com.example.backend.config.jwt.JwtAuthenticationFilter;
 import com.example.backend.config.jwt.JwtTokenProvider;
-import com.example.backend.jenkins.build.model.JobType;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
 import com.example.backend.jenkins.build.service.BuildService;
@@ -78,7 +77,6 @@ class BuildControllerTest {
     @DisplayName("빌드 이력 조회 - LATEST")
     void 빌드_이력_조회_LATEST() throws Exception {
         UUID jobId = UUID.randomUUID();
-        BuildRequestDto.getBuildHistory dto = new BuildRequestDto.getBuildHistory(JobType.LATEST, jobId);
 
         BuildResponseDto.BuildInfo latest = BuildResponseDto.BuildInfo.builder()
                 .jobName("woojin_test1")
@@ -97,8 +95,7 @@ class BuildControllerTest {
 
         mockMvc.perform(get("/api/jenkins/build/history/latest")
                         .param("jobId", jobId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                        .contentType(MediaType.APPLICATION_JSON))
 
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.buildNumber").value(2))
@@ -111,7 +108,6 @@ class BuildControllerTest {
     @Test
     void 빌드_이력_조회_HISTORY() throws Exception {
         UUID jobId = UUID.randomUUID();
-        BuildRequestDto.getBuildHistory dto = new BuildRequestDto.getBuildHistory(JobType.HISTORY, jobId);
 
         List<BuildResponseDto.BuildInfo> history = List.of(
                 BuildResponseDto.BuildInfo.builder()
@@ -145,8 +141,7 @@ class BuildControllerTest {
 
         mockMvc.perform(get("/api/jenkins/build/history/all")
                         .param("jobId", jobId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk(
                 ))
                 .andExpect(jsonPath("$.data.length()").value(2))  // 배열 개수 체크
