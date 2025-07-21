@@ -46,10 +46,6 @@ public class ErrorRequestDto {
         )
         @NotNull(message = "jobId는 필수입니다.")
         private UUID jobId;
-
-        @Schema(description = "Job 이름", example = "build-backend")
-        @NotBlank(message = "jobName은 비어 있을 수 없습니다.")
-        private String jobName;
     }
 
     @Getter
