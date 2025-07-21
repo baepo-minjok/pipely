@@ -61,3 +61,40 @@ textarea {
 .btn:hover {
   background-color: var(--main-color-hover);
 }
+
+.btn_box {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  margin-top: 18px;
+
+  & > button {
+    width: 65px;
+    height: 40px;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+}
+
+.cancel_btn {
+  background-color: white;
+  color: var(--gray500);
+  border: 1px solid var(--gray400);
+
+  &:hover {
+    background-color: var(--gray200);
+  }
+}
+
+.create_btn {
+  background-color: var(--main-color);
+  color: white;
+  border: none;
+
+  &:hover {
+    background-color: var(--main-color-hover);
+  }
+}

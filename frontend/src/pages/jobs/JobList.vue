@@ -30,6 +30,7 @@ const router = useRouter();
   <div class="container">
     <div class="header">
       <h1>Job 목록</h1>
+      <button class="create_job_btn" @click="handleCreateClick">+ 새 Job 생성</button>
       <button v-if="selectedJenkins" class="create_job_btn">+ 새 Job 생성</button>
     </div>
 
