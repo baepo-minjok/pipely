@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.GenericGenerator;
+import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -63,6 +64,7 @@ public class Pipeline {
             description = "수정 시간 (ISO 8601 형식)",
             example = "2024-07-16T15:45:00"
     )
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 
     @Column(name = "deleted_at")

@@ -1,22 +1,30 @@
 package com.example.backend.jenkins.job.service;
 
-import com.example.backend.exception.CustomException;
-import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
+import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
+import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
+import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class CompensationService {
     private final PipelineRepository pipelineRepository;
+    private final StageService stageService;
+    private final HttpClientService httpClientService;
+    private final PipelineVersionRepository pipelineVersionRepository;
 
     @Transactional
     public void deletePipeline(UUID pipelineId) {
@@ -33,24 +41,42 @@ public class CompensationService {
     }
 
     @Transactional
-    public void rollbackLatestVersion(Pipeline pipeline) {
+    public void rollback(PipelineVersion pipelineVersion) {
 
-        // 최신 버전 찾기
-        PipelineVersion latestVersion = pipeline.getVersionList().stream()
-                .filter(v -> v.getId().equals(pipeline.getLatestVersionId()))
-                .findFirst()
-                .orElseThrow(() -> new CustomException(ErrorCode.VERSION_NOT_FOUND));
+        Script script = pipelineVersion.getScript();
+        stageService.updateStages(pipelineVersion, script);
+        pipelineVersionRepository.save(pipelineVersion);
 
-        // 리스트에서 제거 -> 매핑되어있는 파이프라인도 삭제됨
-        pipeline.getVersionList().remove(latestVersion);
+    }
 
-        // 이전버전 중 가장 최신버전
-        PipelineVersion target = pipeline.getVersionList().stream()
-                .max(Comparator.comparing(PipelineVersion::getCreatedAt))
-                .orElseThrow(() -> new CustomException(ErrorCode.NO_PREVIOUS_VERSION));
+    @Transactional
+    public void reCreateJob(PipelineVersion pipelineVersion, JenkinsInfo info, String preName) {
+        // DB 롤백
+        rollback(pipelineVersion);
 
-        pipeline.setLatestVersionId(target.getId());
-        pipelineRepository.save(pipeline);
+        // jenkins 서버 롤백
+        String url = info.getUri() + "/createItem?name=" + preName;
+        HttpEntity<String> req = new HttpEntity<>(
+                pipelineVersion.getConfig(),
+                httpClientService.buildHeaders(
+                        info,
+                        new MediaType("application", "xml", StandardCharsets.UTF_8)
+                )
+        );
+        httpClientService.exchange(url, HttpMethod.POST, req, String.class);
+    }
 
+    public void rollbackPipelineLatestVersion(PipelineVersion latestVersion, PipelineVersion previousVersion) {
+        Script script = previousVersion.getScript();
+
+        latestVersion.setDescription(previousVersion.getDescription());
+        latestVersion.setIsTriggered(previousVersion.getIsTriggered());
+        latestVersion.setSchedule(previousVersion.getSchedule());
+        latestVersion.setConfig(previousVersion.getConfig());
+        latestVersion.setScript(script);
+
+        stageService.updateStages(latestVersion, script);
+
+        pipelineVersionRepository.save(latestVersion);
     }
 }

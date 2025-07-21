@@ -35,16 +35,16 @@ class BuildServiceTest {
     @Mock
     private PipelineService pipelineService;
 
-    private UUID pipelineId;
+    private UUID jobId;
     private Pipeline mockPipeline;
     private JenkinsInfo mockJenkinsInfo;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        pipelineId = UUID.randomUUID();
+        jobId = UUID.randomUUID();
         mockJenkinsInfo = JenkinsInfo.builder().uri("http://jenkins.local").build();
-        mockPipeline = Pipeline.builder().id(pipelineId).name("test-job").jenkinsInfo(mockJenkinsInfo).build();
+        mockPipeline = Pipeline.builder().id(jobId).name("test-job").jenkinsInfo(mockJenkinsInfo).build();
         objectMapper = new ObjectMapper();
     }
 
@@ -71,12 +71,12 @@ class BuildServiceTest {
                     }
                 """;
 
-        when(pipelineService.getPipelineById(pipelineId)).thenReturn(mockPipeline);
+        when(pipelineService.getPipelineById(jobId)).thenReturn(mockPipeline);
         when(httpClientService.buildHeaders(mockJenkinsInfo, MediaType.APPLICATION_FORM_URLENCODED)).thenReturn(new HttpHeaders());
         when(httpClientService.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
                 .thenReturn(mockJson);
 
-        List<BuildResponseDto.BuildInfo> result = buildService.getBuildHistory(pipelineId);
+        List<BuildResponseDto.BuildInfo> result = buildService.getBuildHistory(jobId);
 
         assertEquals(1, result.size());
         assertEquals(1, result.get(0).getBuildNumber());
@@ -107,12 +107,12 @@ class BuildServiceTest {
                     }
                 """;
 
-        when(pipelineService.getPipelineById(pipelineId)).thenReturn(mockPipeline);
+        when(pipelineService.getPipelineById(jobId)).thenReturn(mockPipeline);
         when(httpClientService.buildHeaders(mockJenkinsInfo, MediaType.APPLICATION_FORM_URLENCODED)).thenReturn(new HttpHeaders());
         when(httpClientService.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
                 .thenReturn(mockJson);
 
-        BuildResponseDto.BuildInfo result = buildService.getLastBuildStatus(pipelineId);
+        BuildResponseDto.BuildInfo result = buildService.getLastBuildStatus(jobId);
 
         assertEquals(3, result.getBuildNumber());
         assertEquals("FAILURE", result.getStatus());
@@ -122,10 +122,10 @@ class BuildServiceTest {
     @DisplayName("StageJenkinsBuild - 전달된 stageToggles 값이 요청 본문에 반영됨")
     void stageJenkinsBuild_success() {
         BuildRequestDto.BuildStageRequestDto dto = new BuildRequestDto.BuildStageRequestDto();
-        dto.setPipeLine(pipelineId);
-        dto.setStageToggles(Map.of("Build", true, "Test", false));
+        dto.setJobId(jobId);
+        dto.setStageBuilds(List.of("Git clone","Build"));
 
-        when(pipelineService.getPipelineById(pipelineId)).thenReturn(mockPipeline);
+        when(pipelineService.getPipelineById(jobId)).thenReturn(mockPipeline);
         when(httpClientService.buildHeaders(mockJenkinsInfo, MediaType.APPLICATION_FORM_URLENCODED)).thenReturn(new HttpHeaders());
         when(httpClientService.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
                 .thenReturn("Build triggered");
@@ -153,9 +153,9 @@ Finished: SUCCESS
 """;
 
         BuildRequestDto.GetLogRequestDto dto =
-                new BuildRequestDto.GetLogRequestDto(buildNumber, pipelineId);
+                new BuildRequestDto.GetLogRequestDto(buildNumber, jobId);
 
-        when(pipelineService.getPipelineById(pipelineId)).thenReturn(mockPipeline);
+        when(pipelineService.getPipelineById(jobId)).thenReturn(mockPipeline);
         when(httpClientService.buildHeaders(eq(mockJenkinsInfo), any(MediaType.class)))
                 .thenReturn(new HttpHeaders());
         when(httpClientService.exchange(
@@ -181,7 +181,7 @@ Finished: SUCCESS
     void getStreamLog_success() {
         String mockLog = "Running...\nStep1 complete\n";
 
-        when(pipelineService.getPipelineById(pipelineId)).thenReturn(mockPipeline);
+        when(pipelineService.getPipelineById(jobId)).thenReturn(mockPipeline);
         when(httpClientService.buildHeaders(eq(mockJenkinsInfo), any(MediaType.class)))
                 .thenReturn(new HttpHeaders());
 
@@ -195,7 +195,7 @@ Finished: SUCCESS
                 contains("progressiveText"), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class))
         ).thenReturn(mockLog);
 
-        BuildResponseDto.BuildStreamLogDto result = buildService.getStreamLog(pipelineId);
+        BuildResponseDto.BuildStreamLogDto result = buildService.getStreamLog(jobId);
 
         assertEquals(
                 Arrays.asList(mockLog.split("\\r?\\n")),
