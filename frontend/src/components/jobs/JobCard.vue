@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, toRefs } from 'vue';
+import {  toRefs } from 'vue';
 import { formatDateTime } from '../../utils/formatDateTime';
 
 
@@ -12,9 +12,7 @@ const props = defineProps({
 })
 const { job } = toRefs(props)
 
-
-
-// const job = reactive({
+// const job = ({
 //   idx: 1,
 //   name: 'CI/CD Demo 01',
 //   createdBy: '이우진',
