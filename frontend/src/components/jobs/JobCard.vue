@@ -12,6 +12,28 @@ const props = defineProps({
 })
 const { job } = toRefs(props)
 
+// const job = ({
+//   idx: 1,
+//   name: 'CI/CD Demo 01',
+//   createdBy: '이우진',
+//   lastExe: '2025-06-11T14:33:00',
+//   stages: [
+//     {
+//       type: 'Build',
+//       state: 'SUCCESS',
+//     },
+//     {
+//       type: 'Test',
+//       state: 'SUCCESS',
+//     },
+//     {
+//       type: 'Deploy',
+//       state: 'SUCCESS',
+//     },
+//   ],
+//   buildState: 'SUCCESS',
+// });
+
 
 
 </script>
