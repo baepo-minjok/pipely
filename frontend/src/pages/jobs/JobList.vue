@@ -1,64 +1,56 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
 import { useRouter } from 'vue-router';
 
+import { useJobStore } from '../../stores/jobStore';
+
+const jobStore = useJobStore()
+
+onMounted(() => {
+  jobStore.getJenkinsInfo()
+
+});
+const selectedJenkins = ref('');
+
+watch(selectedJenkins, (id) => {
+  if (id) jobStore.fetchJobList(id)
+
+})
+
+
+
 const router = useRouter();
 
-const jobList = ref([
-  {
-    idx: 1,
-    name: 'CI/CD Demo 01',
-    createdBy: '이우진',
-    lastExe: '2025-06-11T14:33:00',
-    stages: [
-      {
-        type: 'Build',
-        state: 'SUCCESS',
-      },
-      {
-        type: 'Test',
-        state: 'SUCCESS',
-      },
-      {
-        type: 'Deploy',
-        state: 'SUCCESS',
-      },
-    ],
-    buildState: 'SUCCESS',
-  },
-  {
-    idx: 2,
-    name: 'Dev Build Flow',
-    createdBy: '서찬영',
-    lastExe: '2025-06-10T10:14:00',
-    stages: [
-      {
-        type: 'Build',
-        state: 'SUCCESS',
-      },
-      {
-        type: 'Test',
-        state: 'FAILED',
-      },
-      {
-        type: 'Deploy',
-        state: 'ONPROGRESS',
-      },
-    ],
-    buildState: 'FAILED',
-  },
-]);
 </script>
 
 <template>
   <div class="container">
     <div class="header">
       <h1>Job 목록</h1>
-      <button class="create_job_btn">+ 새 Job 생성</button>
+      <button v-if="selectedJenkins" cldass="create_job_btn">+ 새 Job 생성</button>
+    </div>
+
+
+
+    <div class="jenkins-select-box" style="margin-bottom: 1rem;">
+      <label for="jenkins-select">Jenkins 정보 선택:</label>
+      <select id="jenkins-select" v-model="selectedJenkins">
+        <option value="" disabled>Jenkins 인스턴스 선택</option>
+        <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
+          {{ info.name }}
+        </option>
+      </select>
     </div>
     <div class="job_list">
-      <JobCard v-for="job in jobList" @click="router.push(`/job/${job.idx}`)" />
+      <template v-if="selectedJenkins">
+        <JobCard v-for="job in jobStore.jobList" :key="job.name" :job="job" @click="router.push(`/job/${job.name}`)" />
+      </template>
+      <template v-else>
+        <div style="text-align: center; color: gray; margin: 30px 0;">
+          Jenkins 인스턴스를 먼저 선택하세요.
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -75,7 +67,7 @@ const jobList = ref([
   justify-content: space-between;
 }
 
-.header > h1 {
+.header>h1 {
   font-size: 28px;
 }
 
