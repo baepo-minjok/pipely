@@ -242,7 +242,7 @@ public class ErrorService {
         PipelineVersion target = versions.stream()
                 .filter(v -> !v.getId().equals(latestId))
                 .max(Comparator.comparing(PipelineVersion::getCreatedAt))
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_BUILD_HISTORY_PARSE_ERROR));
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_NO_SUCCESSFUL_BUILD));
 
         // rollbackToSnapshot 재사용
         versionService.rollbackToSnapshot(target.getId());
