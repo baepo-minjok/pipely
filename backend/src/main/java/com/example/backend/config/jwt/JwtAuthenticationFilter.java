@@ -29,13 +29,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        if (path.startsWith("/api/auth/reactive") || path.startsWith("/api/auth/user/signup") || path.startsWith("/api/auth/user/login") || path.startsWith("/oauth2/") || path.startsWith("/login/oauth2/")) {
+        if (
+            //swagger 관련 경로
+                path.startsWith("/swagger") ||
+                        path.startsWith("/v3/api-docs") ||
+
+                        // 인증 관련 허용 경로
+                        path.startsWith("/api/email") || // 이메일 인증
+                        path.startsWith("/api/auth/reactive") ||
+                        path.startsWith("/api/auth/user/signup") ||
+                        path.startsWith("/api/auth/user/login") ||
+                        path.startsWith("/oauth2/") ||
+                        path.startsWith("/login/oauth2/")) {
             filterChain.doFilter(request, response);
             return;
         }
         String token = null;
 
-        if (request.getCookies() != null) {
+        String bearer = request.getHeader("Authorization");
+        if (bearer != null && bearer.startsWith("Bearer ")) {
+            token = bearer.substring(7);
+        }
+
+        if (token == null && request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if (accessName.equals(cookie.getName())) {
                     token = cookie.getValue();

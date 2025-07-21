@@ -2,26 +2,31 @@ package com.example.backend.config;
 
 import com.example.backend.auth.user.service.CustomOAuth2UserService;
 import com.example.backend.config.jwt.JwtAuthenticationFilter;
+import com.example.backend.handler.OAuth2LoginFailureHandler;
 import com.example.backend.handler.OAuth2LoginSuccessHandler;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
 @Configuration
 @RequiredArgsConstructor
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 
 
     @Bean
@@ -34,27 +39,33 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
+
+                        .requestMatchers("/api/auth/withdraw", "/api/auth/user/logout").authenticated()
                         .requestMatchers(
                                 "/", "/css/**", "/js/**",
                                 "/api/auth/**",
                                 "/oauth2/**",
-                                "/login/oauth2/**","/build/**"
+                                "/login/oauth2/**",
+                                "/api/email/**",
+                                "/api/auth/token",
+
+                                //swagger
+                                "/swagger**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**"
                         ).permitAll()
-                        .requestMatchers("/api/auth/withdraw").authenticated()
                         .anyRequest().authenticated()
                 )
 
                 .exceptionHandling(eh -> eh
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.getWriter().write("Forbidden: 인증이 필요합니다");
-                        })
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.FORBIDDEN))
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService)
                         )
                         .successHandler(oAuth2LoginSuccessHandler)
+                        .failureHandler(oAuth2LoginFailureHandler)
                 )
 
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

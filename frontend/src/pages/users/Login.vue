@@ -1,22 +1,96 @@
-<script setup></script>
+<script setup>
+import {ref} from "vue";
+import {loginApi} from "@/api/LoginApi.js";
+import {useRouter} from "vue-router";
+
+const router = useRouter();
+
+const email = ref("");
+const password = ref("");
+const emailError = ref(false);
+const passwordError = ref(false);
+const errorMessage = ref("");
+
+function isValidEmail(email) {
+  return /^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/.test(email);
+}
+
+const login = async () => {
+  let valid = true;
+
+  // 이메일 입력 여부 검사
+  if (!email.value) {
+    emailError.value = true;
+    errorMessage.value = "이메일을 입력해주세요.";
+    valid = false;
+  } else if (!isValidEmail(email.value)) {
+    emailError.value = true;
+    errorMessage.value = "올바른 이메일 주소를 입력해주세요.";
+    valid = false;
+  } else {
+    emailError.value = false;
+  }
+
+  // 비밀번호 입력 여부 검사
+  if (!password.value) {
+    passwordError.value = true;
+    if (!errorMessage.value) errorMessage.value = "비밀번호를 입력해주세요.";
+    valid = false;
+  } else {
+    passwordError.value = false;
+  }
+
+  if (!valid) {
+    return;
+  } else {
+    errorMessage.value = "";
+  }
+
+  const loginRequest = {
+    email: email.value,
+    password: password.value,
+  };
+
+  await loginApi.login(loginRequest)
+      .then(res => {
+        if (res) {
+          // 로그인 성공
+          router.push({name: "Main"});
+        } else {
+          errorMessage.value = "로그인에 실패했습니다.";
+        }
+      });
+};
+const googleLogin = () => {
+  window.location.href = "http://localhost:8080/oauth2/authorization/google";
+};
+
+const githubLogin = () => {
+  window.location.href = "http://localhost:8080/oauth2/authorization/github";
+}
+
+</script>
 
 <template>
   <div class="container">
     <div class="left_wrapper">
       <h1>Sign In</h1>
       <div class="login_box">
-        <button class="oauth_btn">
-          <img src="/src/assets/images/google_logo.png" alt="google" />
+        <button class="oauth_btn" @click="googleLogin">
+          <img alt="google" src="/src/assets/images/google_logo.png"/>
           Google로 로그인
         </button>
-        <button class="oauth_btn">
-          <img src="/src/assets/images/github_logo.png" alt="github" />
+        <button class="oauth_btn" @click="githubLogin">
+          <img alt="github" src="/src/assets/images/github_logo.png"/>
           Github로 로그인
         </button>
         <p>또는</p>
-        <input type="text" class="input_box" placeholder="이메일 주소를 입력해주세요." />
-        <input type="password" class="input_box" placeholder="비밀번호를 입력해주세요." />
-        <button class="btn login_btn">로그인</button>
+        <input v-model="email" :class="['input_box', emailError ? 'input_box--error' : '']"
+               placeholder="이메일 주소를 입력해주세요." type="text"/>
+        <input v-model="password" :class="['input_box', passwordError ? 'input_box--error' : '']"
+               placeholder="비밀번호를 입력해주세요." type="password"/>
+        <button class="btn login_btn" @click="login">로그인</button>
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
         <div class="bottom_box">
           <router-link to="/user/signup">회원가입</router-link>
@@ -26,9 +100,9 @@
       </div>
     </div>
     <div class="right_wrapper">
-      <img src="/src/assets/images/logo.png" alt="logo" />
+      <img alt="logo" src="/src/assets/images/logo.png"/>
       <p class="text">
-        이제 복잡한 배포는 그만! <br />
+        이제 복잡한 배포는 그만! <br/>
         AI가 함께 하는 간편한 CI/CD를 경험해보세요.
       </p>
 
@@ -56,7 +130,7 @@ pipeline {
     ...
 }
     </pre
-          >
+    >
         </div>
       </div>
     </div>
@@ -203,5 +277,19 @@ pipeline {
 
 .rec_box {
   background-color: white;
+}
+
+.input_box--error {
+  border: 1.5px solid #ff7b7b !important;
+  background-color: #fff5f5;
+}
+
+.error-message {
+  color: #ff5555;
+  font-size: 13px;
+  margin-top: 5px;
+  margin-bottom: 0;
+  width: 100%;
+  text-align: left;
 }
 </style>

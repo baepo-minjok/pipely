@@ -2,13 +2,20 @@ package com.example.backend.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.info.model.JenkinsInfo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CancellationException;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HttpClientService {
@@ -37,24 +44,80 @@ public class HttpClientService {
                     requestEntity,
                     responseType
             );
-            HttpStatusCode httpStatusCode = response.getStatusCode();
+            return response.getBody();
+        } catch (IllegalArgumentException e) {
+            // url 틀렸을때
+            log.error("Invalid url");
+            throw new CustomException(ErrorCode.URL_INCORRECT);
+        } catch (HttpClientErrorException e) {
+            // 4xx 오류
+            log.error(e.getStatusCode().toString());
+            log.error(e.getResponseBodyAsString());
+            log.error("HttpClientErrorException: {}", e.getMessage());
 
-            if (httpStatusCode == HttpStatus.OK) {
-                return response.getBody();
-            } else if (httpStatusCode == HttpStatus.NOT_FOUND) {
-                throw new CustomException(ErrorCode.JENKINS_ENDPOINT_NOT_FOUND);
-            } else if (httpStatusCode == HttpStatus.UNAUTHORIZED) {
-                throw new CustomException(ErrorCode.JENKINS_AUTHENTICATION_FAILED);
-            } else if (httpStatusCode == HttpStatus.GATEWAY_TIMEOUT || httpStatusCode == HttpStatus.REQUEST_TIMEOUT) {
-                throw new CustomException(ErrorCode.JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR);
-            } else if (httpStatusCode.is5xxServerError()) {
-                throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
-            } else {
-                throw new CustomException(ErrorCode.JENKINS_CONNECTION_FAILED);
+            int status = e.getStatusCode().value();
+            switch (status) {
+                case 400:
+                    throw new CustomException(ErrorCode.DUPLICATED_JOB_NAME);
+                case 401:
+                    throw new CustomException(ErrorCode.AUTHENTICATION_FAILED);
+                case 404:
+                    throw new CustomException(ErrorCode.INVALID_ENDPOINT);
             }
+            throw new CustomException(ErrorCode.JENKINS_CONNECTION_FAILED);
+        } catch (HttpServerErrorException e) {
+            // 5xx 오류
+            log.error(e.getStatusCode().toString());
+            log.error("HttpServerErrorException: {}", e.getMessage());
+            throw new CustomException(ErrorCode.JENKINS_SERVER_PROBLEM);
+        } catch (CancellationException e) {
+            // 잘못된 주소로 요청이 취소
+            log.error("Http request cancelled: {}", e.getMessage());
+            throw new CustomException(ErrorCode.URL_INCORRECT);
+        } catch (RestClientException e) {
+            // 그외 기타 예외
+            log.error("Unhandled request Exception: {}", e.getMessage());
+            throw new CustomException(ErrorCode.HTTP_REQUEST_EXCEPTION);
+        }
+    }
 
-        } catch (CancellationException ex) {
-            throw new CustomException(ErrorCode.JENKINS_URI_NOT_FOUND);
+    public HttpHeaders buildHeaders(JenkinsInfo info, MediaType mediaType) {
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(info.getJenkinsId(), info.getApiToken());
+        headers.setContentType(mediaType);
+
+        return headers;
+    }
+
+    public void callJenkins(String url, String body, JenkinsInfo info, HttpMethod method, Runnable onError) {
+        HttpEntity<String> req = new HttpEntity<>(
+                body,
+                buildHeaders(
+                        info,
+                        new MediaType("application", "xml", StandardCharsets.UTF_8)
+                )
+        );
+        try {
+            exchange(url, method, req, String.class);
+        } catch (Exception e) {
+            if (onError != null) onError.run();
+            throw e;
+        }
+    }
+
+    public void deleteJobOnJenkins(JenkinsInfo info, String name, Runnable onError) {
+        String url = info.getUri() + "/job/" + name + "/doDelete";
+        HttpEntity<String> req = new HttpEntity<>(
+                buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED)
+        );
+        try {
+            exchange(url, HttpMethod.POST, req, String.class);
+        } catch (CustomException e) {
+            if (!ErrorCode.INVALID_ENDPOINT.equals(e.getErrorCode())) {
+                if (onError != null) onError.run();
+                throw e;
+            }
         }
     }
 }

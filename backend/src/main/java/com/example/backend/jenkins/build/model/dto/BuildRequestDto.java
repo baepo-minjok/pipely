@@ -1,0 +1,58 @@
+package com.example.backend.jenkins.build.model.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.util.List;
+import java.util.UUID;
+
+public class BuildRequestDto {
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "특정 스테이지 실행 요청 DTO")
+    public static class BuildStageRequestDto {
+
+        @Schema(
+                description = "스테이지 실행 여부 List (예: {\"TEST\",\"Build\"})",
+                example = "{\"Build\", \"Test\"}",
+                requiredMode = RequiredMode.REQUIRED
+        )
+        private List<String> stageBuilds;
+
+        @Schema(
+                description = "job의 ID",
+                example = "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                requiredMode = RequiredMode.REQUIRED
+        )
+        private UUID jobId;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "빌드 로그 요청 DTO (스트리밍 포함)")
+    public static class GetLogRequestDto {
+
+        @Schema(
+                description = "빌드 번호",
+                example = "42"
+        )
+        private String buildNumber;
+
+        @Schema(
+                description = "job의 ID",
+                example = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        )
+        private UUID jobId;
+    }
+
+
+}

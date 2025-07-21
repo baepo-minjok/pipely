@@ -16,6 +16,26 @@ public enum ErrorCode {
      */
     UNKNOWN_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "UNKNOWN_ERROR_500", "서버 오류입니다."),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED_400", "올바른 값이 아닙니다."),
+    MISSING_PARAMETER(HttpStatus.BAD_REQUEST, "MISSING_PARAMETER_400", "파라미터가 존재하지 않습니다."),
+    IOEXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, "IOEXCEPTION_500", "파일 처리 오류입니다."),
+    GIT_CLONE_FAILED(HttpStatus.BAD_REQUEST, "GIT_CLONE_FAILED_400", "Git clone에 실패했습니다."),
+    METHOD_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "METHOD_UNAUTHORIZED_401", "해당 경로에 대한 권한이 없습니다."),
+
+    /**
+     * HttpClientService에서 사용되는 ErrorCode
+     */
+    INVALID_ENDPOINT(HttpStatus.INTERNAL_SERVER_ERROR, "INVALID_ENDPOINT_500", "존재하지 않는 경로로 보낸 요청입니다."),
+    HTTP_REQUEST_EXCEPTION(HttpStatus.INTERNAL_SERVER_ERROR, "HTTP_REQUEST_EXCEPTION_500", "Jenkins 연결이 실패했습니다."),
+    JENKINS_SERVER_PROBLEM(HttpStatus.SERVICE_UNAVAILABLE, "JENKINS_SERVER_PROBLEM_503", "젠킨스 서버의 문제로 연결이 실패했습니다."),
+    URL_INCORRECT(HttpStatus.BAD_REQUEST, "URL_INCORRECT_400", "올바르지 않은 URL로 보낸 요청입니다."),
+    DUPLICATED_JOB_NAME(HttpStatus.BAD_REQUEST, "DUPLICATED_JOB_NAME_400", "Jenkins 서버에 동일한 이름의 Job이 있습니다."),
+    AUTHENTICATION_FAILED(HttpStatus.BAD_REQUEST, "AUTHENTICATION_FAILED_400", "올바르지 않은 인증 정보입니다."),
+    JENKINS_CONNECTION_FAILED(HttpStatus.NOT_FOUND, "JENKINS_CONNECTION_FAILED_404", "올바르지 않은 요청으로 인한 jenkins 연결 실패"),
+
+    /**
+     * Cookie 관련 ErrorCode
+     */
+    COOKIE_NOT_FOUND(HttpStatus.BAD_REQUEST, "COOKIE_NOT_FOUND_400", "쿠키가 존재하지 않습니다."),
 
     /**
      * Mustache에서 사용하는 ErrorCode
@@ -27,6 +47,7 @@ public enum ErrorCode {
     /**
      * Auth/User 도메인에서 사용하는 ErrorCode
      */
+    USER_LOGIN_FAILED(HttpStatus.BAD_REQUEST, "USER_LOGIN_FAILED_400", "로그인 실패"),
     USER_REFRESH_TOKEN_EXPIRED(HttpStatus.BAD_REQUEST, "USER_REFRESH_TOKEN_EXPIRED_400", "만료된 리프레쉬 토큰입니다."),
     USER_REFRESH_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "USER_REFRESH_TOKEN_INVALID_400", "유효하지않은 리프레쉬 토큰입니다."),
     USER_NOT_FOUND(HttpStatus.BAD_REQUEST, "USER_NOT_FOUND_400", "유저를 찾을 수 없습니다."),
@@ -42,20 +63,19 @@ public enum ErrorCode {
      * Auth/Email 도메인에서 사용하는 ErrorCode
      */
     EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "EMAIL_SEND_FAILED_500", "이메일 발송 실패"),
-    EMAIL_VERIFICATION_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "EMAIL_VERFICATION_TOKEN_INVALID_400", "유효하지않은 인증 코드 입니다."),
+    EMAIL_VERIFICATION_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "EMAIL_VERIFICATION_TOKEN_INVALID_400", "유효하지않은 인증 코드 입니다."),
 
     /**
      * Jenkins/Info 도메인에서 사용하는 ErrorCode
      */
-    JENKINS_INFO_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_INFO_NOT_FOUND_400", "젠킨스 정보가 존재하지 않습니다"),
-    JENKINS_AUTHENTICATION_FAILED(HttpStatus.UNAUTHORIZED, "JENKINS_AUTHENTICATION_FAILED_401", "jenkins 인증 실패!"),
+    JENKINS_INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_INFO_NOT_FOUND_404", "젠킨스 정보가 존재하지 않습니다"),
+    JENKINS_AUTHENTICATION_FAILED(HttpStatus.NOT_FOUND, "JENKINS_AUTHENTICATION_FAILED_404", "jenkins 인증 실패!"),
     JENKINS_ENDPOINT_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_ENDPOINT_NOT_FOUND_404", "올바르지 않은 endpoint입니다."),
-    JENKINS_URI_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_URI_NOT_FOUND_404", "올바르지 않은 jenkins uri입니다."),
-    JENKINS_CONNECTION_FAILED(HttpStatus.BAD_REQUEST, "JENKINS_CONNECTION_FAILED_400", "jenkins 연결 실패"),
     JENKINS_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_SERVER_ERROR_500", "jenkins 서버 오류"),
-    JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR(HttpStatus.GATEWAY_TIMEOUT, "JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR_504", "time out"),
+    JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_CONNECTION_TIMEOUT_OR_NETWORK_ERROR_500", "time out"),
     JENKINS_SECRET_ENCRYPTION_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_SECRET_ENCRYPTION_FAIL_500", "암호화 실패 오류"),
     JENKINS_SECRET_DECRYPTION_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_SECRET_DECRYPTION_FAIL_500", "복호화 실패 오류"),
+    JENKINS_XML_UPDATE_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "XML_UPDATE_FAIL_500", "CRON 스케줄 XML 수정 중 오류가 발생했습니다."),
 
     /**
      * Jenkins/error 도메인에서 사용하는 ErrorCode
@@ -64,14 +84,45 @@ public enum ErrorCode {
     JENKINS_JOB_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_JOB_NOT_FOUND_404", "해당 Job을 찾을 수 없습니다."),
     JENKINS_BUILD_INFO_MISSING(HttpStatus.BAD_REQUEST, "JENKINS_BUILD_INFO_MISSING_400", "빌드 정보가 존재하지 않습니다."),
     JENKINS_INFO_UNAUTHORIZED(HttpStatus.FORBIDDEN, "JENKINS_INFO_UNAUTHORIZED_403", "접근 권한이 없는 Jenkins 설정입니다."),
+    JENKINS_NO_JOBS_FOUND(HttpStatus.NOT_FOUND, "JENKINS_NO_JOBS_FOUND_404", "등록된 Jenkins Job이 존재하지 않습니다."),
+    JENKINS_ALL_JOBS_FAILED(HttpStatus.BAD_GATEWAY, "JENKINS_ALL_JOBS_FAILED_502", "전체 Job의 빌드 조회에 실패했습니다."),
+    JENKINS_NO_FAILED_BUILDS(HttpStatus.NOT_FOUND, "JENKINS_NO_FAILED_BUILDS_404", "해당 Job에는 실패한 빌드가 없습니다."),
+    JENKINS_JOB_VERSION_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_JOB_VERSION_NOT_FOUND_404", "JobVersion이 존재하지 않습니다."),
+    JENKINS_BUILD_NOT_FAILED(HttpStatus.BAD_REQUEST, "JENKINS_BUILD_NOT_FAILED_400", "현재 빌드는 실패 상태가 아닙니다."),
+    JENKINS_VERSION_NOT_FOUND_IN_LOG(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_VERSION_NOT_FOUND_IN_LOG_500", "빌드 로그에서 설정 버전을 찾을 수 없습니다."),
+    JENKINS_SUCCESS_BUILD_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_SUCCESS_BUILD_NOT_FOUND_404", "성공한 빌드 이력을 찾을 수 없습니다."),
+    JENKINS_PIPELINE_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_PIPELINE_NOT_FOUND_404", "해당 파이프라인을 찾을 수 없습니다."),
+    JENKINS_PIPELINE_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_PIPELINE_HISTORY_NOT_FOUND_404", "지정한 파이프라인 버전 이력을 찾을 수 없습니다."),
 
 
     /**
-     * Jenkins/Job/FreeStyle 도메인에서 사용하는 ErrorCode
+     * Jenkins/Job 도메인에서 사용하는 ErrorCode
      */
-    JENKINS_FREESTYLE_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_FREESTYLE_NOT_FOUND_400", "해당 freestyle job이 존재하지 않습니다."),
+    JENKINS_FREESTYLE_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_FREESTYLE_HISTORY_NOT_FOUND_404", "해당 freestyle history가 존재하지 않습니다."),
+    JENKINS_NOT_SUPPORTED_TOOL(HttpStatus.BAD_REQUEST, "JENKINS_NOT_SUPPORTED_TOOL_400", "지원하지 않는 tool이거나 존재하지 않습니다."),
+    JENKINS_SCRIPT_NOT_FOUND(HttpStatus.BAD_REQUEST, "JENKINS_SCRIPT_NOT_FOUND_400", "Script 정보가 존재하지않습니다."),
+    JENKINS_SCRIPT_NOT_VALID(HttpStatus.BAD_REQUEST, "JENKINS_SCRIPT_NOT_VALID_400", "Script의 문법이 올바르지 않습니다."),
+    JENKINS_JOB_EXIST(HttpStatus.BAD_REQUEST, "JENKINS_JOB_EXIST_400", "Jenkins에 이미 동일한 이름의 Job이 존재합니다."),
+    CANNOT_DELETE_LATEST_VERSION(HttpStatus.BAD_REQUEST, "CANNOT_DELETE_LATEST_VERSION_400", "최신버전은 삭제 할 수 없습니다."),
+    NO_PREVIOUS_VERSION(HttpStatus.BAD_REQUEST, "NO_PREVIOUS_VERSION_400", "해당 파이프라인은 롤백할 이전버전이 없습니다."),
+    /**
+     * Jenkins/build 도메인에서 사용하는 ErrorCode
+     */
+    JENKINS_BUILD_TRIGGER_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_BUILD_TRIGGER_FAILED_500", "젠킨스 빌드 트리거에 실패했습니다."),
+    JENKINS_BUILD_HISTORY_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_BUILD_HISTORY_PARSE_ERROR_500", "빌드 이력 정보를 파싱하지 못했습니다."),
+    JENKINS_LATEST_BUILD_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_LATEST_BUILD_PARSE_ERROR_500", "최신 빌드 정보를 파싱하지 못했습니다."),
+    JENKINS_CONSOLE_LOG_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_CONSOLE_LOG_PARSE_ERROR_500", "콘솔 로그 파싱에 실패했습니다."),
+    JENKINS_STREAM_LOG_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_STREAM_LOG_FAILED_500", "스트리밍 로그 조회에 실패했습니다."),
+    JENKINS_CONFIG_XML_FETCH_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_CONFIG_XML_FETCH_FAILED_500", "config.xml 조회에 실패했습니다."),
+    JENKINS_CONFIG_XML_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_CONFIG_XML_UPDATE_FAILED_500", "config.xml 업데이트에 실패했습니다."),
+    JENKINS_XML_CRON_PARSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_XML_CRON_PARSE_ERROR_500", "cron 설정 XML 파싱에 실패했습니다."),
+    JENKINS_TRIGGER_SETTING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_TRIGGER_SETTING_FAILED_500", "Jenkins 트리거 셋팅 중 오류가 발생했습니다."),
+    JENKINS_JOB_TYPE_FAILED(HttpStatus.BAD_REQUEST, "JENKINS_JOB_TYPE_FAILED_400", "freestyle 또는 pipeline 파라미터가 필요합니다"),
 
-    ;
+    /**
+     * Jenkins/Job/Notification 도메인에서 사용하는 ErrorCode
+     */
+    JENKINS_NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_NOTIFICATION_NOT_FOUND_404", "해당 notification이 존재하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

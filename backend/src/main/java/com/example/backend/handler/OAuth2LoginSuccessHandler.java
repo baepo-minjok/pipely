@@ -40,8 +40,8 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         ResponseCookie cookie = cookieService.buildAccessCookie(accessToken);
         ResponseCookie refreshCookie = cookieService.buildRefreshCookie(refreshToken);
 
-        response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-        response.setHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-        response.sendRedirect("/");
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+        response.sendRedirect("http://localhost:5173/user/login");
     }
 }

@@ -1,5 +1,7 @@
 package com.example.backend.service;
 
+import com.example.backend.exception.CustomException;
+import com.example.backend.exception.ErrorCode;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,7 +56,7 @@ public class CookieService {
     }
 
     public String getCookieValue(HttpServletRequest request, String cookieName) {
-        if (request.getCookies() == null) return null;
+        if (request.getCookies() == null) throw new CustomException(ErrorCode.COOKIE_NOT_FOUND);
         for (Cookie cookie : request.getCookies()) {
             if (cookie.getName().equals(cookieName)) {
                 return cookie.getValue();
