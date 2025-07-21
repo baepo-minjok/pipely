@@ -58,7 +58,7 @@ public class JobController {
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid RequestDto.CreateDto requestDto
     ) {
-        pipelineService.createJob(requestDto);
+        pipelineService.createJob(requestDto, user.getName());
         return ResponseEntity.ok()
                 .body(BaseResponse.success("create job success"));
     }
@@ -89,7 +89,7 @@ public class JobController {
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid RequestDto.UpdateDto requestDto
     ) {
-        pipelineService.updateJob(requestDto);
+        pipelineService.updateJob(requestDto, user.getName());
         return ResponseEntity.ok()
                 .body(BaseResponse.success("update job success"));
     }

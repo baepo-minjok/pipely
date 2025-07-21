@@ -36,7 +36,7 @@ public class JobNotificationService {
 
 
     @Transactional
-    public List<JobNotification> createJobNotifications(List<RequestDto.createCredential> dtoList, JenkinsInfo info, UUID scriptId) {
+    public List<JobNotification> createJobNotifications(List<RequestDto.createCredential> dtoList, JenkinsInfo info, UUID scriptId, String userName) {
         List<JobNotification> savedNotifications = new ArrayList<>();
 
         for (RequestDto.createCredential dto : dtoList) {
@@ -56,30 +56,38 @@ public class JobNotificationService {
     }
 
     @Transactional
-    public List<JobNotification> syncJobNotifications(UUID pipelineId, List<RequestDto.updateCredential> incomingList, JenkinsInfo info, UUID scriptId) {
+    public List<JobNotification> syncJobNotifications(UUID pipelineId, List<RequestDto.updateCredential> incomingList, JenkinsInfo info, UUID scriptId, String userName) {
         List<JobNotification> existingList = notificationRepository.findByPipelineId(pipelineId);
+
         Map<String, JobNotification> existingMap = existingList.stream()
                 .collect(Collectors.toMap(JobNotification::getCredentialName, n -> n));
 
         List<JobNotification> result = new ArrayList<>();
 
         for (RequestDto.updateCredential dto : incomingList) {
-            JobNotification existing = existingMap.remove(dto.getCredentialName());
+            String credentialName = dto.getCredentialName();
+
+            JobNotification existing = credentialName != null
+                    ? existingMap.remove(credentialName)
+                    : null;
 
             if (existing == null) {
                 scriptRepository.findById(scriptId)
                         .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND));
 
-                String credentialName = dto.getCredentialName();
-                createCredential(info, credentialName, dto.getWebhookUrl());
+                String newCredentialName = credentialName != null
+                        ? credentialName
+                        : generateCredentialName(scriptId, dto.getChannel(), dto.getEventType());
 
-                JobNotification created = dto.toEntity(pipelineId, credentialName, scriptId);
+                createCredential(info, newCredentialName, dto.getWebhookUrl());
+
+                JobNotification created = dto.toEntity(pipelineId, newCredentialName, scriptId);
                 result.add(notificationRepository.save(created));
             } else {
                 boolean changed = false;
 
                 if (!Objects.equals(existing.getWebhookUrl(), dto.getWebhookUrl())) {
-                    updateCredential(info, dto.getCredentialName(), dto.getWebhookUrl());
+                    updateCredential(info, credentialName, dto.getWebhookUrl());
                     existing.setWebhookUrl(dto.getWebhookUrl());
                     changed = true;
                 }
@@ -106,10 +114,11 @@ public class JobNotificationService {
             deleteCredential(info, toDelete.getCredentialName());
             notificationRepository.delete(toDelete);
         }
+
         return result;
     }
 
-    public String createNotificationScript(String jobName, List<JobNotification> notifications) {
+    public String createNotificationScript(String jobName, List<JobNotification> notifications, String userName) {
         Mustache mustache = mf.compile("template/notificationScript.mustache");
 
         List<Map<String, Object>> notificationList = notifications.stream().map(n -> {
@@ -119,16 +128,14 @@ public class JobNotificationService {
             entry.put("webhookUrl", n.getWebhookUrl());
             entry.put("shouldNotify", Boolean.TRUE.equals(n.getShouldNotify()));
             entry.put("isSlack", n.getChannel() == JobNotification.Channel.SLACK);
-
-            String eventType = Optional.ofNullable(n.getEventType()).map(Enum::name).orElse("");
             entry.put("isBuildSuccess", n.getEventType() == JobNotification.EventType.BUILD_SUCCESS);
             entry.put("isBuildFail", n.getEventType() == JobNotification.EventType.BUILD_FAIL);
-
             return entry;
         }).collect(Collectors.toList());
 
         Map<String, Object> context = new HashMap<>();
         context.put("jobName", jobName != null ? jobName : "");
+        context.put("userName", userName != null ? userName : "Unknown");
         context.put("notifications", notificationList);
 
         StringWriter writer = new StringWriter();
@@ -217,8 +224,8 @@ public class JobNotificationService {
         httpClientService.exchange(url, HttpMethod.POST, request, String.class);
     }
 
-    public Script updateScriptWithJobNotifications(Script script, String jobName, List<JobNotification> notifications) {
-        String newPostBlock = createNotificationScript(jobName, notifications);
+    public Script updateScriptWithJobNotifications(Script script, String jobName, List<JobNotification> notifications, String userName) {
+        String newPostBlock = createNotificationScript(jobName, notifications, userName);
         String updatedScript = replacePostBlock(script.getScript(), newPostBlock);
         script.setScript(updatedScript);
         return scriptRepository.save(script);

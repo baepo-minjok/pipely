@@ -350,7 +350,11 @@ public class RequestDto {
     @Schema(name = "updateCredential", description = "Job 알림 수정 요청 DTO")
     public static class updateCredential {
 
-        @Schema(description = "알림 Credential 이름", example = "DISCORD_1472d5da_BUILD_SUCCESS_5850a9c6")
+        @Schema(
+                description = "알림 Credential 이름 (기존 알림 수정 시에만 필요, 신규 알림은 null)",
+                example = "DISCORD_1472d5da_BUILD_SUCCESS_5850a9c6",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String credentialName;
 
         @Schema(description = "알림 설명", example = "디스코드 빌드 성공 알림")

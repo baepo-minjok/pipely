@@ -13,7 +13,6 @@ import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
-import com.example.backend.jenkins.job.repository.ScriptRepository;
 import com.example.backend.jenkins.notification.model.JobNotification;
 import com.example.backend.jenkins.notification.repository.JobNotificationRepository;
 import com.example.backend.jenkins.notification.service.JobNotificationService;
@@ -44,7 +43,6 @@ public class PipelineService {
     private final JenkinsInfoService jenkinsInfoService;
     private final ConfigService configService;
     private final ScriptService scriptService;
-    private final ScriptRepository scriptRepository;
     private final ScriptEditUtil scriptEditUtil;
     private final PipelineRepository pipelineRepository;
     private final CompensationService compensationService;
@@ -57,7 +55,7 @@ public class PipelineService {
      * Create a new Jenkins job and persist the pipeline.
      */
     @Transactional
-    public void createJob(RequestDto.CreateDto dto) {
+    public void createJob(RequestDto.CreateDto dto, String userName) {
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
         ensureUniqueName(info.getId(), dto.getName());
 
@@ -66,14 +64,14 @@ public class PipelineService {
         List<JobNotification> savedNotifications = new ArrayList<>();
 
         if (dto.getNotificationList() != null && !dto.getNotificationList().isEmpty()) {
-            savedNotifications = jobNotificationService.createJobNotifications(dto.getNotificationList(), info, dto.getScriptId());
+            savedNotifications = jobNotificationService.createJobNotifications(dto.getNotificationList(), info, dto.getScriptId(), userName);
 
             List<JobNotification> toNotify = savedNotifications.stream()
                     .filter(JobNotification::getShouldNotify)
                     .collect(Collectors.toList());
 
             if (!toNotify.isEmpty()) {
-                script = jobNotificationService.updateScriptWithJobNotifications(script, dto.getName(), toNotify);
+                script = jobNotificationService.updateScriptWithJobNotifications(script, dto.getName(), toNotify, userName);
             }
         }
 
@@ -98,7 +96,7 @@ public class PipelineService {
      * Update an existing Jenkins job or recreate if renamed.
      */
     @Transactional
-    public void updateJob(RequestDto.UpdateDto dto) {
+    public void updateJob(RequestDto.UpdateDto dto, String userName) {
         Pipeline pipeline = getPipelineById(dto.getPipelineId());
         JenkinsInfo info = pipeline.getJenkinsInfo();
         String preName = pipeline.getName();
@@ -106,12 +104,12 @@ public class PipelineService {
 
         Script script = loadScript(dto.getScriptId());
 
-        jobNotificationService.syncJobNotifications(pipeline.getId(), dto.getNotificationList(), info, script.getId());
+        jobNotificationService.syncJobNotifications(pipeline.getId(), dto.getNotificationList(), info, script.getId(), userName);
 
         List<JobNotification> allToNotify = jobNotificationService.getEnabledNotifications(pipeline.getId());
 
         if (!allToNotify.isEmpty()) {
-            jobNotificationService.updateScriptWithJobNotifications(script, dto.getName(), allToNotify);
+            jobNotificationService.updateScriptWithJobNotifications(script, dto.getName(), allToNotify, userName);
         }
 
         String config = buildConfig(dto, script);
