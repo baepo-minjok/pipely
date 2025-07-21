@@ -111,27 +111,4 @@ public class ErrorController {
         FailedBuildSummary builds = errorService.summarizeBuildByJob(request, user.getId());
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
-
-    /*@Operation(
-            summary = "빌드 실패 롤백 재시도 (파이프라인)",
-            description = "Pipeline Job에서 가장 최근 실패 빌드를 마지막 성공 버전으로 롤백 후 재시도합니다."
-    )
-    @PostMapping("/retry")
-    public ResponseEntity<BaseResponse<String>> retryWithRollback(
-            @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid RetryDto request
-    ) {
-        errorService.retryWithRollback(request.getJobId(), user.getId());
-        return ResponseEntity.ok(BaseResponse.success("Retry with rollback triggered."));
-    }
-
-
-    @PostMapping("/retry/pipeline")
-    public ResponseEntity<BaseResponse<String>> retryWithRollbackByPipeline(
-            @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody RetryReqDto request
-    ) {
-        errorService.retryWithRollbackByPipeline(request.getJobId(), user.getId());
-        return ResponseEntity.ok(BaseResponse.success("Retry with rollback triggered."));
-    }*/
 }
