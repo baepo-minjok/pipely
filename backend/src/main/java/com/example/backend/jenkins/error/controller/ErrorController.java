@@ -11,10 +11,12 @@ import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuild;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuildSummary;
 import com.example.backend.jenkins.error.service.ErrorService;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
+import com.example.backend.jenkins.job.service.VersionService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/jenkins-error")
@@ -29,6 +32,7 @@ import java.util.List;
 public class ErrorController {
 
     private final ErrorService errorService;
+    private final VersionService versionService;
 
     @Operation(
             summary = "특정 Job의 최근 빌드 조회",
@@ -111,4 +115,18 @@ public class ErrorController {
         FailedBuildSummary builds = errorService.summarizeBuildByJob(request, user.getId());
         return ResponseEntity.ok(BaseResponse.success(builds));
     }
+
+    @Operation(
+            summary = "실패한 Job을 직전 성공한 버전으로 롤백",
+            description = "최근 빌드가 실패한 Job을 가장 마지막으로 성공한 버전(PipelineVersion)으로 롤백합니다."
+    )
+    @PostMapping("/rollback/last-success")
+    public ResponseEntity<BaseResponse<String>> rollbackToLastSuccessVersion(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestBody @Valid ErrorRequestDto.JobDto request
+    ) {
+        errorService.rollbackToLastSuccessfulVersion(request.getJobId(), user.getId());
+        return ResponseEntity.ok(BaseResponse.success("최근 성공한 버전으로 롤백 완료"));
+    }
+
 }
