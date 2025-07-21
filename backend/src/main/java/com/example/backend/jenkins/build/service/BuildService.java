@@ -16,14 +16,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -33,28 +38,6 @@ public class BuildService {
     private final HttpClientService httpClientService;
     private final PipelineService pipelineService;
     private final XmlConfigParser xmlConfigParser;
-
-    /**
-     * 빌드 이력(최신 또는 전체) 정보를 조회한다.
-     *
-     * @param dto 빌드 이력 조회 요청 DTO (jobType, jobId 포함)
-     * @return ResponseEntity<?> 최신 빌드 또는 전체 이력 정보 반환
-     */
-    public ResponseEntity<?> getBuildInfo(BuildRequestDto.getBuildHistory dto) {
-        Pipeline pipeline = pipelineService.getPipelineById(dto.getJobId());
-        log.info("빌드 정보 요청 - jobName: {}, jobType: {}", pipeline.getName(), dto.getJobType());
-        try {
-            return switch (dto.getJobType()) {
-                case LATEST -> ResponseEntity.ok(getLastBuildStatus(dto.getJobId()));
-                case HISTORY -> ResponseEntity.ok(getBuildHistory(dto.getJobId()));
-            };
-        } catch (CustomException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("빌드 정보 조회 실패 - jobName: {}", pipeline.getName(), e);
-            throw new CustomException(ErrorCode.JENKINS_SERVER_ERROR);
-        }
-    }
 
     /**
      * Jenkins 파이프라인의 특정 스테이지 실행을 트리거한다.

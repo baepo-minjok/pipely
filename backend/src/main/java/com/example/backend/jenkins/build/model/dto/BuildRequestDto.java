@@ -3,10 +3,12 @@ package com.example.backend.jenkins.build.model.dto;
 import com.example.backend.jenkins.build.model.JobType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class BuildRequestDto {
@@ -26,29 +28,9 @@ public class BuildRequestDto {
         private List<String> stageBuilds;
 
         @Schema(
-                description = "파이프라인 UUID",
+                description = "job의 ID",
                 example = "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                 requiredMode = RequiredMode.REQUIRED
-        )
-        private UUID jobId;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Schema(description = "스테이지 설정 요청 DTO")
-    public static class StageSettingRequestDto {
-
-        @Schema(
-                description = "스테이지 목록",
-                example = "[\"BUILD\", \"TEST\", \"DEPLOY\"]"
-        )
-        private List<String> stage;
-
-        @Schema(
-                description = "파이프라인 UUID",
-                example = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
         )
         private UUID jobId;
     }
@@ -67,7 +49,7 @@ public class BuildRequestDto {
         private String buildNumber;
 
         @Schema(
-                description = "파이프라인 UUID",
+                description = "job의 ID",
                 example = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
         )
         private UUID jobId;
@@ -88,7 +70,7 @@ public class BuildRequestDto {
         private JobType jobType;
 
         @Schema(
-                description = "파이프라인 UUID",
+                description = "job의 ID",
                 example = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
         )
         private UUID jobId;
