@@ -49,13 +49,17 @@ const jobList = ref([
     buildState: 'FAILED',
   },
 ]);
+
+const handleCreateClick = () => {
+  router.push('/job/create');
+};
 </script>
 
 <template>
   <div class="container">
     <div class="header">
       <h1>Job 목록</h1>
-      <button class="create_job_btn">+ 새 Job 생성</button>
+      <button class="create_job_btn" @click="handleCreateClick">+ 새 Job 생성</button>
     </div>
     <div class="job_list">
       <JobCard v-for="job in jobList" @click="router.push(`/job/${job.idx}`)" />
