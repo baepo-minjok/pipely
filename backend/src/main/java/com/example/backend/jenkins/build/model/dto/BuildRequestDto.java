@@ -1,6 +1,5 @@
 package com.example.backend.jenkins.build.model.dto;
 
-import com.example.backend.jenkins.build.model.JobType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
 import lombok.AllArgsConstructor;
@@ -55,24 +54,5 @@ public class BuildRequestDto {
         private UUID jobId;
     }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Schema(description = "빌드 이력 조회 요청 DTO")
-    public static class getBuildHistory {
 
-        @Schema(
-                description = "Job 유형 (예: LATEST, ALL)",
-                example = "LATEST",
-                allowableValues = {"LATEST", "HISTORY"}
-        )
-        private JobType jobType;
-
-        @Schema(
-                description = "job의 ID",
-                example = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-        )
-        private UUID jobId;
-    }
 }
