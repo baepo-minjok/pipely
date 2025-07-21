@@ -49,8 +49,7 @@ public class Users {
     @Schema(description = "암호화된 비밀번호 (BCrypt로 저장됨)",
             example = "$2a$10$abcdefg...", requiredMode = Schema.RequiredMode.REQUIRED)
     private String password;
-
-    @Column(nullable = false)
+    
     @Schema(description = "휴대폰 번호 (연락처 정보)",
             example = "010-1234-5678", requiredMode = Schema.RequiredMode.REQUIRED)
     private String phoneNumber;
