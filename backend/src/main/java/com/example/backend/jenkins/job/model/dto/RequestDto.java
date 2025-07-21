@@ -77,6 +77,9 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String schedule;
+
+        @Schema(description = "Job 알림 설정 리스트")
+        private List<NotificationDto> notificationList;
     }
 
     @Data
@@ -259,13 +262,6 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
         private UUID infoId;
-
-        @Schema(
-                description = "Job 생성 시 함께 등록할 알림 설정 리스트",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private List<createCredential> notificationList;
-
     }
 
     @EqualsAndHashCode(callSuper = true)
@@ -282,13 +278,6 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
         private UUID pipelineId;
-
-        @Schema(
-                description = "Job 수정 시 함께 수정/삭제/추가할 알림 설정 리스트",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private List<updateCredential> notificationList;
-
     }
 
     @Data
@@ -313,48 +302,10 @@ public class RequestDto {
     }
 
     @Data
-    @Schema(name = "CreateCredentialDto", description = "Job 알림 생성 요청 DTO")
-    public static class createCredential {
+    @Schema(name = "NotificationDto", description = "Job 알림 생성/수정 DTO")
+    public static class NotificationDto {
 
-        @Schema(description = "알림 설명", example = "디스코드 빌드 성공 알림")
-        private String name;
-
-        @Schema(description = "이벤트 유형", example = "BUILD_SUCCESS")
-        private JobNotification.EventType eventType;
-
-        @Schema(description = "알림 채널", example = "DISCORD")
-        private JobNotification.Channel channel;
-
-        @Schema(description = "Webhook URL", example = "https://discord.com/api/webhooks/...")
-        private String webhookUrl;
-
-        @Schema(description = "알림 여부", example = "true")
-        private Boolean shouldNotify;
-
-        public JobNotification toEntity(UUID pipelineId, String credentialName, UUID scriptId) {
-            return JobNotification.builder()
-                    .pipelineId(pipelineId)
-                    .scriptId(scriptId)
-                    .name(this.name)
-                    .createdAt(LocalDateTime.now())
-                    .shouldNotify(this.shouldNotify)
-                    .channel(this.channel)
-                    .webhookUrl(this.webhookUrl)
-                    .eventType(this.eventType)
-                    .credentialName(credentialName)
-                    .build();
-        }
-    }
-
-    @Data
-    @Schema(name = "updateCredential", description = "Job 알림 수정 요청 DTO")
-    public static class updateCredential {
-
-        @Schema(
-                description = "알림 Credential 이름 (기존 알림 수정 시에만 필요, 신규 알림은 null)",
-                example = "DISCORD_1472d5da_BUILD_SUCCESS_5850a9c6",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
+        @Schema(description = "알림 Credential 이름 (기존 알림 수정 시에만 필요, 신규 알림은 null)")
         private String credentialName;
 
         @Schema(description = "알림 설명", example = "디스코드 빌드 성공 알림")
@@ -374,14 +325,14 @@ public class RequestDto {
 
         public JobNotification toEntity(UUID pipelineId, String credentialName, UUID scriptId) {
             return JobNotification.builder()
-                    .credentialName(credentialName)
                     .pipelineId(pipelineId)
                     .scriptId(scriptId)
+                    .credentialName(credentialName)
                     .name(this.name)
-                    .channel(this.channel)
-                    .eventType(this.eventType)
-                    .webhookUrl(this.webhookUrl)
                     .shouldNotify(this.shouldNotify)
+                    .channel(this.channel)
+                    .webhookUrl(this.webhookUrl)
+                    .eventType(this.eventType)
                     .createdAt(LocalDateTime.now())
                     .build();
         }
