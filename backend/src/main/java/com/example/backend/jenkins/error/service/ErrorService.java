@@ -2,6 +2,8 @@ package com.example.backend.jenkins.error.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
+import com.example.backend.jenkins.build.service.BuildService;
 import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JobSummaryDto;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuild;
@@ -9,9 +11,12 @@ import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuildS
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.service.PipelineService;
+import com.example.backend.jenkins.job.service.VersionService;
 import com.example.backend.service.HttpClientService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -19,10 +24,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -31,11 +33,9 @@ public class ErrorService {
     private final JenkinsInfoRepository jenkinsInfoRepository;
     private final HttpClientService httpClientService;
     private final LlmService llmService;
-
-    private final int maxRetryCount = 3;
-    private final int retryIntervalSeconds = 120;
-    private final PipelineRepository pipelineRepository;
+    private final VersionService versionService;
     private final PipelineService pipelineService;
+    private final BuildService buildService;
 
     public JenkinsInfo getJenkinsInfoByIdAndUser(UUID infoId, UUID userId) {
         return jenkinsInfoRepository.findById(infoId)
@@ -224,4 +224,28 @@ public class ErrorService {
 
         return failedBuilds;
     }
+
+    @Transactional
+    public void rollbackToLastSuccessfulVersion(UUID pipelineId, UUID userId) {
+        Pipeline pipeline = getVerifiedJobWithPipeline(pipelineId, userId);
+
+        // BuildService 통해 마지막 성공 빌드 가져오기
+        BuildResponseDto.BuildInfo lastSuccess = buildService.getBuildHistory(pipelineId).stream()
+                .filter(b -> "SUCCESS".equalsIgnoreCase(b.getStatus()))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_BUILD_INFO_MISSING));
+
+        // 현재 latest 제외한 이전 PipelineVersion 중 가장 최근 찾기
+        UUID latestId = pipeline.getLatestVersionId();
+        List<PipelineVersion> versions = pipeline.getVersionList();
+
+        PipelineVersion target = versions.stream()
+                .filter(v -> !v.getId().equals(latestId))
+                .max(Comparator.comparing(PipelineVersion::getCreatedAt))
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_BUILD_HISTORY_PARSE_ERROR));
+
+        // rollbackToSnapshot 재사용
+        versionService.rollbackToSnapshot(target.getId());
+    }
+
 }
