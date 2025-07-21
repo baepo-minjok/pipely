@@ -58,7 +58,7 @@ public class JobController {
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid RequestDto.CreateDto requestDto
     ) {
-        pipelineService.createJob(requestDto);
+        pipelineService.createJob(requestDto, user.getName());
         return ResponseEntity.ok()
                 .body(BaseResponse.success("create job success"));
     }
@@ -85,12 +85,12 @@ public class JobController {
             description = "수정할 Job 정보"
     )
     @PreAuthorize("@pipelineService.isOwner(#user, #requestDto.pipelineId)")
-    @PutMapping
+    @PutMapping("/update")
     public ResponseEntity<BaseResponse<String>> update(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid RequestDto.UpdateDto requestDto
     ) {
-        pipelineService.updateJob(requestDto);
+        pipelineService.updateJob(requestDto, user.getName());
         return ResponseEntity.ok()
                 .body(BaseResponse.success("update job success"));
     }

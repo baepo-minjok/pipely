@@ -9,11 +9,7 @@ import java.util.UUID;
 
 public interface JobNotificationRepository extends JpaRepository<JobNotification, String> {
 
-    List<JobNotification> findByScriptIdAndShouldNotify(UUID scriptId, boolean shouldNotify);
+    List<JobNotification> findByPipelineId(UUID pipelineId);
 
-    List<JobNotification> findByPipeline_JenkinsInfo_User_IdAndPipeline_Id(UUID userId, UUID jobId);
-
-    Optional<JobNotification> findByCredentialName(String credentialName);
-
-    List<JobNotification> findAllByScriptIdAndShouldNotifyTrue(UUID scriptId);
+    List<JobNotification> findByPipelineIdAndShouldNotifyTrue(UUID pipelineId);
 }

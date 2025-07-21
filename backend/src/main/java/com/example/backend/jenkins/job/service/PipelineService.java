@@ -12,6 +12,9 @@ import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
+import com.example.backend.jenkins.notification.model.JobNotification;
+import com.example.backend.jenkins.notification.repository.JobNotificationRepository;
+import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,21 +41,45 @@ public class PipelineService {
     private final CompensationService compensationService;
     private final StageService stageService;
     private final PipelineVersionRepository pipelineVersionRepository;
+    private final JobNotificationService jobNotificationService;
+    private final JobNotificationRepository jobNotificationRepository;
 
     /**
      * Create a new Jenkins job and persist the pipeline.
      */
     @Transactional
-    public void createJob(RequestDto.CreateDto dto) {
+    public void createJob(RequestDto.CreateDto dto, String userName) {
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
         ensureUniqueName(info.getId(), dto.getName());
 
         Script script = loadScript(dto.getScriptId());
+
+        List<JobNotification> savedNotifications = new ArrayList<>();
+
+        if (dto.getNotificationList() != null && !dto.getNotificationList().isEmpty()) {
+            savedNotifications = jobNotificationService.createJobNotifications(dto.getNotificationList(), info, dto.getScriptId(), userName);
+
+            List<JobNotification> toNotify = savedNotifications.stream()
+                    .filter(JobNotification::getShouldNotify)
+                    .collect(Collectors.toList());
+
+            if (!toNotify.isEmpty()) {
+                script = jobNotificationService.updateScriptWithJobNotifications(script, dto.getName(), toNotify, userName);
+            }
+        }
+
         String config = buildConfig(dto, script);
         String name = "Initial Version";
 
         //파이프라인 & 파이프라인 버전 저장
         Pipeline pipeline = savePipeline(dto, info, script, config, name);
+
+        if (!savedNotifications.isEmpty()) {
+            for (JobNotification notification : savedNotifications) {
+                notification.setPipelineId(pipeline.getId());
+            }
+            jobNotificationRepository.saveAll(savedNotifications);
+        }
 
         httpClientService.callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
                 config, info, HttpMethod.POST,
@@ -62,7 +90,7 @@ public class PipelineService {
      * Update an existing Jenkins job or recreate if renamed.
      */
     @Transactional
-    public void updateJob(RequestDto.UpdateDto dto) {
+    public void updateJob(RequestDto.UpdateDto dto, String userName) {
         Pipeline pipeline = getPipelineById(dto.getPipelineId());
         PipelineVersion version = getPipelineVersionById(pipeline.getLatestVersionId());
 
@@ -71,6 +99,15 @@ public class PipelineService {
         boolean isRenamed = isRenamed(preName, dto);
 
         Script script = loadScript(dto.getScriptId());
+
+        jobNotificationService.syncJobNotifications(pipeline.getId(), dto.getNotificationList(), info, script.getId(), userName);
+
+        List<JobNotification> allToNotify = jobNotificationService.getEnabledNotifications(pipeline.getId());
+
+        if (!allToNotify.isEmpty()) {
+            jobNotificationService.updateScriptWithJobNotifications(script, dto.getName(), allToNotify, userName);
+        }
+
         String config = buildConfig(dto, script);
         applyPipelineChanges(pipeline, dto, script, config);
 
@@ -124,7 +161,10 @@ public class PipelineService {
     }
 
     public ResponseDto.DetailJobDto getDetailJob(UUID jobId) {
-        return ResponseDto.entityToDetailJobDto(getPipelineById(jobId));
+        Pipeline pipeline = getPipelineById(jobId);
+        List<JobNotification> notifications = jobNotificationRepository.findByPipelineId(jobId);
+
+        return ResponseDto.entityToDetailJobDto(pipeline, notifications);
     }
 
     public boolean isOwner(Users user, UUID pipelineId) {
