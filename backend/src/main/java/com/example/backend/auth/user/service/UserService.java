@@ -71,7 +71,12 @@ public class UserService {
     public void registerUser(String registrationId, OAuth2User oauth2User) {
         Map<String, Object> attributes = oauth2User.getAttributes();
         String email = attributes.get("email").toString();
-        String name = attributes.get("name").toString();
+        String name;
+        if (registrationId.equals("github")) {
+            name = attributes.get("login").toString();
+        } else {
+            name = attributes.get("name").toString();
+        }
 
         log.info("[Register-OAuth2] {} 회원가입 시도: email={}", registrationId, email);
 
