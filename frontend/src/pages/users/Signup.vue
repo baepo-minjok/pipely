@@ -1,7 +1,30 @@
 <script setup>
-import { ref, watch } from 'vue';
+import {ref, watch} from 'vue';
+import {useRouter} from "vue-router";
+import {userApi} from "@/api/UserApi.js";
 
-const phoneValue = ref('');
+const router = useRouter();
+
+// form 객체
+const name = ref("");
+const email = ref("");
+const password = ref("");
+const phoneValue = ref("");
+const passwordCheck = ref("");
+
+// 이메일 관련 메시지
+const emailSuccess = ref(false);
+const emailSuccessMsg = ref("");
+
+// 에러메시지
+const nameError = ref("");
+const emailError = ref("");
+const passwordError = ref("");
+const phoneError = ref("");
+const passwordCheckError = ref("");
+
+// 로그인 UI 관리
+const isLoading = ref(false);
 
 const handlePress = (e) => {
   let numbersOnly = e.target.value.replace(/\D/g, '');
@@ -26,55 +49,203 @@ watch(phoneValue, (newVal, _oldVal) => {
     phoneValue.value = newVal.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
   }
 });
+
+function isValidPassword(pw) {
+  // 10자 이상, 대문자 1개 이상, 특수문자 1개 이상
+  return /^(?=.*[A-Z])(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>\/?]).{10,}$/.test(pw);
+}
+
+const checkEmail = () => {
+  if (!email.value) {
+    emailError.value = "이메일을 입력해주세요.";
+    return false;
+  } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/.test(email.value)) {
+    emailError.value = "올바른 이메일 주소를 입력해주세요.";
+    return false;
+  }
+  return true;
+}
+
+const signUp = async () => {
+  // 에러 초기화
+  nameError.value = "";
+  emailError.value = "";
+  passwordError.value = "";
+  phoneError.value = "";
+  passwordCheckError.value = "";
+  emailSuccessMsg.value = "";
+
+  let valid = true;
+
+  // 이름
+  if (!name.value.trim()) {
+    nameError.value = "이름을 입력해주세요.";
+    valid = false;
+  }
+
+  if (!emailSuccess.value) {
+    emailError.value = "이메일 중복확인을 해주세요.";
+    valid = false;
+  }
+
+  // 이메일
+  valid = checkEmail();
+
+  // 비밀번호
+  if (!password.value) {
+    passwordError.value = "비밀번호를 입력해주세요.";
+    valid = false;
+  } else if (!isValidPassword(password.value)) {
+    passwordError.value = "비밀번호는 10자 이상, 대문자와 특수문자를 각각 1개 이상 포함해야 합니다.";
+    valid = false;
+  }
+
+  // 비밀번호 확인
+  if (!passwordCheck.value) {
+    passwordCheckError.value = "비밀번호 확인을 입력해주세요.";
+    valid = false;
+  } else if (passwordCheck.value !== password.value) {
+    passwordCheckError.value = "비밀번호가 일치하지 않습니다.";
+    valid = false;
+  }
+
+  // 전화번호
+  const onlyNumberPhone = phoneValue.value.replace(/\D/g, "");
+  if (!onlyNumberPhone) {
+    phoneError.value = "전화번호를 입력해주세요.";
+    valid = false;
+  } else if (onlyNumberPhone.length < 10 || onlyNumberPhone.length > 11) {
+    phoneError.value = "전화번호를 정확히 입력해주세요.";
+    valid = false;
+  }
+
+  if (!valid) return;
+
+  isLoading.value = true;
+
+  const signUpRequest = {
+    name: name.value,
+    email: email.value,
+    password: password.value,
+    phoneNumber: phoneValue.value,
+  };
+
+  const response = await userApi.signup(signUpRequest);
+
+  if (response.status === 200) {
+    alert("회원가입 성공!\n인증 이메일이 발송되었습니다!");
+    router.push({name: "Login"});
+  } else {
+    alert("회원가입 실패!");
+    name.value = "";
+    phoneValue.value = "";
+    password.value = "";
+    email.value = "";
+    passwordCheck.value = "";
+  }
+  isLoading.value = false;
+  emailSuccess.value = false;
+};
+
+const checkDuplicate = async () => {
+  emailSuccessMsg.value = "";
+  emailError.value = "";
+
+  let valid = true;
+
+  // 이메일
+  valid = checkEmail();
+
+  if (!valid) return;
+
+  const response = await userApi.checkDuplicate(email.value);
+
+  if (response.status === 200) {
+    emailSuccess.value = true;
+    emailSuccessMsg.value = "사용가능한 이메일입니다.";
+  } else {
+    emailError.value = "사용할 수 없는 이메일입니다.";
+  }
+};
+const googleSignUp = () => {
+  window.location.href = "http://localhost:8080/oauth2/authorization/google";
+};
+
+const githubSignUp = () => {
+  window.location.href = "http://localhost:8080/oauth2/authorization/github";
+}
+
 </script>
 
 <template>
   <div class="container">
     <div class="left_wrapper">
-      <img src="/src/assets/images/logo.png" alt="logo" />
+      <img alt="logo" src="/src/assets/images/logo.png"/>
       <h3>처음 오셨군요! 👋</h3>
       <p>
-        이제부터 배포는 더 쉽고, 더 똑똑해집니다. <br />
+        이제부터 배포는 더 쉽고, 더 똑똑해집니다. <br/>
         당신의 DevOps 여정에 AI가 함께합니다.
       </p>
-      <router-link to="/user/login" class="btn login_btn">로그인</router-link>
+      <router-link class="btn login_btn" to="/user/login">로그인</router-link>
     </div>
 
     <div class="right_wrapper">
       <h1>Sign Up</h1>
-      <form class="signup_box">
+      <form class="signup_box" @submit.prevent="signUp">
+        <input id="name" v-model="name"
+               :class="['input_box', nameError ? 'input_box--error' : '']" name="name" placeholder="이름을 입력해주세요."/>
+        <p v-if="nameError" class="input-error">{{ nameError }}</p>
+
         <div class="email_box">
-          <input type="email" id="email" name="email" class="input_box" placeholder="이메일 주소를 입력해주세요." />
-          <button class="btn">중복 확인</button>
+          <input id="email" v-model="email"
+                 :class="['input_box', emailError ? 'input_box--error' : '', emailSuccess ? 'input_box--success' : '']"
+                 :readonly="emailSuccess" name="email"
+                 placeholder="이메일 주소를 입력해주세요."
+                 type="email"/>
+          <button :disabled="emailSuccess" class="btn" type="button" @click="checkDuplicate">중복 확인</button>
         </div>
-        <input type="password" id="password" name="password" class="input_box" placeholder="비밀번호를 입력해주세요." />
+        <p v-if="emailError" class="input-error">{{ emailError }}</p>
+        <p v-if="emailSuccessMsg" class="input-success">{{ emailSuccessMsg }}</p>
+
+        <input id="password" v-model="password"
+               :class="['input_box', passwordError ? 'input_box--error' : '']" name="password"
+               placeholder="비밀번호를 입력해주세요.(10자리 이상, 대문자 1개, 특수문자 1개 포함)"
+               type="password"/>
+        <p v-if="passwordError" class="input-error">{{ passwordError }}</p>
+
         <input
-          type="password"
-          id="password_check"
-          name="password_check"
-          class="input_box"
-          placeholder="비밀번호를 확인해주세요."
+            id="password_check"
+            v-model="passwordCheck"
+            :class="['input_box', passwordCheckError ? 'input_box--error' : '']"
+            name="password_check"
+            placeholder="비밀번호를 다시 입력해주세요."
+            type="password"
         />
+        <p v-if="passwordCheckError" class="input-error">{{ passwordCheckError }}</p>
+
         <input
-          type="tel"
-          id="phone"
-          name="phone"
-          class="input_box"
-          maxlength="13"
-          placeholder="010-1234-5678"
-          :value="phoneValue"
-          @input="handlePress"
-          required
+            id="phone"
+            v-model="phoneValue"
+            :class="['input_box', phoneError ? 'input_box--error' : '']"
+            maxlength="13"
+            name="phone"
+            placeholder="010-1234-5678"
+            type="tel"
+            @input="handlePress"
         />
-        <button class="btn signup_btn">회원가입</button>
-        <p>또는</p>
-        <button class="oauth_btn">
-          <img src="/src/assets/images/google_logo.png" alt="google" />
-          Google로 로그인
+        <p v-if="phoneError" class="input-error">{{ phoneError }}</p>
+
+        <button :disabled="isLoading" class="btn signup_btn" type="submit">
+          {{ isLoading ? '회원가입중..' : '회원가입' }}
         </button>
-        <button class="oauth_btn">
-          <img src="/src/assets/images/github_logo.png" alt="github" />
-          Github로 로그인
+        <p>또는</p>
+        <button class="oauth_btn" @click="githubSignUp">
+          <img alt="google" src="/src/assets/images/google_logo.png"/>
+          Google로 회원가입
+        </button>
+        <button class="oauth_btn" @click="githubSignUp">
+          <img alt="github" src="/src/assets/images/github_logo.png"/>
+          Github로 회원가입
         </button>
       </form>
     </div>
@@ -97,6 +268,41 @@ watch(phoneValue, (newVal, _oldVal) => {
   align-items: center;
   background-color: var(--main-color-bg);
   gap: 20px;
+}
+
+.input-error {
+  color: #ff5555;
+  font-size: 10px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  width: 100%;
+  text-align: left;
+}
+
+.input-success {
+  color: #0f8713;
+  font-size: 10px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  width: 100%;
+  text-align: left;
+}
+
+.btn[disabled] {
+  color: #bbb;
+  cursor: not-allowed;
+}
+
+.input_box--error {
+  border: 1.5px solid #ff7b7b !important;
+  background-color: #fff5f5;
+  transition: border-color 0.2s;
+}
+
+.input_box--success {
+  border: 1.5px solid #0f8713 !important;
+  background-color: #e7ffe5;
+  transition: border-color 0.2s;
 }
 
 .left_wrapper > img {

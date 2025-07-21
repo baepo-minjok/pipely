@@ -156,4 +156,10 @@ public class UserService {
         user.setStatus(Users.UserStatus.ACTIVE);
         userRepository.save(user);
     }
+
+    public void checkDuplicate(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new CustomException(ErrorCode.USER_EMAIL_DUPLICATED);
+        }
+    }
 }

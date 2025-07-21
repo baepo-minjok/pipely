@@ -10,7 +10,7 @@ import JobList from '../pages/jobs/JobList.vue';
 
 const routes = [
     {path: '/', component: Main, name: 'Main'},
-    {path: '/user/login', component: Login},
+    {path: '/user/login', component: Login, name: 'Login'},
     {path: '/user/signup', component: Signup},
     {path: '/user/find/password', component: FindPassword},
     {path: '/mypage', component: Mypage},
