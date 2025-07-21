@@ -36,10 +36,10 @@ public class JobNotificationService {
 
 
     @Transactional
-    public List<JobNotification> createJobNotifications(List<RequestDto.createCredential> dtoList, JenkinsInfo info, UUID scriptId, String userName) {
+    public List<JobNotification> createJobNotifications(List<RequestDto.NotificationDto> dtoList, JenkinsInfo info, UUID scriptId) {
         List<JobNotification> savedNotifications = new ArrayList<>();
 
-        for (RequestDto.createCredential dto : dtoList) {
+        for (RequestDto.NotificationDto dto : dtoList) {
             Script script = scriptRepository.findById(scriptId)
                     .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND));
 
@@ -56,7 +56,7 @@ public class JobNotificationService {
     }
 
     @Transactional
-    public List<JobNotification> syncJobNotifications(UUID pipelineId, List<RequestDto.updateCredential> incomingList, JenkinsInfo info, UUID scriptId, String userName) {
+    public List<JobNotification> syncJobNotifications(UUID pipelineId, List<RequestDto.NotificationDto> incomingList, JenkinsInfo info, UUID scriptId) {
         List<JobNotification> existingList = notificationRepository.findByPipelineId(pipelineId);
 
         Map<String, JobNotification> existingMap = existingList.stream()
@@ -64,7 +64,7 @@ public class JobNotificationService {
 
         List<JobNotification> result = new ArrayList<>();
 
-        for (RequestDto.updateCredential dto : incomingList) {
+        for (RequestDto.NotificationDto dto : incomingList) {
             String credentialName = dto.getCredentialName();
 
             JobNotification existing = credentialName != null

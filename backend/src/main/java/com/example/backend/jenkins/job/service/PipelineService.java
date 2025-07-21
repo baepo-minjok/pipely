@@ -57,7 +57,7 @@ public class PipelineService {
         List<JobNotification> savedNotifications = new ArrayList<>();
 
         if (dto.getNotificationList() != null && !dto.getNotificationList().isEmpty()) {
-            savedNotifications = jobNotificationService.createJobNotifications(dto.getNotificationList(), info, dto.getScriptId(), userName);
+            savedNotifications = jobNotificationService.createJobNotifications(dto.getNotificationList(), info, dto.getScriptId());
 
             List<JobNotification> toNotify = savedNotifications.stream()
                     .filter(JobNotification::getShouldNotify)
@@ -100,7 +100,7 @@ public class PipelineService {
 
         Script script = loadScript(dto.getScriptId());
 
-        jobNotificationService.syncJobNotifications(pipeline.getId(), dto.getNotificationList(), info, script.getId(), userName);
+        jobNotificationService.syncJobNotifications(pipeline.getId(), dto.getNotificationList(), info, script.getId());
 
         List<JobNotification> allToNotify = jobNotificationService.getEnabledNotifications(pipeline.getId());
 
