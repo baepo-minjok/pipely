@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -163,4 +164,13 @@ public class UserController {
                 .body(BaseResponse.success("withdraw success"));
     }
 
+
+    @GetMapping("/duplicate")
+    public ResponseEntity<BaseResponse<String>> duplicate(
+            @RequestParam @NotBlank String email
+    ) {
+        userService.checkDuplicate(email);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("available"));
+    }
 }
