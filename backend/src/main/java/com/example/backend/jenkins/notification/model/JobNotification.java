@@ -33,10 +33,10 @@ public class JobNotification {
     @Schema(description = "연결된 파이프라인 ID (Pipeline Entity의 UUID)", example = "4fd7a1a1-c209-44a2-b18e-b3e8c73eeb82", requiredMode = Schema.RequiredMode.REQUIRED)
     private UUID pipelineId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pipeline_id", referencedColumnName = "id", insertable = false, updatable = false)
-    @Schema(description = "연결된 Pipeline 엔티티 객체 (읽기 전용)", hidden = true)
-    private Pipeline pipeline;
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "pipeline_id", referencedColumnName = "id", insertable = false, updatable = false)
+//    @Schema(description = "연결된 Pipeline 엔티티 객체 (읽기 전용)", hidden = true)
+//    private Pipeline pipeline;
 
     @Column(name = "script_id", nullable = false)
     @Schema(description = "스크립트 식별자 (Script UUID)", example = "2de67452-b4aa-46b0-9e3d-523db27c43c4", requiredMode = Schema.RequiredMode.REQUIRED)
