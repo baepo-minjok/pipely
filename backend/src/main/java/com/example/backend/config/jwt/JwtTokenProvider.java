@@ -14,6 +14,8 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -79,6 +81,22 @@ public class JwtTokenProvider {
                 .compact();
     }
 
+    public String createOAuth2Token(OAuth2User oauth2User, String registrationId) {
+
+        Map<String, Object> attributes = oauth2User.getAttributes();
+
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + accessExpiration);
+
+        return Jwts.builder()
+                .setSubject(registrationId)
+                .setClaims(attributes)
+                .setIssuedAt(now)
+                .setExpiration(expiry)
+                .signWith(SignatureAlgorithm.HS256, secret)
+                .compact();
+    }
+
     public boolean validateToken(String token) {
         try {
             Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
@@ -98,5 +116,21 @@ public class JwtTokenProvider {
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
         return new UsernamePasswordAuthenticationToken(
                 userDetails, "", userDetails.getAuthorities());
+    }
+
+    public String getRegistrationId(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(secret)
+                .parseClaimsJws(token)
+                .getBody();
+        return claims.getSubject();
+    }
+
+    public Map<String, Object> getClaims(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(secret)
+                .parseClaimsJws(token)
+                .getBody();
+        return new HashMap<>(claims);
     }
 }

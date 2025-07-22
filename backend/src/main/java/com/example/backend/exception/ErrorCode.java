@@ -58,7 +58,7 @@ public enum ErrorCode {
     USER_PASSWORD_RESET_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "USER_PASSWORD_RESET_TOKEN_INVALID_401", "유효하지 않은 토큰입니다."),
     USER_DORMANT_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "USER_DORMANT_TOKEN_INVALID_401", "유효하지 않은 재활성화 토큰입니다."),
     USER_DORMANT_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "USER_DORMANT_TOKEN_EXPIRED_401", "휴면 재활성화 토큰이 만료되었습니다."),
-
+    USER_OAUTH2_TOKEN_INVALID(HttpStatus.BAD_REQUEST, "USER_OAUTH2_TOKEN_INVALID_400", "유효하지않은 토큰입니다."),
     /**
      * Auth/Email 도메인에서 사용하는 ErrorCode
      */

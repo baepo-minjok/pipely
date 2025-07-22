@@ -3,6 +3,7 @@ package com.example.backend.auth.user.controller;
 import com.example.backend.auth.token.service.RefreshTokenService;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.auth.user.model.dto.UserRequestDto.LoginRequest;
+import com.example.backend.auth.user.model.dto.UserRequestDto.OAuth2SignupDto;
 import com.example.backend.auth.user.model.dto.UserRequestDto.SignupDto;
 import com.example.backend.auth.user.service.CustomUserDetails;
 import com.example.backend.auth.user.service.UserService;
@@ -100,6 +101,18 @@ public class UserController {
             @RequestBody @Valid SignupDto req
     ) {
         userService.registerUser(req);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("signup success"));
+    }
+
+    @PostMapping("/oauth/signup")
+    public ResponseEntity<BaseResponse<String>> oAuthSignUp(
+            @RequestBody @Valid OAuth2SignupDto req,
+            @CookieValue(name = "oAuth") String oAuthCookie
+    ) {
+
+        userService.oAuth2UserSignUp(oAuthCookie, req);
+
         return ResponseEntity.ok()
                 .body(BaseResponse.success("signup success"));
     }

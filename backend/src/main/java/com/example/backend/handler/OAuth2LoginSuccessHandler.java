@@ -32,16 +32,24 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         String registrationId = oauthToken.getAuthorizedClientRegistrationId();
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
 
-        userService.registerUser(registrationId, oAuth2User);
+        boolean isExist = userService.isExist(oAuth2User);
 
-        String accessToken = jwtTokenProvider.createAccessToken(authentication);
-        String refreshToken = jwtTokenProvider.createRefreshToken(authentication);
+        if (!isExist) {
+            String oAuth2Token = jwtTokenProvider.createOAuth2Token(oAuth2User, registrationId);
+            ResponseCookie cookie = cookieService.buildOAuth2Cookie(oAuth2Token);
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+            response.sendRedirect("http://localhost:5173/user/oAuth");
+        } else {
 
-        ResponseCookie cookie = cookieService.buildAccessCookie(accessToken);
-        ResponseCookie refreshCookie = cookieService.buildRefreshCookie(refreshToken);
+            String accessToken = jwtTokenProvider.createAccessToken(authentication);
+            String refreshToken = jwtTokenProvider.createRefreshToken(authentication);
 
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-        response.sendRedirect("http://localhost:5173/user/login");
+            ResponseCookie cookie = cookieService.buildAccessCookie(accessToken);
+            ResponseCookie refreshCookie = cookieService.buildRefreshCookie(refreshToken);
+
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+            response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+            response.sendRedirect("http://localhost:5173/user/login");
+        }
     }
 }

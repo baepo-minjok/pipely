@@ -56,6 +56,36 @@ public class UserRequestDto {
 
     }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(name = "OAuth2SignupDto", description = "OAuth2 유저 회원가입 요청 DTO")
+    public static class OAuth2SignupDto {
+        @Schema(
+                description = "비밀번호 (최소 10자, 대문자 1개, 특수문자 1개 포함)",
+                example = "Password@123",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        @Pattern(regexp = "^(?=.*[A-Z])(?=.*[!@#$%^&*()\\-_=+\\[\\]{};:'\"\\\\|,.<>/?]).{10,}$")
+        private String password;
+
+        @Schema(
+                description = "사용자 이름",
+                example = "홍길동",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        @NotBlank
+        private String name;
+
+        @Schema(
+                description = "휴대폰 번호",
+                example = "010-1234-5678",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        @Pattern(regexp = "01(?:0|1|[6-9])[.-]?(\\d{3}|\\d{4})[.-]?(\\d{4})$")
+        private String phoneNumber;
+    }
+
     /**
      * 로그인 요청을 위한 DTO
      */

@@ -39,6 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         path.startsWith("/api/auth/reactive") ||
                         path.startsWith("/api/auth/user/signup") ||
                         path.startsWith("/api/auth/user/login") ||
+                        path.startsWith("/api/auth/user/oauth/signup") ||
                         path.startsWith("/oauth2/") ||
                         path.startsWith("/login/oauth2/")) {
             filterChain.doFilter(request, response);
@@ -55,7 +56,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             for (Cookie cookie : request.getCookies()) {
                 if (accessName.equals(cookie.getName())) {
                     token = cookie.getValue();
-                    break;
                 }
             }
         }

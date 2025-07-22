@@ -55,6 +55,16 @@ public class CookieService {
         return builder.build();
     }
 
+    public ResponseCookie buildOAuth2Cookie(String token) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("oAuth", token)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ofMillis(accessExpiration))
+                .sameSite("Strict");
+
+        return builder.build();
+    }
+
     public String getCookieValue(HttpServletRequest request, String cookieName) {
         if (request.getCookies() == null) throw new CustomException(ErrorCode.COOKIE_NOT_FOUND);
         for (Cookie cookie : request.getCookies()) {
