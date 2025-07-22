@@ -32,6 +32,17 @@ export const userApi = {
                 return error.response.data.error;
             })
     },
+    // oAuth 회원가입 api
+    oAuthSignup(data) {
+        return instance
+            .post("/auth/user/oauth/signup", data)
+            .then((res) => {
+                return res;
+            })
+            .catch((error) => {
+                return error.response.data.error;
+            })
+    },
 
     // 이메일 중복확인
     checkDuplicate(email) {

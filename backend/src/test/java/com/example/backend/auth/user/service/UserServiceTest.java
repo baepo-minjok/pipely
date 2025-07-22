@@ -14,11 +14,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -83,35 +80,6 @@ class UserServiceTest {
         assertEquals(ErrorCode.USER_EMAIL_DUPLICATED, ex.getErrorCode());
         verify(userRepository, never()).save(any());
         verify(emailService, never()).sendVerificationEmailAsync(any());
-    }
-
-    @Test
-    @DisplayName("OAuth2 회원가입: 신규 사용자인 경우 save 호출")
-    void registerUser_OAuth2_NewUser() {
-        String registrationId = "google";
-        OAuth2User oauth2User = mock(OAuth2User.class);
-        Map<String, Object> attrs = Map.of("email", "oauth@example.com", "name", "OAuth User");
-        when(oauth2User.getAttributes()).thenReturn(attrs);
-        when(userRepository.existsByEmail("oauth@example.com")).thenReturn(false);
-
-        userService.registerUser(registrationId, oauth2User);
-
-        verify(userRepository).save(any(Users.class));
-    }
-
-    @Test
-    @DisplayName("OAuth2 회원가입: 기존 사용자인 경우 save 미호출")
-    void registerUser_OAuth2_ExistingUser() {
-        String registrationId = "google";
-        OAuth2User oauth2User = mock(OAuth2User.class);
-        Map<String, Object> attrs = Map.of("email", "oauth@example.com", "name", "OAuth User");
-        when(oauth2User.getAttributes()).thenReturn(attrs);
-        when(userRepository.existsByEmail("oauth@example.com")).thenReturn(true);
-        when(userRepository.findByEmail("oauth@example.com")).thenReturn(Optional.of(sampleUser));
-
-        userService.registerUser(registrationId, oauth2User);
-
-        verify(userRepository, never()).save(any());
     }
 
     @Test
