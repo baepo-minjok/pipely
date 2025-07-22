@@ -1,5 +1,5 @@
 <script setup>
-import {ref, watch} from 'vue';
+import {onMounted, ref, watch} from 'vue';
 import {useRouter} from "vue-router";
 import {userApi} from "@/api/UserApi.js";
 
@@ -7,18 +7,12 @@ const router = useRouter();
 
 // form 객체
 const name = ref("");
-const email = ref("");
 const password = ref("");
 const phoneValue = ref("");
 const passwordCheck = ref("");
 
-// 이메일 관련 메시지
-const emailSuccess = ref(false);
-const emailSuccessMsg = ref("");
-
 // 에러메시지
 const nameError = ref("");
-const emailError = ref("");
 const passwordError = ref("");
 const phoneError = ref("");
 const passwordCheckError = ref("");
@@ -55,25 +49,12 @@ function isValidPassword(pw) {
   return /^(?=.*[A-Z])(?=.*[!@#$%^&*()_\-+=\[\]{};':"\\|,.<>\/?]).{10,}$/.test(pw);
 }
 
-const checkEmail = () => {
-  if (!email.value) {
-    emailError.value = "이메일을 입력해주세요.";
-    return false;
-  } else if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/.test(email.value)) {
-    emailError.value = "올바른 이메일 주소를 입력해주세요.";
-    return false;
-  }
-  return true;
-}
-
 const signUp = async () => {
   // 에러 초기화
   nameError.value = "";
-  emailError.value = "";
   passwordError.value = "";
   phoneError.value = "";
   passwordCheckError.value = "";
-  emailSuccessMsg.value = "";
 
   let valid = true;
 
@@ -82,14 +63,6 @@ const signUp = async () => {
     nameError.value = "이름을 입력해주세요.";
     valid = false;
   }
-
-  if (!emailSuccess.value) {
-    emailError.value = "이메일 중복확인을 해주세요.";
-    valid = false;
-  }
-
-  // 이메일
-  valid = checkEmail();
 
   // 비밀번호
   if (!password.value) {
@@ -125,106 +98,55 @@ const signUp = async () => {
 
   const signUpRequest = {
     name: name.value,
-    email: email.value,
     password: password.value,
     phoneNumber: phoneValue.value,
   };
 
-  const response = await userApi.signup(signUpRequest);
+  const response = await userApi.oAuthSignup(signUpRequest);
 
   if (response.status === 200) {
-    alert("회원가입 성공!\n인증 이메일이 발송되었습니다!");
-    router.push({name: "Login"});
+    alert("회원가입 성공!\n로그인 해주세요!");
+    if (window.opener && !window.opener.closed) {
+      // 부모 창이 열려 있으면 로그인 페이지로 이동
+      window.opener.location.href = "/user/login";
+      window.close();
+    } else {
+      router.push({name: "Login"});
+    }
+
   } else {
     alert("회원가입 실패!");
     name.value = "";
     phoneValue.value = "";
     password.value = "";
-    email.value = "";
     passwordCheck.value = "";
-  }
-  isLoading.value = false;
-  emailSuccess.value = false;
-};
 
-const checkDuplicate = async () => {
-  emailSuccessMsg.value = "";
-  emailError.value = "";
-
-  let valid = true;
-
-  // 이메일
-  valid = checkEmail();
-
-  if (!valid) return;
-
-  const response = await userApi.checkDuplicate(email.value);
-
-  if (response.status === 200) {
-    emailSuccess.value = true;
-    emailSuccessMsg.value = "사용가능한 이메일입니다.";
-  } else {
-    emailError.value = "사용할 수 없는 이메일입니다.";
+    if (window.opener && !window.opener.closed) {
+      window.close();
+    } else {
+      router.push({name: "Signup"});
+    }
   }
 };
-
-const googleSignUp = () => {
-  const popup = window.open(
-      "http://localhost:8080/oauth2/authorization/google",
-      "_blank",
-      "width=500,height=600"
-  );
-  if (!popup || popup.closed || typeof popup.closed === "undefined") {
-    alert(
-        "팝업이 차단되었습니다.\n브라우저 설정에서 팝업 차단을 해제해 주세요!"
-    );
+onMounted(() => {
+  const isOk = confirm("계정이 없습니다. 회원가입하시겠습니까?");
+  if (!isOk) {
+    window.close();
   }
-};
-
-const githubSignUp = () => {
-  window.open(
-      "http://localhost:8080/oauth2/authorization/github",
-      "_blank",
-      "width=500,height=600"
-  );
-  if (!popup || popup.closed || typeof popup.closed === "undefined") {
-    alert(
-        "팝업이 차단되었습니다.\n브라우저 설정에서 팝업 차단을 해제해 주세요!"
-    );
-  }
-};
-
+  // isOk가 true면 이후 로직 진행
+});
 </script>
 
 <template>
   <div class="container">
-    <div class="left_wrapper">
-      <img alt="logo" src="/src/assets/images/logo.png"/>
-      <h3>처음 오셨군요! 👋</h3>
-      <p>
-        이제부터 배포는 더 쉽고, 더 똑똑해집니다. <br/>
-        당신의 DevOps 여정에 AI가 함께합니다.
-      </p>
-      <router-link class="btn login_btn" to="/user/login">로그인</router-link>
-    </div>
 
     <div class="right_wrapper">
-      <h1>Sign Up</h1>
+
+      <img alt="logo" src="/src/assets/images/logo.png"/>
       <form class="signup_box" @submit.prevent="signUp">
         <input id="name" v-model="name"
                :class="['input_box', nameError ? 'input_box--error' : '']" name="name" placeholder="이름을 입력해주세요."/>
         <p v-if="nameError" class="input-error">{{ nameError }}</p>
-
-        <div class="email_box">
-          <input id="email" v-model="email"
-                 :class="['input_box', emailError ? 'input_box--error' : '', emailSuccess ? 'input_box--success' : '']"
-                 :readonly="emailSuccess" name="email"
-                 placeholder="이메일 주소를 입력해주세요."
-                 type="email"/>
-          <button :disabled="emailSuccess" class="btn" type="button" @click="checkDuplicate">중복 확인</button>
-        </div>
-        <p v-if="emailError" class="input-error">{{ emailError }}</p>
-        <p v-if="emailSuccessMsg" class="input-success">{{ emailSuccessMsg }}</p>
 
         <input id="password" v-model="password"
                :class="['input_box', passwordError ? 'input_box--error' : '']" name="password"
@@ -257,16 +179,6 @@ const githubSignUp = () => {
         <button :disabled="isLoading" class="btn signup_btn" type="submit">
           {{ isLoading ? '회원가입중..' : '회원가입' }}
         </button>
-
-        <p>또는</p>
-        <button class="oauth_btn" type="button" @click="googleSignUp">
-          <img alt="google" src="/src/assets/images/google_logo.png"/>
-          Google로 회원가입
-        </button>
-        <button class="oauth_btn" type="button" @click="githubSignUp">
-          <img alt="github" src="/src/assets/images/github_logo.png"/>
-          Github로 회원가입
-        </button>
       </form>
     </div>
   </div>
@@ -277,17 +189,6 @@ const githubSignUp = () => {
   display: flex;
   width: 100%;
   height: 100%;
-}
-
-/* 왼쪽 */
-.left_wrapper {
-  width: 50%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: var(--main-color-bg);
-  gap: 20px;
 }
 
 .input-error {
@@ -340,22 +241,9 @@ const githubSignUp = () => {
   text-align: center;
 }
 
-.login_btn {
-  width: 160px;
-  margin-top: 30px;
-  text-align: center;
-  text-decoration: none;
-  font-size: 14px;
-  padding: 12px;
-}
-
-.login_btn:hover {
-  background-color: var(--main-color-hover);
-}
-
 /* 오른쪽  */
 .right_wrapper {
-  width: 50%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -384,18 +272,6 @@ const githubSignUp = () => {
   margin: 6px 0;
 }
 
-.email_box {
-  width: 100%;
-  display: flex;
-  gap: 5px;
-}
-
-.email_box > button {
-  white-space: nowrap;
-  padding: 10px 12px;
-  font-size: 12px;
-}
-
 .input_box {
   border-radius: 10px;
   border: 1px solid var(--gray300);
@@ -411,29 +287,5 @@ const githubSignUp = () => {
 
 .signup_btn {
   width: 100%;
-}
-
-.oauth_btn {
-  font-size: 14px;
-  border-radius: 10px;
-  border: 1px solid var(--gray300);
-  padding: 10px;
-  width: 100%;
-  background-color: white;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  gap: 5px;
-  align-items: center;
-  transition: all 0.3s;
-}
-
-.oauth_btn:hover {
-  background-color: var(--main-color-bg);
-}
-
-.oauth_btn > img {
-  width: 16px;
-  height: 16px;
 }
 </style>

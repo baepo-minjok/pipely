@@ -2,7 +2,9 @@ package com.example.backend.auth.user.controller;
 
 import com.example.backend.auth.token.service.RefreshTokenService;
 import com.example.backend.auth.user.model.Users;
+import com.example.backend.auth.user.model.dto.ResponseDto;
 import com.example.backend.auth.user.model.dto.UserRequestDto.LoginRequest;
+import com.example.backend.auth.user.model.dto.UserRequestDto.OAuth2SignupDto;
 import com.example.backend.auth.user.model.dto.UserRequestDto.SignupDto;
 import com.example.backend.auth.user.service.CustomUserDetails;
 import com.example.backend.auth.user.service.UserService;
@@ -14,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -103,6 +106,18 @@ public class UserController {
                 .body(BaseResponse.success("signup success"));
     }
 
+    @PostMapping("/oauth/signup")
+    public ResponseEntity<BaseResponse<String>> oAuthSignUp(
+            @RequestBody @Valid OAuth2SignupDto req,
+            @CookieValue(name = "oAuth") String oAuthCookie
+    ) {
+
+        userService.oAuth2UserSignUp(oAuthCookie, req);
+
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("signup success"));
+    }
+
     @Operation(
             summary = "사용자 로그아웃",
             description = """
@@ -163,4 +178,21 @@ public class UserController {
                 .body(BaseResponse.success("withdraw success"));
     }
 
+
+    @GetMapping("/duplicate")
+    public ResponseEntity<BaseResponse<String>> duplicate(
+            @RequestParam @NotBlank String email
+    ) {
+        userService.checkDuplicate(email);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("available"));
+    }
+
+    @GetMapping("/detail")
+    public ResponseEntity<BaseResponse<ResponseDto.detailDto>> detail(
+            @AuthenticationPrincipal(expression = "userEntity") Users user
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(userService.findDetail(user.getEmail())));
+    }
 }

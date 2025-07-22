@@ -2,10 +2,14 @@ package com.example.backend.auth.user.service;
 
 import com.example.backend.auth.email.service.EmailService;
 import com.example.backend.auth.user.model.Users;
+import com.example.backend.auth.user.model.dto.ResponseDto;
+import com.example.backend.auth.user.model.dto.UserRequestDto.OAuth2SignupDto;
 import com.example.backend.auth.user.model.dto.UserRequestDto.SignupDto;
 import com.example.backend.auth.user.repository.UserRepository;
+import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.info.model.dto.InfoResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,8 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -25,6 +29,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * Local 유저 회원가입
@@ -60,39 +65,24 @@ public class UserService {
         log.info("[Register] 이메일 인증 메일 발송 요청 완료: email={}", user.getEmail());
     }
 
+    public void oAuth2UserSignUp(String oAuthCookie, OAuth2SignupDto dto) {
 
-    /**
-     * OAuth2 유저 회원가입
-     *
-     * @param registrationId
-     * @param oauth2User
-     */
-    @Transactional
-    public void registerUser(String registrationId, OAuth2User oauth2User) {
-        Map<String, Object> attributes = oauth2User.getAttributes();
-        String email = attributes.get("email").toString();
-        String name;
-        if (registrationId.equals("github")) {
-            name = attributes.get("login").toString();
-        } else {
-            name = attributes.get("name").toString();
+        if (!jwtTokenProvider.validateToken(oAuthCookie)) {
+            // 예외
+            throw new CustomException(ErrorCode.USER_OAUTH2_TOKEN_INVALID);
         }
+        String registrationId = jwtTokenProvider.getRegistrationId(oAuthCookie);
+        Map<String, Object> map = jwtTokenProvider.getClaims(oAuthCookie);
+        String email = (String) map.get("email");
 
         log.info("[Register-OAuth2] {} 회원가입 시도: email={}", registrationId, email);
 
-        if (userRepository.existsByEmail(email)) {
-            log.info("[Register-OAuth2] 기존 사용자 로그인 처리: email={}", email);
-            userRepository.findByEmail(email).get();
-            return;
-        }
-
-        String randomPwd = UUID.randomUUID().toString();
         Users user = Users.builder()
                 .email(email)
-                .name(name)
-                .phoneNumber(null)
-                .password(randomPwd)
-                .provider(registrationId)
+                .name(dto.getName())
+                .phoneNumber(dto.getPhoneNumber())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .provider("oAuth")
                 .status(Users.UserStatus.ACTIVE)
                 .lastLogin(null)
                 .createdAt(LocalDateTime.now())
@@ -102,7 +92,28 @@ public class UserService {
 
         userRepository.save(user);
         log.info("[Register-OAuth2] {} 회원가입 성공: email={}", registrationId, email);
+    }
 
+
+    /**
+     * OAuth2 유저 회원가입
+     *
+     * @param oauth2User
+     */
+    @Transactional
+    public boolean isExist(OAuth2User oauth2User) {
+        Map<String, Object> attributes = oauth2User.getAttributes();
+        String email = attributes.get("email").toString();
+
+        if (userRepository.existsByEmail(email)) {
+            log.info("[Register-OAuth2] 기존 사용자 로그인 처리: email={}", email);
+            Users user = findByEmail(email);
+            user.setLastLogin(LocalDateTime.now());
+            userRepository.save(user);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -155,5 +166,32 @@ public class UserService {
     public void setUserStatusActive(Users user) {
         user.setStatus(Users.UserStatus.ACTIVE);
         userRepository.save(user);
+    }
+
+    public void checkDuplicate(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new CustomException(ErrorCode.USER_EMAIL_DUPLICATED);
+        }
+    }
+
+    public Users findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    public ResponseDto.detailDto findDetail(String email) {
+        Users user = findByEmail(email);
+        boolean isVerified = user.getStatus().equals(Users.UserStatus.ACTIVE);
+        List<InfoResponseDto.LightInfoDto> infoDtoList = user.getJenkinsInfoList().stream()
+                .map(InfoResponseDto.LightInfoDto::fromEntity).toList();
+
+        return ResponseDto.detailDto.builder()
+                .email(user.getEmail())
+                .name(user.getName())
+                .phoneNumber(user.getPhoneNumber())
+                .lastLogin(user.getLastLogin())
+                .isVerified(isVerified)
+                .infoDtoList(infoDtoList)
+                .build();
     }
 }

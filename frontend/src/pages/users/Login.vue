@@ -1,6 +1,6 @@
 <script setup>
 import {ref} from "vue";
-import {loginApi} from "@/api/LoginApi.js";
+import {userApi} from "@/api/UserApi.js";
 import {useRouter} from "vue-router";
 
 const router = useRouter();
@@ -51,15 +51,16 @@ const login = async () => {
     password: password.value,
   };
 
-  await loginApi.login(loginRequest)
-      .then(res => {
-        if (res) {
-          // 로그인 성공
-          router.push({name: "Main"});
-        } else {
-          errorMessage.value = "로그인에 실패했습니다.";
-        }
-      });
+  const response = await userApi.login(loginRequest);
+
+  if (response.status === 200) {
+    // 로그인 성공
+    router.push({name: "Main"});
+  } else if (response.status === 401) {
+    errorMessage.value = response.message;
+  } else {
+    errorMessage.value = "로그인에 실패했습니다.";
+  }
 };
 const googleLogin = () => {
   window.location.href = "http://localhost:8080/oauth2/authorization/google";

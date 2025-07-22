@@ -1,28 +1,41 @@
 <script setup>
-import { reactive } from 'vue';
+import {  toRefs } from 'vue';
 import { formatDateTime } from '../../utils/formatDateTime';
 
-const job = reactive({
-  idx: 1,
-  name: 'CI/CD Demo 01',
-  createdBy: '이우진',
-  lastExe: '2025-06-11T14:33:00',
-  stages: [
-    {
-      type: 'Build',
-      state: 'SUCCESS',
-    },
-    {
-      type: 'Test',
-      state: 'SUCCESS',
-    },
-    {
-      type: 'Deploy',
-      state: 'SUCCESS',
-    },
-  ],
-  buildState: 'SUCCESS',
-});
+
+const props = defineProps({
+  job: {
+    type: Object,
+    required: true
+  }
+
+})
+const { job } = toRefs(props)
+
+// const job = ({
+//   idx: 1,
+//   name: 'CI/CD Demo 01',
+//   createdBy: '이우진',
+//   lastExe: '2025-06-11T14:33:00',
+//   stages: [
+//     {
+//       type: 'Build',
+//       state: 'SUCCESS',
+//     },
+//     {
+//       type: 'Test',
+//       state: 'SUCCESS',
+//     },
+//     {
+//       type: 'Deploy',
+//       state: 'SUCCESS',
+//     },
+//   ],
+//   buildState: 'SUCCESS',
+// });
+
+
+
 </script>
 
 <template>
@@ -41,21 +54,9 @@ const job = reactive({
       <p>마지막 실행 : {{ formatDateTime(job.lastExe) }}</p>
     </div>
 
-    <div class="stage_box">
-      <div class="build">
-        Build:
-        <img src="/src/assets/icons/check.svg" alt="success" />
-      </div>
-      <div class="test">
-        Test:
-        <img src="/src/assets/icons/check.svg" alt="success" />
-      </div>
-      <div class="deploy">
-        Deploy:
-        <img src="/src/assets/icons/check.svg" alt="success" />
-      </div>
+    <div class="description_box">
+      <p>설명 : {{ job.description || '설명이 없습니다.' }}</p>
     </div>
-
     <button class="start_btn" :class="{ restart: job.buildState === 'SUCCESS' }">
       {{ job.buildState === 'SUCCESS' ? '재실행' : job.buildState === 'FAILED' ? '재시도' : '지금 실행' }}
     </button>
@@ -85,7 +86,7 @@ const job = reactive({
   align-items: center;
 }
 
-.header > h3 {
+.header>h3 {
   font-size: 20px;
 }
 
@@ -116,7 +117,7 @@ const job = reactive({
   margin: 12px 0;
   font-size: 14px;
 
-  & > div {
+  &>div {
     display: flex;
     align-items: center;
     gap: 5px;
