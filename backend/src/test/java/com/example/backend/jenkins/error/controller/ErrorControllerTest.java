@@ -171,21 +171,4 @@ class ErrorControllerTest {
                 .andExpect(jsonPath("$.data.naturalResponse").value("에러는 ~ 때문입니다"));
     }
 
-
-    /*@Test
-    @DisplayName("Pipeline 리트라이")
-    void retryWithRollbackByTest() throws Exception {
-        doNothing().when(errorService).retryWithRollback(eq(jobId), any());
-
-        ErrorRequestDto.RetryDto reqDto = new ErrorRequestDto.RetryDto(jobId);
-
-        mockMvc.perform(post("/api/jenkins-error/retry")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reqDto))
-                        .with(SecurityMockMvcRequestPostProcessors.authentication(
-                                new UsernamePasswordAuthenticationToken(testUser, null)))
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("Retry with rollback triggered."));
-    }*/
 }
