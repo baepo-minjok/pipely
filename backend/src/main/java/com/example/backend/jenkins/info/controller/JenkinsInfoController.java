@@ -71,6 +71,10 @@ public class JenkinsInfoController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 정보"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(schema = @Schema(implementation = InfoRequestDto.UpdateDto.class))
+    )
     @PreAuthorize("@jenkinsInfoService.isOwner(#user, #request.infoId)")
     @PutMapping
     public ResponseEntity<BaseResponse<String>> update(
