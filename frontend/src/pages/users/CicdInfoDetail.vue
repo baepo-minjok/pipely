@@ -1,6 +1,6 @@
 <script setup>
-import {onMounted, reactive, ref} from 'vue';
-import {useJenkinsStore} from "@/stores/jenkinsStore.js";
+import {onMounted, reactive, ref ,watch} from 'vue';
+import {useJenkinsStore} from "@/stores/useJenkinsStore.js";
 import {useRoute} from "vue-router";
 
 const route = useRoute();
@@ -10,21 +10,13 @@ const isEdit = ref(false);
 const jenkinsInfoId = route.params.id
 
 
-
-/*
-        "id": "19e1b14b-1a43-4bb6-8ae4-204e57866e7c",
-        "name": "leewoojin",
-        "description": "Example Description",
-        "jenkinsId": "admin",
-        "apiToken": "JenkinsApiToken",
-        "uri": "http://122.40.225.54:7979"
-* */
-
 const data = ref({
-  name: '',
+  apiToken:'',
   description: '',
-  uri: '',
-  id: ''
+  id: '',
+  jenkinsId: '',
+  name: '',
+  uri: ''
 })
 
 
@@ -32,6 +24,7 @@ onMounted(async () => {
   await jenkinsStore.getJenkinInfoDetail(jenkinsInfoId)
   data.value = { ...jenkinsStore.jenkinsInfoDetail }
 })
+
 
 const enabledEdit = () => {
   isEdit.value = true;
@@ -48,6 +41,10 @@ async function saveEdit() {
 
 async function deleteInfo() {
   await jenkinsStore.deleteJenkinsInfoDetail(data.value.id)
+}
+async function jenkinsURITest() {
+
+  await jenkinsStore.jenkinsURITest(data.value.id)
 }
 
 
@@ -81,8 +78,8 @@ async function deleteInfo() {
         <div class="value with_actions">
           <input type="text" v-model="data.uri" :readonly="!isEdit" class="input_text" :class="{ editing: isEdit }" />
           <div class="actions">
-            <button class="test_btn">테스트 요청 보내기</button>
-            <img src="/src/assets/icons/check.svg" alt="icon" class="action_icon" />
+            <button class="test_btn" @click="jenkinsURITest" >테스트 요청 보내기</button>
+            <img src="/src/assets/icons/check.svg" alt="icon" class="action_icon"  />
           </div>
         </div>
       </div>

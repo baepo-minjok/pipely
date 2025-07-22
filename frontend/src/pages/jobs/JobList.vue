@@ -3,7 +3,7 @@ import { ref, onMounted, watch } from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
 import { useRouter } from 'vue-router';
 
-import { useJobStore } from '../../stores/jobStore.js';
+import { useJobStore } from '../../stores/useJobStore.js';
 
 const jobStore = useJobStore()
 
