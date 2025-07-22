@@ -4,10 +4,10 @@ import axios from 'axios'
 
 
 
-export const useJobStore = defineStore('jobstore', {
+export const useJenkinsStore = defineStore('jenkinsStore', {
     // 상태
     state: () => ({
-        jenkinsInfoDetail: [],
+        jenkinsInfoDetail: {},
     }),
 
 
@@ -15,13 +15,13 @@ export const useJobStore = defineStore('jobstore', {
         async getJenkinInfoDetail(jenkinsInfoId) {
             try {
                 const response = await axios.post('/api/jenkins/info', {
-                    params: { jenkinsInfoId }
+                    infoId: jenkinsInfoId
                 });
 
-                this.jobList = response.data.data ? response.data.data : response.data;
+                this.jenkinsInfoDetail = response.data.data || response.data
             } catch (error) {
                 console.error('Error fetching job list:', error);
-                this.jobList = []; // 실패 시 목록 비움
+                this.jenkinsInfoDetail = [];
             }
         }
 

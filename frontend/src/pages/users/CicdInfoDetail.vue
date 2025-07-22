@@ -1,7 +1,18 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import {onMounted, reactive, ref} from 'vue';
+import {useJenkinsStore} from "@/stores/jenkinsStore.js";
+import {useRouter} from "vue-router";
 
+const router = useRouter();
+
+const jenkinsStore = useJenkinsStore()
 const isEdit = ref(false);
+const jenkinsInfoId = route.params.id
+
+
+onMounted(() => {
+    jenkinsStore.getJenkinInfoDetail(jenkinsInfoId)
+});
 
 const data = reactive({
   name: '젠킨스 01',
