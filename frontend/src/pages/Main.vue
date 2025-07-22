@@ -1,8 +1,18 @@
 <script setup>
-import { ref } from 'vue';
-import Header from '../components/common/Header.vue';
+import {onMounted, ref} from 'vue';
+import {useUserStore} from "@/stores/useUserStore.js"
+
+const userStore = useUserStore();
 
 const sendText = ref('');
+
+onMounted(async () => {
+      // 유저 정보 패치
+      if (!userStore.isFetched.value) {
+        await userStore.fetchUserInfo();
+      }
+    }
+)
 </script>
 
 <template>
@@ -11,9 +21,9 @@ const sendText = ref('');
       <p>무엇을 도와드릴까요?</p>
 
       <div class="input_box">
-        <input type="text" placeholder="오늘 어떤 도움을 드릴까요?" v-model="sendText" />
+        <input v-model="sendText" placeholder="오늘 어떤 도움을 드릴까요?" type="text"/>
         <button class="send_btn">
-          <img src="/src/assets/icons/up_arrow.svg" alt="send" />
+          <img alt="send" src="/src/assets/icons/up_arrow.svg"/>
         </button>
       </div>
     </div>

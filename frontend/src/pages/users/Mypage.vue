@@ -1,7 +1,9 @@
 <script setup>
 import {useRouter} from 'vue-router';
 import {onMounted, ref} from 'vue';
-import {userApi} from "@/api/UserApi.js";
+import {useUserStore} from "@/stores/useUserStore.js"
+
+const userStore = useUserStore();
 
 const router = useRouter();
 
@@ -17,23 +19,16 @@ const infoList = ref([]);
 onMounted(async () => {
   isLoading.value = true;  // 로딩 시작
 
-  // 요청
-  const response = await userApi.getUserDetail();
+  if (!userStore.isFetched.value) {
+    const userInfo = userStore.getUserInfo();
 
-  // 요청 성공
-  if (response.status === 200) {
-
-    const data = response.data.data;
-    console.log(data);
-    // 정보 세팅
-    email.value = data.email;
-    name.value = data.name;
-    isVerified.value = data.verified;
-    infoList.value = data.infoDtoList;
-    console.log(infoList);
-
+    email.value = userInfo.email;
+    name.value = userInfo.name;
+    isVerified.value = userInfo.isVerified;
+    infoList.value = userInfo.infoList;
+    
   } else {
-
+    router.push({name: "Main"});
   }
 
   isLoading.value = false;  // 로딩 종료
