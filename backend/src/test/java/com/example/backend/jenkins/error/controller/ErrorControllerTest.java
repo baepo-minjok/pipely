@@ -171,4 +171,26 @@ class ErrorControllerTest {
                 .andExpect(jsonPath("$.data.naturalResponse").value("에러는 ~ 때문입니다"));
     }
 
+    @Test
+    @DisplayName("실패한 Job을 최근 성공한 버전으로 롤백")
+    void rollbackToLastSuccessVersionTest() throws Exception {
+        // given
+        doNothing().when(errorService).rollbackToLastSuccessfulVersion(eq(jobId), any());
+        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId);
+
+        // when & then
+        mockMvc.perform(post("/api/jenkins-error/rollback/last-success")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqDto))
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(
+                                new UsernamePasswordAuthenticationToken(testUser, null)))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value("최근 성공한 버전으로 롤백 완료"));
+
+        // verify
+        verify(errorService, times(1)).rollbackToLastSuccessfulVersion(eq(jobId), any());
+    }
+
+
 }
