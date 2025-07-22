@@ -3,7 +3,6 @@ import {useRouter} from 'vue-router';
 import {onMounted, ref} from 'vue';
 import {userApi} from "@/api/UserApi.js";
 
-const openDropdown = ref(false);
 const router = useRouter();
 
 const email = ref("");
@@ -83,9 +82,9 @@ onMounted(async () => {
         />
       </div>
       <div class="cicd_card_list">
-        <div v-for="info in infoList" class="cicd_card" @click="router.push(`/mypage/cicd/${cicd.idx}`)">
+        <div v-for="info in infoList" class="cicd_card" @click="router.push(`/mypage/cicd/${infod.id}`)">
           <p>{{ info.name }}</p>
-          <p>{{ info.description }}</p>
+          <p class="description">{{ info.description }}</p>
           <p>{{ info.uri }}</p>
         </div>
       </div>
@@ -204,5 +203,11 @@ onMounted(async () => {
   margin-top: 17px;
   color: var(--gray500);
   font-size: 14px;
+}
+
+.description {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
