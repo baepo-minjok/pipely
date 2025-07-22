@@ -1,6 +1,7 @@
 <script setup>
 import {ref} from "vue";
 import {userApi} from "@/api/UserApi.js";
+import {useUserStore} from "@/stores/useUserStore.js"
 import {useRouter} from "vue-router";
 
 const router = useRouter();
@@ -10,6 +11,8 @@ const password = ref("");
 const emailError = ref(false);
 const passwordError = ref(false);
 const errorMessage = ref("");
+
+const userStore = useUserStore();
 
 function isValidEmail(email) {
   return /^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/.test(email);
@@ -53,9 +56,10 @@ const login = async () => {
 
   const response = await userApi.login(loginRequest);
 
-  if (response.status === 200) {
-    // 로그인 성공
+  if (response.status === 200) { // 로그인 성공
+    // 메인으로
     router.push({name: "Main"});
+
   } else if (response.status === 401) {
     errorMessage.value = response.message;
   } else {
