@@ -32,7 +32,6 @@ import java.util.UUID;
 public class ErrorController {
 
     private final ErrorService errorService;
-    private final VersionService versionService;
 
     @Operation(
             summary = "특정 Job의 최근 빌드 조회",

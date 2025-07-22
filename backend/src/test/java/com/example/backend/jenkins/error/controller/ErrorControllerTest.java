@@ -6,6 +6,7 @@ import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.jenkins.error.model.dto.ErrorRequestDto;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto;
 import com.example.backend.jenkins.error.service.ErrorService;
+import com.example.backend.jenkins.job.service.VersionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
