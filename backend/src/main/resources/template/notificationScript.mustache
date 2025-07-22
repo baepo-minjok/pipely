@@ -17,7 +17,7 @@ post {
                         curl -X POST "$WEBHOOK_URL" \
                         -H "Content-Type: application/json" \
                         -d '{
-                        "text": "[{{eventType}}] {{jobName}} 성공 알림입니다. (실행자: {{userName}}, 소요시간: $TIME_STRING)"
+                        "text": "[{{eventType}}] ${env.JOB_NAME} 성공 알림입니다. (실행자: {{userName}}, 소요시간: $TIME_STRING)"
                         }'
                         """
                         }
@@ -32,7 +32,7 @@ post {
                         "avatar_url": "https://i.imgur.com/CI-CD-Bot.png",
                         "embeds": [{
                         "title": "BUILD_SUCCESS 🚀",
-                        "description": "**Job:** {{jobName}}\\n**실행자:** {{userName}}\\n**소요시간:** $TIME_STRING",
+                        "description": "**Job:** ${env.JOB_NAME}\\n**실행자:** {{userName}}\\n**소요시간:** $TIME_STRING",
                         "color": 3066993,
                         "footer": {
                         "text": "Powered by Jenkins Notification System"
@@ -65,7 +65,7 @@ post {
                         curl -X POST "$WEBHOOK_URL" \
                         -H "Content-Type: application/json" \
                         -d '{
-                        "text": "[{{eventType}}] {{jobName}} 실패 알림입니다. (실행자: {{userName}}, 소요시간: $TIME_STRING)"
+                        "text": "[{{eventType}}] ${env.JOB_NAME} 실패 알림입니다. (실행자: {{userName}}, 소요시간: $TIME_STRING)"
                         }'
                         """
                         }
@@ -80,7 +80,7 @@ post {
                         "avatar_url": "https://i.imgur.com/CI-CD-Bot.png",
                         "embeds": [{
                         "title": "BUILD_FAIL ❌",
-                        "description": "**Job:** {{jobName}}\\n**실행자:** {{userName}}\\n**소요시간:** $TIME_STRING",
+                        "description": "**Job:** ${env.JOB_NAME}\\n**실행자:** {{userName}}\\n**소요시간:** $TIME_STRING",
                         "color": 15158332,
                         "footer": {
                         "text": "Powered by Jenkins Notification System"

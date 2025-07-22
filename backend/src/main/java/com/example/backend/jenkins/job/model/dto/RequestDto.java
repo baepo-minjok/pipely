@@ -8,10 +8,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +27,7 @@ public class RequestDto {
                 .build();
     }
 
+    @SuperBuilder
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -78,8 +77,8 @@ public class RequestDto {
         )
         private String schedule;
 
-        @Schema(description = "Job 알림 설정 리스트")
-        private List<NotificationDto> notificationList;
+        //@Schema(description = "Job 알림 설정 리스트")
+        //private List<NotificationDto> notificationList;
     }
 
     @Data
@@ -87,6 +86,14 @@ public class RequestDto {
     @NoArgsConstructor
     @Schema(name = "ScriptBaseDto", description = "Jenkins Script 생성/수정에 필요한 파라미터")
     public static class ScriptBaseDto {
+
+        @NotNull
+        @Schema(
+                description = "Jenkins 서버 정보의 UUID",
+                example = "2c1edbe1-4e6a-420d-84cd-3ffb2b9d7c85",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        private UUID infoId;
 
         @Schema(
                 description = "Script 고유 식별자 (UUID)",
@@ -246,8 +253,16 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String deployTarget;
+
+
+        @Schema(
+                description = "Job 알림 설정 리스트",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        private List<NotificationDto> notificationList;
     }
 
+    @SuperBuilder
     @EqualsAndHashCode(callSuper = true)
     @Data
     @AllArgsConstructor
@@ -264,6 +279,7 @@ public class RequestDto {
         private UUID infoId;
     }
 
+    @SuperBuilder
     @EqualsAndHashCode(callSuper = true)
     @Data
     @AllArgsConstructor
@@ -323,9 +339,8 @@ public class RequestDto {
         @Schema(description = "알림 채널", example = "DISCORD")
         private JobNotification.Channel channel;
 
-        public JobNotification toEntity(UUID pipelineId, String credentialName, UUID scriptId) {
+        public JobNotification toEntity(String credentialName, UUID scriptId) {
             return JobNotification.builder()
-                    .pipelineId(pipelineId)
                     .scriptId(scriptId)
                     .credentialName(credentialName)
                     .name(this.name)

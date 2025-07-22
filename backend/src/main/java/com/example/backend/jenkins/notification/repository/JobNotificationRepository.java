@@ -11,5 +11,7 @@ public interface JobNotificationRepository extends JpaRepository<JobNotification
 
     List<JobNotification> findByPipelineId(UUID pipelineId);
 
-    List<JobNotification> findByPipelineIdAndShouldNotifyTrue(UUID pipelineId);
+    List<JobNotification> findByScriptId(UUID scriptId);
+
+    List<JobNotification> findByScriptIdAndShouldNotifyTrue(UUID id);
 }

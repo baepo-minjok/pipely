@@ -48,38 +48,16 @@ public class PipelineService {
      * Create a new Jenkins job and persist the pipeline.
      */
     @Transactional
-    public void createJob(RequestDto.CreateDto dto, String userName) {
+    public void createJob(RequestDto.CreateDto dto) {
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
         ensureUniqueName(info.getId(), dto.getName());
 
         Script script = loadScript(dto.getScriptId());
-
-        List<JobNotification> savedNotifications = new ArrayList<>();
-
-        if (dto.getNotificationList() != null && !dto.getNotificationList().isEmpty()) {
-            savedNotifications = jobNotificationService.createJobNotifications(dto.getNotificationList(), info, dto.getScriptId());
-
-            List<JobNotification> toNotify = savedNotifications.stream()
-                    .filter(JobNotification::getShouldNotify)
-                    .collect(Collectors.toList());
-
-            if (!toNotify.isEmpty()) {
-                script = jobNotificationService.updateScriptWithJobNotifications(script, dto.getName(), toNotify, userName);
-            }
-        }
-
         String config = buildConfig(dto, script);
         String name = "Initial Version";
 
         //파이프라인 & 파이프라인 버전 저장
         Pipeline pipeline = savePipeline(dto, info, script, config, name);
-
-        if (!savedNotifications.isEmpty()) {
-            for (JobNotification notification : savedNotifications) {
-                notification.setPipelineId(pipeline.getId());
-            }
-            jobNotificationRepository.saveAll(savedNotifications);
-        }
 
         httpClientService.callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
                 config, info, HttpMethod.POST,
@@ -90,7 +68,7 @@ public class PipelineService {
      * Update an existing Jenkins job or recreate if renamed.
      */
     @Transactional
-    public void updateJob(RequestDto.UpdateDto dto, String userName) {
+    public void updateJob(RequestDto.UpdateDto dto) {
         Pipeline pipeline = getPipelineById(dto.getPipelineId());
         PipelineVersion version = getPipelineVersionById(pipeline.getLatestVersionId());
 
@@ -99,15 +77,6 @@ public class PipelineService {
         boolean isRenamed = isRenamed(preName, dto);
 
         Script script = loadScript(dto.getScriptId());
-
-        jobNotificationService.syncJobNotifications(pipeline.getId(), dto.getNotificationList(), info, script.getId());
-
-        List<JobNotification> allToNotify = jobNotificationService.getEnabledNotifications(pipeline.getId());
-
-        if (!allToNotify.isEmpty()) {
-            jobNotificationService.updateScriptWithJobNotifications(script, dto.getName(), allToNotify, userName);
-        }
-
         String config = buildConfig(dto, script);
         applyPipelineChanges(pipeline, dto, script, config);
 
