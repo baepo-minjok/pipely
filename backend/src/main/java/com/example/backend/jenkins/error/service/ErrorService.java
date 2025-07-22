@@ -2,6 +2,8 @@ package com.example.backend.jenkins.error.service;
 
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
+import com.example.backend.jenkins.build.service.BuildService;
 import com.example.backend.jenkins.error.model.dto.ErrorRequestDto.JobSummaryDto;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuild;
@@ -9,9 +11,12 @@ import com.example.backend.jenkins.error.model.dto.ErrorResponseDto.FailedBuildS
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.service.PipelineService;
+import com.example.backend.jenkins.job.service.VersionService;
 import com.example.backend.service.HttpClientService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -19,10 +24,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -31,11 +33,9 @@ public class ErrorService {
     private final JenkinsInfoRepository jenkinsInfoRepository;
     private final HttpClientService httpClientService;
     private final LlmService llmService;
-
-    private final int maxRetryCount = 3;
-    private final int retryIntervalSeconds = 120;
-    private final PipelineRepository pipelineRepository;
+    private final VersionService versionService;
     private final PipelineService pipelineService;
+    private final BuildService buildService;
 
     public JenkinsInfo getJenkinsInfoByIdAndUser(UUID infoId, UUID userId) {
         return jenkinsInfoRepository.findById(infoId)
@@ -225,64 +225,27 @@ public class ErrorService {
         return failedBuilds;
     }
 
-    private void applyJenkinsConfig(JenkinsInfo info, String jobName, String configXml) {
-        String configUrl = info.getUri() + "/job/" + jobName + "/config.xml";
-        HttpEntity<String> postReq = new HttpEntity<>(configXml, httpClientService.buildHeaders(info, MediaType.APPLICATION_XML));
-        httpClientService.exchange(configUrl, HttpMethod.POST, postReq, String.class);
-    }
-
-    /*public void retryWithRollback(UUID pipelineId, UUID userId) {
-
-        // 1. 유저 권한 검증
+    @Transactional
+    public void rollbackToLastSuccessfulVersion(UUID pipelineId, UUID userId) {
         Pipeline pipeline = getVerifiedJobWithPipeline(pipelineId, userId);
-        JenkinsInfo info = pipeline.getJenkinsInfo();
-        String jobName = pipeline.getName();
 
-        // 2. 최근 빌드 실패 여부 확인
-        FailedBuild latestBuild = getRecentBuild(info, jobName);
-        if (!"FAILURE".equals(latestBuild.getResult())) {
-            throw new CustomException(ErrorCode.JENKINS_BUILD_NOT_FAILED);
-        }
+        // BuildService 통해 마지막 성공 빌드 가져오기
+        BuildResponseDto.BuildInfo lastSuccess = buildService.getBuildHistory(pipelineId).stream()
+                .filter(b -> "SUCCESS".equalsIgnoreCase(b.getStatus()))
+                .findFirst()
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_BUILD_INFO_MISSING));
 
-        // 3. 최근 성공 빌드 중 가장 마지막 빌드 찾기
-        List<FailedBuild> history = getBuildsForJob(info, jobName);
-        FailedBuild lastSuccess = history.stream()
-                .filter(b -> "SUCCESS".equals(b.getResult()))
-                .max(Comparator.comparing(FailedBuild::getBuildNumber))
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SUCCESS_BUILD_NOT_FOUND));
+        // 현재 latest 제외한 이전 PipelineVersion 중 가장 최근 찾기
+        UUID latestId = pipeline.getLatestVersionId();
+        List<PipelineVersion> versions = pipeline.getVersionList();
 
-        // 4. 해당 빌드의 로그에서 version 추출
-        String logUrl = info.getUri() + "/job/" + jobName + "/" + lastSuccess.getBuildNumber() + "/consoleText";
-        HttpEntity<?> entity = new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.TEXT_PLAIN));
-        String buildLog = httpClientService.exchange(logUrl, HttpMethod.GET, entity, String.class);
+        PipelineVersion target = versions.stream()
+                .filter(v -> !v.getId().equals(latestId))
+                .max(Comparator.comparing(PipelineVersion::getCreatedAt))
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_NO_SUCCESSFUL_BUILD));
 
-        String versionStr = extractVersionFromLog(buildLog);
-        if (versionStr == null) {
-            throw new CustomException(ErrorCode.JENKINS_VERSION_NOT_FOUND_IN_LOG);
-        }
-        int version = Integer.parseInt(versionStr);
-
-        // 5. 해당 version의 PipelineHistory 조회
-        PipelineHistory rollbackHistory = pipelineHistoryRepository
-                .findAllWithPipelineAndJenkinsInfoByPipelineIdAndVersion(pipelineId, version)
-                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_PIPELINE_HISTORY_NOT_FOUND));
-
-        log.info("[⏪ ROLLBACK CONFIG] jobName={}, version={}, config.xml=\n{}",
-                jobName, version, rollbackHistory.getConfig());
-
-        // 6. 설정 롤백 적용
-        applyJenkinsConfig(info, jobName, rollbackHistory.getConfig());
-
-        try {
-            Thread.sleep(5000); // Jenkins가 config 반영할 시간
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        // 7. 빌드 재시도 트리거
-        String triggerUrl = info.getUri() + "/job/" + jobName + "/build";
-        httpClientService.exchange(triggerUrl, HttpMethod.POST, entity, String.class);
-    }*/
-
+        // rollbackToSnapshot 재사용
+        versionService.rollbackToSnapshot(target.getId());
+    }
 
 }

@@ -6,6 +6,7 @@ import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.jenkins.error.model.dto.ErrorRequestDto;
 import com.example.backend.jenkins.error.model.dto.ErrorResponseDto;
 import com.example.backend.jenkins.error.service.ErrorService;
+import com.example.backend.jenkins.job.service.VersionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -66,7 +67,7 @@ class ErrorControllerTest {
         ErrorResponseDto.FailedBuild mockRes = ErrorResponseDto.FailedBuild.of("JobA", 1, "FAILURE", 1000L, 100L);
         when(errorService.getRecentBuildByJob(eq(jobId), any())).thenReturn(mockRes);
 
-        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId, "JobA");
+        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId);
 
         mockMvc.perform(post("/api/jenkins-error/recent")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -84,7 +85,7 @@ class ErrorControllerTest {
         when(errorService.getBuildsForJobByUser(eq(jobId), any()))
                 .thenReturn(List.of(ErrorResponseDto.FailedBuild.of("JobA", 1, "FAILURE", 1000L, 100L)));
 
-        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId, "JobA");
+        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId);
 
         mockMvc.perform(post("/api/jenkins-error/history")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -102,7 +103,7 @@ class ErrorControllerTest {
         when(errorService.getFailedBuildsForJobByUser(eq(jobId), any()))
                 .thenReturn(List.of(ErrorResponseDto.FailedBuild.of("JobA", 2, "FAILURE", 2000L, 200L)));
 
-        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId, "JobA");
+        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId);
 
         mockMvc.perform(post("/api/jenkins-error/history/failed")
                         .contentType(MediaType.APPLICATION_JSON)
