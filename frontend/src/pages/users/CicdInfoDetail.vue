@@ -1,24 +1,26 @@
 <script setup>
 import {onMounted, reactive, ref} from 'vue';
 import {useJenkinsStore} from "@/stores/jenkinsStore.js";
-import {useRouter} from "vue-router";
+import {useRoute} from "vue-router";
 
-const router = useRouter();
+const route = useRoute();
 
 const jenkinsStore = useJenkinsStore()
 const isEdit = ref(false);
 const jenkinsInfoId = route.params.id
 
 
+const data = ref({
+  name: '',
+  description: '',
+  uri: '',
+  id: ''
+})
+
 onMounted(() => {
     jenkinsStore.getJenkinInfoDetail(jenkinsInfoId)
-});
+    data.value = { ...jenkinsStore.jenkinsInfoDetail }
 
-const data = reactive({
-  name: '젠킨스 01',
-  description: '젠킨스 상세 정보',
-  url: 'https://jenkins.io',
-  id: 'test01',
 });
 
 const enabledEdit = () => {
@@ -52,9 +54,9 @@ const disableEdit = () => {
         </div>
       </div>
       <div class="row">
-        <div class="label">URL</div>
+        <div class="label">URI</div>
         <div class="value with_actions">
-          <input type="text" v-model="data.url" :readonly="!isEdit" class="input_text" :class="{ editing: isEdit }" />
+          <input type="text" v-model="data.uri" :readonly="!isEdit" class="input_text" :class="{ editing: isEdit }" />
           <div class="actions">
             <button class="test_btn">테스트 요청 보내기</button>
             <img src="/src/assets/icons/check.svg" alt="icon" class="action_icon" />

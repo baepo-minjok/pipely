@@ -17,6 +17,8 @@ export const useJenkinsStore = defineStore('jenkinsStore', {
                 const response = await axios.post('/api/jenkins/info', {
                     infoId: jenkinsInfoId
                 });
+                console.log(response.data.data)
+
 
                 this.jenkinsInfoDetail = response.data.data || response.data
             } catch (error) {
