@@ -2,6 +2,7 @@ package com.example.backend.auth.user.controller;
 
 import com.example.backend.auth.token.service.RefreshTokenService;
 import com.example.backend.auth.user.model.Users;
+import com.example.backend.auth.user.model.dto.ResponseDto;
 import com.example.backend.auth.user.model.dto.UserRequestDto.LoginRequest;
 import com.example.backend.auth.user.model.dto.UserRequestDto.OAuth2SignupDto;
 import com.example.backend.auth.user.model.dto.UserRequestDto.SignupDto;
@@ -185,5 +186,13 @@ public class UserController {
         userService.checkDuplicate(email);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("available"));
+    }
+
+    @GetMapping("/detail")
+    public ResponseEntity<BaseResponse<ResponseDto.detailDto>> detail(
+            @AuthenticationPrincipal(expression = "userEntity") Users user
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(userService.findDetail(user.getEmail())));
     }
 }

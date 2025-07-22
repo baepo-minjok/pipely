@@ -36,11 +36,19 @@ public class InfoResponseDto {
         )
         private String uri;
 
+        @Schema(
+                description = "Jenkins 서버 설명",
+                example = "회사 CI 서버",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
+        private String description;
+
         public static LightInfoDto fromEntity(JenkinsInfo info) {
             return LightInfoDto.builder()
                     .id(info.getId())
                     .name(info.getName())
                     .uri(info.getUri())
+                    .description(info.getDescription())
                     .build();
         }
     }
