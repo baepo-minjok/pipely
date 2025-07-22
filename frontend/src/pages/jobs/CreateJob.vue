@@ -2,6 +2,13 @@
 import { reactive, ref } from 'vue';
 import KubernetesInput from '../../components/jobs/KubernetesInput.vue';
 import EC2Input from '../../components/jobs/EC2Input.vue';
+import { useRoute } from 'vue-router';
+
+const route = useRoute();
+const jenkinsInfo = {
+  name: route.query.jenkinsName,
+  uri: route.query.jenkinsUri,
+};
 
 const isGithubChecked = ref(false);
 const isWebhookChecked = ref(false);
@@ -75,6 +82,13 @@ const handleCreateScriptClick = () => {
   <div class="container">
     <h1>새 Job 생성</h1>
     <div class="body">
+      <div class="jenkins_box">
+        <h3 class="sub_title">Jenkins 인스턴스 정보</h3>
+        <div>
+          <p><span>이름 </span>{{ jenkinsInfo.name }}</p>
+          <p><span>URI </span> {{ jenkinsInfo.uri }}</p>
+        </div>
+      </div>
       <div class="info_box">
         <h3 class="sub_title">Job 기본 정보</h3>
         <input type="text" id="name" class="input" placeholder="Job 이름을 입력해주세요." />
@@ -198,6 +212,23 @@ const handleCreateScriptClick = () => {
 
   &:last-child {
     border-bottom: none;
+  }
+}
+
+.jenkins_box > div {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  border: 1px solid var(--gray200);
+  border-radius: 8px;
+  margin-top: 20px;
+  padding: 24px 20px;
+  background-color: white;
+
+  & span {
+    color: var(--gray500);
+    font-size: 14px;
+    margin-right: 16px;
   }
 }
 
