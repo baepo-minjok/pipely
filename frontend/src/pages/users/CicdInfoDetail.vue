@@ -10,6 +10,16 @@ const isEdit = ref(false);
 const jenkinsInfoId = route.params.id
 
 
+
+/*
+        "id": "19e1b14b-1a43-4bb6-8ae4-204e57866e7c",
+        "name": "leewoojin",
+        "description": "Example Description",
+        "jenkinsId": "admin",
+        "apiToken": "JenkinsApiToken",
+        "uri": "http://122.40.225.54:7979"
+* */
+
 const data = ref({
   name: '',
   description: '',
@@ -17,11 +27,11 @@ const data = ref({
   id: ''
 })
 
-onMounted(() => {
-    jenkinsStore.getJenkinInfoDetail(jenkinsInfoId)
-    data.value = { ...jenkinsStore.jenkinsInfoDetail }
 
-});
+onMounted(async () => {
+  await jenkinsStore.getJenkinInfoDetail(jenkinsInfoId)
+  data.value = { ...jenkinsStore.jenkinsInfoDetail }
+})
 
 const enabledEdit = () => {
   isEdit.value = true;
@@ -30,6 +40,17 @@ const enabledEdit = () => {
 const disableEdit = () => {
   isEdit.value = false;
 };
+async function saveEdit() {
+  await jenkinsStore.updateJenkinsInfoDetail(data.value)
+  isEdit.value = false
+}
+
+
+async function deleteInfo() {
+  await jenkinsStore.deleteJenkinsInfoDetail(data.value.id)
+}
+
+
 </script>
 
 <template>
@@ -38,9 +59,11 @@ const disableEdit = () => {
       <input type="text" v-model="data.name" :readonly="!isEdit" class="name" :class="{ editing: isEdit }" />
       <div class="btn_box">
         <img src="/src/assets/icons/edit.svg" alt="edit" v-if="!isEdit" class="edit_btn" @click="enabledEdit" />
-        <img src="/src/assets/icons/delete.svg" alt="delete" v-if="!isEdit" class="delete_btn" />
+
+        <img src="/src/assets/icons/delete.svg" alt="delete" v-if="!isEdit" class="delete_btn" @click="deleteInfo" />
+
         <button v-if="isEdit" @click="disableEdit" class="cancel_btn">취소</button>
-        <button v-if="isEdit" @click="disableEdit" class="save_btn">저장</button>
+        <button v-if="isEdit" @click="saveEdit" class="save_btn">저장</button>
       </div>
     </div>
     <div class="info_box">
