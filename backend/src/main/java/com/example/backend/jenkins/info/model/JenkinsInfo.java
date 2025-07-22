@@ -46,6 +46,7 @@ public class JenkinsInfo {
     )
     private String name;
 
+    @Lob
     @NotBlank
     @Schema(
             description = "Jenkins 서버 설명",

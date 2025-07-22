@@ -69,5 +69,17 @@ export const userApi = {
             .catch((error) => {
                 return error.response.data.error;
             })
+    },
+
+    // Jenkins info 등록
+    createInfo(data) {
+        return instance
+            .post("/jenkins/info/create", data)
+            .then((res) => {
+                return res;
+            })
+            .catch((error) => {
+                return error.response.data.error;
+            })
     }
 };
