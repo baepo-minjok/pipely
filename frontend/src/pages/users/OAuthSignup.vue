@@ -131,9 +131,12 @@ const signUp = async () => {
 onMounted(() => {
   const isOk = confirm("계정이 없습니다. 회원가입하시겠습니까?");
   if (!isOk) {
-    window.close();
+    if (window.opener && !window.opener.closed) {
+      window.close();
+    } else {
+      router.push({name: "Login"});
+    }
   }
-  // isOk가 true면 이후 로직 진행
 });
 </script>
 

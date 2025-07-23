@@ -2,8 +2,11 @@
 import {ref} from "vue";
 import {useRouter} from 'vue-router';
 import {userApi} from "@/api/UserApi.js";
+import {useUserStore} from "@/stores/useUserStore.js";
 
 const router = useRouter();
+
+const userStore = useUserStore();
 
 // form
 const name = ref("");
@@ -29,6 +32,7 @@ const createInfo = async () => {
   const response = await userApi.createInfo(data);
 
   if (response.status === 200) {
+    await userStore.fetchUserInfo();
     alert("Jenkins 정보가 등록되었습니다!");
   } else {
     alert("Jenkins 정보 등록 실패!\n다시 시도해주세요");

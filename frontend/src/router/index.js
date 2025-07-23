@@ -12,6 +12,7 @@ import JobList from '../pages/jobs/JobList.vue';
 import CreateJob from '../pages/jobs/CreateJob.vue';
 import OAuth from '../pages/users/OAuthSignup.vue';
 import VerifyEmail from '../pages/users/VerifyEmail.vue';
+import Chat from '../pages/chat/Chat.vue';
 
 const routes = [
     {path: '/', component: Main, name: 'Main'},
@@ -25,6 +26,7 @@ const routes = [
     {path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: {requiresAuth: true}},
     {path: '/job', component: JobList, meta: {requiresAuth: true}},
     {path: '/job/create', component: CreateJob, meta: {requiresAuth: true}},
+    {path: '/chat', component: Chat},
     {path: '/:catchAll(.*)', redirect: '/'},
 ];
 
@@ -39,7 +41,7 @@ router.beforeEach(async (to, from, next) => {
     // 로그인된 사용자가 로그인/회원가입 페이지로 가면 메인으로
     if (
         ['/user/login', '/user/signup', '/user/oAuth'].includes(to.path) &&
-        userStore.isFetched.value
+        userStore.isFetched
     ) {
         next('/');
         return;
