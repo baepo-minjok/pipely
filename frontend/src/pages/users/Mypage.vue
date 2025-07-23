@@ -81,7 +81,7 @@ onMounted(async () => {
         />
       </div>
       <div class="cicd_card_list">
-        <div v-for="info in infoList" class="cicd_card" @click="router.push(`/mypage/cicd/${infod.id}`)">
+        <div v-for="info in infoList" class="cicd_card" @click="router.push(`/mypage/cicd/${info.id}`)">
           <p>{{ info.name }}</p>
           <p class="description">{{ info.description }}</p>
           <p>{{ info.uri }}</p>
