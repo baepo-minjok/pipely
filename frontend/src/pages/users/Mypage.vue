@@ -1,7 +1,9 @@
 <script setup>
 import {useRouter} from 'vue-router';
 import {onMounted, ref} from 'vue';
-import {userApi} from "@/api/UserApi.js";
+import {useUserStore} from "@/stores/useUserStore.js"
+
+const userStore = useUserStore();
 
 const router = useRouter();
 
@@ -13,27 +15,24 @@ const isLoading = ref(false);
 
 const infoList = ref([]);
 
+const fetchUser = () => {
+  const userInfo = userStore.getUserInfo();
+
+  email.value = userInfo.email;
+  name.value = userInfo.name;
+  isVerified.value = userInfo.isVerified;
+  infoList.value = userInfo.infoList;
+}
+
 // 로딩될때 유저 정보 세팅
 onMounted(async () => {
   isLoading.value = true;  // 로딩 시작
 
-  // 요청
-  const response = await userApi.getUserDetail();
-
-  // 요청 성공
-  if (response.status === 200) {
-
-    const data = response.data.data;
-    console.log(data);
-    // 정보 세팅
-    email.value = data.email;
-    name.value = data.name;
-    isVerified.value = data.verified;
-    infoList.value = data.infoDtoList;
-    console.log(infoList);
-
+  if (!userStore.isFetched.value) {
+    fetchUser();
   } else {
-
+    await userStore.fetchUserInfo();
+    fetchUser();
   }
 
   isLoading.value = false;  // 로딩 종료

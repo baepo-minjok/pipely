@@ -3,7 +3,8 @@ package com.example.backend.jenkins.job.controller;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
-import com.example.backend.jenkins.job.model.dto.RequestDto;
+import com.example.backend.jenkins.job.model.dto.RequestDto.CreateDto;
+import com.example.backend.jenkins.job.model.dto.RequestDto.UpdateDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.service.PipelineService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,15 +49,11 @@ public class JobController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 JenkinsInfo Id"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            required = true,
-            description = "생성할 Job 정보"
-    )
     @PreAuthorize("@jenkinsInfoService.isOwner(#user, #requestDto.infoId)")
     @PostMapping("/create")
     public ResponseEntity<BaseResponse<String>> create(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid RequestDto.CreateDto requestDto
+            @RequestBody @Valid CreateDto requestDto
     ) {
         pipelineService.createJob(requestDto, user.getName());
         return ResponseEntity.ok()
@@ -80,15 +77,11 @@ public class JobController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 Job Id"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            required = true,
-            description = "수정할 Job 정보"
-    )
     @PreAuthorize("@pipelineService.isOwner(#user, #requestDto.pipelineId)")
     @PutMapping("/update")
     public ResponseEntity<BaseResponse<String>> update(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid RequestDto.UpdateDto requestDto
+            @RequestBody @Valid UpdateDto requestDto
     ) {
         pipelineService.updateJob(requestDto, user.getName());
         return ResponseEntity.ok()

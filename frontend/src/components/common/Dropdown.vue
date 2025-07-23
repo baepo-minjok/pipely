@@ -1,7 +1,19 @@
 <script setup>
+
+import {userApi} from "@/api/UserApi.js";
+import {useUserStore} from "@/stores/useUserStore.js"
+
+const userStore = useUserStore();
+
 const emit = defineEmits(['select']);
 
 const onItemClick = () => {
+  emit('select');
+};
+
+const onLogoutClick = async () => {
+  await userApi.logout();
+  userStore.$reset();
   emit('select');
 };
 </script>
@@ -9,9 +21,15 @@ const onItemClick = () => {
 <template>
   <div class="dropdown_container">
     <ul class="list">
-      <li><router-link to="/job" class="list_item" @click="onItemClick">Job 목록</router-link></li>
-      <li><router-link to="/mypage" class="list_item" @click="onItemClick">마이페이지</router-link></li>
-      <li><router-link to="/" class="list_item" @click="onItemClick">로그아웃</router-link></li>
+      <li>
+        <router-link class="list_item" to="/job" @click="onItemClick">Job 목록</router-link>
+      </li>
+      <li>
+        <router-link class="list_item" to="/mypage" @click="onItemClick">마이페이지</router-link>
+      </li>
+      <li>
+        <router-link class="list_item" to="/" @click="onLogoutClick">로그아웃</router-link>
+      </li>
     </ul>
   </div>
 </template>

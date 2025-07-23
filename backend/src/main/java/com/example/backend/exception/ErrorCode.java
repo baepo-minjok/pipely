@@ -93,6 +93,8 @@ public enum ErrorCode {
     JENKINS_SUCCESS_BUILD_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_SUCCESS_BUILD_NOT_FOUND_404", "성공한 빌드 이력을 찾을 수 없습니다."),
     JENKINS_PIPELINE_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_PIPELINE_NOT_FOUND_404", "해당 파이프라인을 찾을 수 없습니다."),
     JENKINS_PIPELINE_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_PIPELINE_HISTORY_NOT_FOUND_404", "지정한 파이프라인 버전 이력을 찾을 수 없습니다."),
+    JENKINS_NO_SUCCESSFUL_BUILD(HttpStatus.NOT_FOUND, "JENKINS_NO_SUCCESSFUL_BUILD_404", "성공한 빌드가 존재하지 않습니다."),
+
 
 
     /**

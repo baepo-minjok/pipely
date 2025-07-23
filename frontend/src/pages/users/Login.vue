@@ -53,9 +53,10 @@ const login = async () => {
 
   const response = await userApi.login(loginRequest);
 
-  if (response.status === 200) {
-    // 로그인 성공
+  if (response.status === 200) { // 로그인 성공
+    // 메인으로
     router.push({name: "Main"});
+
   } else if (response.status === 401) {
     errorMessage.value = response.message;
   } else {

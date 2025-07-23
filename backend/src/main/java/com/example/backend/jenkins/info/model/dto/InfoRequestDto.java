@@ -17,7 +17,7 @@ public class InfoRequestDto {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(name = "CreateDto", description = "새로운 Jenkins 정보 등록을 위한 요청 데이터")
+    @Schema(name = "InfoCreateDto", description = "새로운 Jenkins 정보 등록을 위한 요청 데이터")
     public static class CreateDto {
 
         @NotBlank
@@ -65,7 +65,7 @@ public class InfoRequestDto {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(name = "UpdateDto", description = "기존 Jenkins 정보 수정 요청 DTO")
+    @Schema(name = "InfoUpdateDto", description = "기존 Jenkins 정보 수정 요청 DTO")
     public static class UpdateDto {
 
         @NotNull
