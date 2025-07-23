@@ -2,6 +2,9 @@
 
 import {userApi} from "@/api/UserApi.js";
 import {useUserStore} from "@/stores/useUserStore.js"
+import {useRouter} from 'vue-router';
+
+const router = useRouter();
 
 const userStore = useUserStore();
 
@@ -12,9 +15,13 @@ const onItemClick = () => {
 };
 
 const onLogoutClick = async () => {
+
+  userStore.reset();
+
   await userApi.logout();
-  userStore.$reset();
-  emit('select');
+
+  router.push('/user/login');
+  //emit('select');
 };
 </script>
 
@@ -28,7 +35,8 @@ const onLogoutClick = async () => {
         <router-link class="list_item" to="/mypage" @click="onItemClick">마이페이지</router-link>
       </li>
       <li>
-        <router-link class="list_item" to="/" @click="onLogoutClick">로그아웃</router-link>
+        <router-link v-if="userStore.isFetched" class="list_item" to="/" @click="onLogoutClick">로그아웃</router-link>
+        <router-link v-else class="list_item" to="/user/login">로그인</router-link>
       </li>
     </ul>
   </div>

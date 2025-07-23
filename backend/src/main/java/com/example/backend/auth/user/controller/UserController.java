@@ -195,4 +195,9 @@ public class UserController {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(userService.findDetail(user.getEmail())));
     }
+
+    @GetMapping("/isLogged")
+    public ResponseEntity<BaseResponse<String>> isLogged() {
+        return ResponseEntity.ok(BaseResponse.success("ok"));
+    }
 }
