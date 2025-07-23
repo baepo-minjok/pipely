@@ -11,6 +11,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,25 +37,16 @@ public class CalendarService {
         long timestamp = ((Number) build.get("timestamp")).longValue();
         long duration = ((Number) build.get("duration")).longValue();
 
-        String jobName = "unknown";
-        String buildUrl = (String) build.get("url");
-        if (buildUrl != null) {
-            String[] parts = buildUrl.split("/");
-            for (int i = 0; i < parts.length; i++) {
-                if ("job".equals(parts[i]) && i + 1 < parts.length) {
-                    jobName = parts[i + 1];
-                    break;
-                }
-            }
-        }
+        String jobName = extractJobName(build);
 
         return CalendarBuildResDto.builder()
                 .title("[" + result + "] " + jobName + " #" + buildNumber)
-                .start(timestamp)
-                .end(timestamp + duration)
+                .start(formatTimestamp(timestamp))
+                .end(formatTimestamp(timestamp + duration))
                 .status(result)
                 .jobName(jobName)
                 .buildNumber(buildNumber)
+                .duration(formatDuration(duration))
                 .build();
     }
 
@@ -74,20 +68,16 @@ public class CalendarService {
         String json = buildService.JenkinsGetResponse(pipelineId);
 
         Map<String, Object> parsed = parseJsonToMap(json);
-
         List<Map<String, Object>> builds = (List<Map<String, Object>>) parsed.get("builds");
+
         return toCalendarBuildResDtoList(builds);
     }
 
     public List<CalendarErrorResDto> getErrorCalendar(UUID pipelineId) {
-        // 1. Jenkins JSON 응답 받아오기
         String json = buildService.JenkinsGetResponse(pipelineId);
         Map<String, Object> parsed = parseJsonToMap(json);
-
-        // 2. builds 추출
         List<Map<String, Object>> builds = (List<Map<String, Object>>) parsed.get("builds");
 
-        // 3. FAILURE만 골라서 매핑
         return builds.stream()
                 .filter(b -> "FAILURE".equals(b.get("result")))
                 .map(this::mapToErrorResDto)
@@ -96,13 +86,13 @@ public class CalendarService {
 
     private CalendarErrorResDto mapToErrorResDto(Map<String, Object> build) {
         int buildNumber = (Integer) build.get("number");
-        String message = "원인 미상";
-        String failedStage = "Unknown";
         String result = (String) build.get("result");
         long timestamp = ((Number) build.get("timestamp")).longValue();
         long duration = ((Number) build.get("duration")).longValue();
 
-        // 에러 메시지와 실패 단계 추출 (옵셔널)
+        String message = "원인 미상";
+        String failedStage = "Unknown";
+
         List<Map<String, Object>> actions = (List<Map<String, Object>>) build.get("actions");
         if (actions != null) {
             for (Map<String, Object> action : actions) {
@@ -117,14 +107,50 @@ public class CalendarService {
 
         return CalendarErrorResDto.builder()
                 .title("[ERROR] #" + buildNumber)
-                .start(timestamp)
-                .end(timestamp + duration)
+                .start(formatTimestamp(timestamp))
+                .end(formatTimestamp(timestamp + duration))
                 .message(message)
                 .failedStage(failedStage)
                 .buildNumber(buildNumber)
+                .duration(formatDuration(duration))
                 .build();
     }
 
+    private static String formatTimestamp(long millis) {
+        return Instant.ofEpochMilli(millis)
+                .atZone(ZoneId.of("Asia/Seoul"))
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    private String extractJobName(Map<String, Object> build) {
+        String jobName = "unknown";
+        String buildUrl = (String) build.get("url");
+        if (buildUrl != null) {
+            String[] parts = buildUrl.split("/");
+            for (int i = 0; i < parts.length; i++) {
+                if ("job".equals(parts[i]) && i + 1 < parts.length) {
+                    jobName = parts[i + 1];
+                    break;
+                }
+            }
+        }
+        return jobName;
+    }
+
+    private static String formatDuration(long millis) {
+        if (millis < 1000) {
+            return String.format("%.2f초", millis / 1000.0);
+        }
+
+        long seconds = millis / 1000;
+        long minutes = seconds / 60;
+        long remainingSeconds = seconds % 60;
+
+        if (minutes > 0) {
+            return minutes + "분 " + remainingSeconds + "초";
+        } else {
+            return remainingSeconds + "초";
+        }
+    }
 
 }
-
