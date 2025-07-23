@@ -27,7 +27,6 @@ public class RequestDto {
                 .build();
     }
 
-    @SuperBuilder
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -82,6 +81,7 @@ public class RequestDto {
     }
 
     @Data
+    @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     @Schema(name = "ScriptBaseDto", description = "Jenkins Script 생성/수정에 필요한 파라미터")
@@ -262,7 +262,6 @@ public class RequestDto {
         private List<NotificationDto> notificationList;
     }
 
-    @SuperBuilder
     @EqualsAndHashCode(callSuper = true)
     @Data
     @AllArgsConstructor
@@ -279,7 +278,6 @@ public class RequestDto {
         private UUID infoId;
     }
 
-    @SuperBuilder
     @EqualsAndHashCode(callSuper = true)
     @Data
     @AllArgsConstructor
@@ -318,6 +316,9 @@ public class RequestDto {
     }
 
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Schema(name = "NotificationDto", description = "Job 알림 생성/수정 DTO")
     public static class NotificationDto {
 
