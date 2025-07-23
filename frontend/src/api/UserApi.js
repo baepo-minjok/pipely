@@ -21,6 +21,18 @@ export const userApi = {
             });
     },
 
+    // 로그아웃
+    logout() {
+        return instance
+            .post("/auth/user/logout")
+            .then((res) => {
+                return res;
+            })
+            .catch((error) => {
+                return error.response.data.error;
+            })
+    },
+
     // 회원가입 api
     signup(data) {
         return instance
@@ -32,6 +44,7 @@ export const userApi = {
                 return error.response.data.error;
             })
     },
+
     // oAuth 회원가입 api
     oAuthSignup(data) {
         return instance
@@ -56,5 +69,40 @@ export const userApi = {
             .catch((error) => {
                 return error.response.data.error;
             })
-    }
+    },
+
+    // Mypage에서 유저 정보 불러오기
+    getUserDetail() {
+        return instance
+            .get("/auth/user/detail")
+            .then((res) => {
+                return res;
+            })
+            .catch((error) => {
+                return error.response.data.error;
+            })
+    },
+
+    isLoggedIn() {
+        return instance
+            .get("/auth/user/isLogged")
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
+    },
+
+    // Jenkins info 등록
+    createInfo(data) {
+        return instance
+            .post("/jenkins/info/create", data)
+            .then((res) => {
+                return res;
+            })
+            .catch((error) => {
+                return error.response.data.error;
+            })
+    },
 };

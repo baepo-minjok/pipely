@@ -249,7 +249,7 @@ public class RequestDto {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    @Schema(name = "CreateDto", description = "Jenkins Job 생성 요청 DTO")
+    @Schema(name = "JobCreateDto", description = "Jenkins Job 생성 요청 DTO")
     public static class CreateDto extends BaseDto {
 
         @NotNull
@@ -272,7 +272,7 @@ public class RequestDto {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    @Schema(name = "UpdateDto", description = "Jenkins Job 수정 요청 DTO")
+    @Schema(name = "JobUpdateDto", description = "Jenkins Job 수정 요청 DTO")
     public static class UpdateDto extends BaseDto {
 
         @NotNull

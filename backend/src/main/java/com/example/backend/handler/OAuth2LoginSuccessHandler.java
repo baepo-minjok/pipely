@@ -38,7 +38,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             String oAuth2Token = jwtTokenProvider.createOAuth2Token(oAuth2User, registrationId);
             ResponseCookie cookie = cookieService.buildOAuth2Cookie(oAuth2Token);
             response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-            response.sendRedirect("http://localhost:5173/user/oAuth");
+            response.sendRedirect("https://www.pipely.kro.kr/user/oAuth");
         } else {
 
             String accessToken = jwtTokenProvider.createAccessToken(authentication);
@@ -49,7 +49,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
             response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
             response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
-            response.sendRedirect("http://localhost:5173/user/login");
+            response.sendRedirect("https://www.pipely.kro.kr");
         }
     }
 }

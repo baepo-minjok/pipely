@@ -1,14 +1,30 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import {onMounted, reactive, ref ,watch} from 'vue';
+import {useJenkinsStore} from "@/stores/useJenkinsStore.js";
+import {useRoute} from "vue-router";
 
+const route = useRoute();
+
+const jenkinsStore = useJenkinsStore()
 const isEdit = ref(false);
+const jenkinsInfoId = route.params.id
 
-const data = reactive({
-  name: '젠킨스 01',
-  description: '젠킨스 상세 정보',
-  url: 'https://jenkins.io',
-  id: 'test01',
-});
+
+const data = ref({
+  apiToken:'',
+  description: '',
+  id: '',
+  jenkinsId: '',
+  name: '',
+  uri: ''
+})
+
+
+onMounted(async () => {
+  await jenkinsStore.getJenkinInfoDetail(jenkinsInfoId)
+  data.value = { ...jenkinsStore.jenkinsInfoDetail }
+})
+
 
 const enabledEdit = () => {
   isEdit.value = true;
@@ -17,6 +33,21 @@ const enabledEdit = () => {
 const disableEdit = () => {
   isEdit.value = false;
 };
+async function saveEdit() {
+  await jenkinsStore.updateJenkinsInfoDetail(data.value)
+  isEdit.value = false
+}
+
+
+async function deleteInfo() {
+  await jenkinsStore.deleteJenkinsInfoDetail(data.value.id)
+}
+async function jenkinsURITest() {
+
+  await jenkinsStore.jenkinsURITest(data.value.id)
+}
+
+
 </script>
 
 <template>
@@ -25,9 +56,11 @@ const disableEdit = () => {
       <input type="text" v-model="data.name" :readonly="!isEdit" class="name" :class="{ editing: isEdit }" />
       <div class="btn_box">
         <img src="/src/assets/icons/edit.svg" alt="edit" v-if="!isEdit" class="edit_btn" @click="enabledEdit" />
-        <img src="/src/assets/icons/delete.svg" alt="delete" v-if="!isEdit" class="delete_btn" />
+
+        <img src="/src/assets/icons/delete.svg" alt="delete" v-if="!isEdit" class="delete_btn" @click="deleteInfo" />
+
         <button v-if="isEdit" @click="disableEdit" class="cancel_btn">취소</button>
-        <button v-if="isEdit" @click="disableEdit" class="save_btn">저장</button>
+        <button v-if="isEdit" @click="saveEdit" class="save_btn">저장</button>
       </div>
     </div>
     <div class="info_box">
@@ -41,12 +74,12 @@ const disableEdit = () => {
         </div>
       </div>
       <div class="row">
-        <div class="label">URL</div>
+        <div class="label">URI</div>
         <div class="value with_actions">
-          <input type="text" v-model="data.url" :readonly="!isEdit" class="input_text" :class="{ editing: isEdit }" />
+          <input type="text" v-model="data.uri" :readonly="!isEdit" class="input_text" :class="{ editing: isEdit }" />
           <div class="actions">
-            <button class="test_btn">테스트 요청 보내기</button>
-            <img src="/src/assets/icons/check.svg" alt="icon" class="action_icon" />
+            <button class="test_btn" @click="jenkinsURITest" >테스트 요청 보내기</button>
+            <img src="/src/assets/icons/check.svg" alt="icon" class="action_icon"  />
           </div>
         </div>
       </div>
