@@ -2,6 +2,7 @@
 import {onMounted, reactive, ref ,watch} from 'vue';
 import {useJenkinsStore} from "@/stores/useJenkinsStore.js";
 import {useRoute} from "vue-router";
+import {jenkinsInfoApi} from "@/api/JenkinsInfoApi.js";
 
 const route = useRoute();
 
@@ -20,6 +21,8 @@ const data = ref({
 })
 
 
+
+
 onMounted(async () => {
   await jenkinsStore.getJenkinInfoDetail(jenkinsInfoId)
   data.value = { ...jenkinsStore.jenkinsInfoDetail }
@@ -34,7 +37,7 @@ const disableEdit = () => {
   isEdit.value = false;
 };
 async function saveEdit() {
-  await jenkinsStore.updateJenkinsInfoDetail(data.value)
+   await jenkinsStore.updateJenkinsInfoDetail(data.value)
   isEdit.value = false
 }
 
