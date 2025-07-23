@@ -87,7 +87,7 @@ export const userApi = {
         return instance
             .get("/auth/user/isLogged")
             .then((res) => {
-                return false;
+                return true;
             })
             .catch((error) => {
                 return false;

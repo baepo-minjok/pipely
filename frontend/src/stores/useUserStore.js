@@ -32,6 +32,14 @@ export const useUserStore = defineStore(
             }
         }
 
+        function reset() {
+            userInfo.name = "";
+            userInfo.email = "";
+            userInfo.isVerified = false;
+            userInfo.infoList = [];
+            isFetched.value = false;
+        }
+
         function getUserInfo() {
             return userInfo;
         }
@@ -40,7 +48,8 @@ export const useUserStore = defineStore(
             userInfo,
             fetchUserInfo,
             isFetched,
-            getUserInfo
+            getUserInfo,
+            reset
         };
     },
     {

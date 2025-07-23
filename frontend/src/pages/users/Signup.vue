@@ -170,7 +170,7 @@ const checkDuplicate = async () => {
 
 const googleSignUp = () => {
   const popup = window.open(
-      "http://localhost:8080/oauth2/authorization/google",
+      "https://www.pipely.kro.kr/oauth2/authorization/google",
       "_blank",
       "width=500,height=600"
   );
@@ -183,7 +183,7 @@ const googleSignUp = () => {
 
 const githubSignUp = () => {
   window.open(
-      "http://localhost:8080/oauth2/authorization/github",
+      "https://www.pipely.kro.kr/oauth2/authorization/github",
       "_blank",
       "width=500,height=600"
   );

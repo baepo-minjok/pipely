@@ -2,8 +2,11 @@
 import {ref} from "vue";
 import {userApi} from "@/api/UserApi.js";
 import {useRouter} from "vue-router";
+import {useUserStore} from "@/stores/useUserStore.js";
 
 const router = useRouter();
+
+const userStore = useUserStore();
 
 const email = ref("");
 const password = ref("");
@@ -54,6 +57,9 @@ const login = async () => {
   const response = await userApi.login(loginRequest);
 
   if (response.status === 200) { // 로그인 성공
+
+    await userStore.fetchUserInfo();
+
     // 메인으로
     router.push({name: "Main"});
 
@@ -64,11 +70,11 @@ const login = async () => {
   }
 };
 const googleLogin = () => {
-  window.location.href = "http://localhost:8080/oauth2/authorization/google";
+  window.location.href = "https://www.pipely.kro.kr/oauth2/authorization/google";
 };
 
 const githubLogin = () => {
-  window.location.href = "http://localhost:8080/oauth2/authorization/github";
+  window.location.href = "https://www.pipely.kro.kr/oauth2/authorization/github";
 }
 
 </script>
