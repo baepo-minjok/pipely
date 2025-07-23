@@ -13,7 +13,8 @@ export const jenkinsInfoApi = {
     // Jenkins Info 상세 조회
     getDetail(infoId) {
         return instance.post("/jenkins/info", { infoId })
-            console.log("@@@@ : " + infoId)
+
+
             .then((res) => res.data)
             .catch((error) => {
                 console.error("getDetail error:", error);
@@ -23,9 +24,7 @@ export const jenkinsInfoApi = {
 
     // Jenkins Info 삭제
     delete(infoId) {
-        return instance.delete("/jenkins/info", {
-            data: { infoId },
-        })
+        return instance.delete(`/jenkins/info/${infoId}`)
             .then((res) => res.data)
             .catch((error) => {
                 console.error("delete error:", error);

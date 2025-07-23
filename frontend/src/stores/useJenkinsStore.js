@@ -11,7 +11,6 @@ export const useJenkinsStore = defineStore('jenkinsStore', {
         async getJenkinInfoDetail(jenkinsInfoId) {
             try {
                 const response = await jenkinsInfoApi.getDetail(jenkinsInfoId);
-
                 this.jenkinsInfoDetail = response.data.data;
             } catch (error) {
                 this.jenkinsInfoDetail = [];
@@ -20,10 +19,12 @@ export const useJenkinsStore = defineStore('jenkinsStore', {
 
         async deleteJenkinsInfoDetail(jenkinsInfoId) {
             try {
-                const data = await jenkinsInfoApi.delete(jenkinsInfoId);
-                this.jenkinsInfoDetail = data;
+                const res = await jenkinsInfoApi.delete(jenkinsInfoId);
+
+                return res.success === true;
             } catch (error) {
-                this.jenkinsInfoDetail = [];
+                console.error("삭제 실패:", error);
+                return false;
             }
         },
 
