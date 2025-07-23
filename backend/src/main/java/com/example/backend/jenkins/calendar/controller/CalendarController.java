@@ -1,8 +1,10 @@
 package com.example.backend.jenkins.calendar.controller;
 
 import com.example.backend.exception.BaseResponse;
+import com.example.backend.jenkins.calendar.model.dto.CalendarRequestDto.CalendarErrorDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarRequestDto.CalendarBuildDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarBuildResDto;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarErrorResDto;
 import com.example.backend.jenkins.calendar.service.CalendarService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -35,4 +37,16 @@ public class CalendarController {
     ) {
         return ResponseEntity.ok(BaseResponse.success(calendarService.getBuildCalendar(dto.getPipeLine())));
     }
+
+    @Operation(summary = "에러 캘린더 이벤트 조회", description = "특정 파이프라인의 빌드 실패 이력을 캘린더 형태로 조회합니다.")
+    @PostMapping("/error")
+    public ResponseEntity<BaseResponse<List<CalendarErrorResDto>>> getErrorCalendar(
+            @RequestBody @Valid CalendarErrorDto dto
+    ) {
+        return ResponseEntity.ok(BaseResponse.success(
+                calendarService.getErrorCalendar(dto.getPipeLine())
+        ));
+    }
+
+
 }
