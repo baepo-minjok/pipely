@@ -54,7 +54,6 @@ class EmailServiceTest {
                 .build();
         testToken = UUID.randomUUID();
 
-        ReflectionTestUtils.setField(emailService, "frontendUrl", "http://localhost:3000");
         ReflectionTestUtils.setField(emailService, "dormancyPeriodDays", 30L);
     }
 
