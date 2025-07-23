@@ -14,9 +14,28 @@ const isGithubChecked = ref(false);
 const isWebhookChecked = ref(false);
 const openDropdown = ref(false);
 
+const weekdays = [
+  { label: '월', value: 'mon' },
+  { label: '화', value: 'tue' },
+  { label: '수', value: 'wed' },
+  { label: '목', value: 'thu' },
+  { label: '금', value: 'fri' },
+  { label: '토', value: 'sat' },
+  { label: '일', value: 'sun' },
+];
+
 const linkData = reactive({
   githubUrl: '',
   webhookUrl: '',
+});
+
+const scheduleData = reactive({
+  isScheduleChecked: false,
+  repeatType: '',
+  selectedDays: [],
+  ampm: '오전',
+  hour: 0,
+  minute: 0,
 });
 
 const cicdItems = [
@@ -32,6 +51,15 @@ const cicdItems = [
   },
 ];
 const selectedItem = ref(cicdItems[0]);
+
+const jobData = reactive({
+  scriptId: '',
+  name: '',
+  description: '',
+  trigger: false,
+  schedule: '',
+  infoId: '',
+});
 
 const scriptData = reactive({
   scriptId: '',
@@ -124,6 +152,55 @@ const handleCreateScriptClick = () => {
           <input type="text" v-model="linkData.webhookUrl" placeholder="Webhook 링크를 입력해주세요." class="input" />
         </div>
       </div>
+
+      <div class="schedule_box">
+        <h3 class="sub_title">스케줄</h3>
+        <div class="checkbox">
+          <input type="checkbox" v-model="scheduleData.isScheduleChecked" name="schedule_check" id="schedule_check" />
+          <span>스케줄 설정</span>
+        </div>
+
+        <div v-if="scheduleData.isScheduleChecked" class="schedule">
+          <div class="schedule_row">
+            <label>
+              <select v-model="scheduleData.repeatType">
+                <option value="daily">매일</option>
+                <option value="weekly">매주</option>
+              </select>
+            </label>
+          </div>
+
+          <div v-if="scheduleData.repeatType === 'weekly'" class="weekdays">
+            <label v-for="day in weekdays" :key="day.value">
+              <input type="checkbox" v-model="scheduleData.selectedDays" :value="day.value" />
+              {{ day.label }}
+            </label>
+          </div>
+          <div class="time_select_row">
+            <label>
+              <select v-model="scheduleData.ampm">
+                <option value="오전">오전</option>
+                <option value="오후">오후</option>
+              </select>
+            </label>
+
+            <label>
+              <select v-model="scheduleData.hour">
+                <option v-for="n in 12" :key="n" :value="n">{{ n }}시</option>
+              </select>
+            </label>
+
+            <label>
+              <select v-model="scheduleData.minute">
+                <option v-for="m in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]" :key="m" :value="m">
+                  {{ m.toString().padStart(2, '0') }}분
+                </option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="script_box">
         <h3 class="sub_title">스크립트</h3>
         <div>
@@ -236,7 +313,8 @@ const handleCreateScriptClick = () => {
   gap: 14px;
 }
 
-.link_box {
+.link_box,
+.schedule_box {
   gap: 17px;
 }
 
@@ -299,6 +377,38 @@ label {
   display: block;
   margin-bottom: 10px;
   color: var(--gray700);
+}
+
+/* 스케줄 */
+.schedule select {
+  background-color: white;
+  padding: 8px 14px;
+  outline: none;
+  border-radius: 4px;
+  border: 1px solid var(--gray300);
+}
+
+.schedule option {
+  padding: 8px 14px;
+}
+
+.weekdays {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap; /* 필요 시 줄바꿈도 가능하게 */
+
+  & > label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--gray900);
+  }
+}
+
+.time_select_row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .deploy_section {
