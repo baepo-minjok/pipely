@@ -21,6 +21,18 @@ export const userApi = {
             });
     },
 
+    // 로그아웃
+    logout() {
+        return instance
+            .post("/auth/user/logout")
+            .then((res) => {
+                return res;
+            })
+            .catch((error) => {
+                return error.response.data.error;
+            })
+    },
+
     // 회원가입 api
     signup(data) {
         return instance
@@ -71,6 +83,17 @@ export const userApi = {
             })
     },
 
+    isLoggedIn() {
+        return instance
+            .get("/auth/user/isLogged")
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
+    },
+
     // Jenkins info 등록
     createInfo(data) {
         return instance
@@ -81,5 +104,5 @@ export const userApi = {
             .catch((error) => {
                 return error.response.data.error;
             })
-    }
+    },
 };

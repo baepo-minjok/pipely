@@ -15,20 +15,24 @@ const isLoading = ref(false);
 
 const infoList = ref([]);
 
+const fetchUser = () => {
+  const userInfo = userStore.getUserInfo();
+
+  email.value = userInfo.email;
+  name.value = userInfo.name;
+  isVerified.value = userInfo.isVerified;
+  infoList.value = userInfo.infoList;
+}
+
 // 로딩될때 유저 정보 세팅
 onMounted(async () => {
   isLoading.value = true;  // 로딩 시작
 
   if (!userStore.isFetched.value) {
-    const userInfo = userStore.getUserInfo();
-
-    email.value = userInfo.email;
-    name.value = userInfo.name;
-    isVerified.value = userInfo.isVerified;
-    infoList.value = userInfo.infoList;
-    
+    fetchUser();
   } else {
-    router.push({name: "Main"});
+    await userStore.fetchUserInfo();
+    fetchUser();
   }
 
   isLoading.value = false;  // 로딩 종료
