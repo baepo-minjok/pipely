@@ -8,10 +8,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +27,7 @@ public class RequestDto {
                 .build();
     }
 
+    @SuperBuilder //Test에서 생성하기 위함
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -245,6 +244,7 @@ public class RequestDto {
         private String deployTarget;
     }
 
+    @SuperBuilder
     @EqualsAndHashCode(callSuper = true)
     @Data
     @AllArgsConstructor
@@ -268,7 +268,7 @@ public class RequestDto {
 
     }
 
-    @EqualsAndHashCode(callSuper = true)
+    @SuperBuilder
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
