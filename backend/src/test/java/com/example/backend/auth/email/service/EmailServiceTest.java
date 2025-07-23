@@ -11,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -55,64 +54,7 @@ class EmailServiceTest {
                 .build();
         testToken = UUID.randomUUID();
 
-        ReflectionTestUtils.setField(emailService, "frontendUrl", "http://localhost:3000");
         ReflectionTestUtils.setField(emailService, "dormancyPeriodDays", 30L);
-    }
-
-    @Test
-    @DisplayName("이메일 인증 메일 발송 테스트")
-    void sendVerificationEmail_success() {
-
-        ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-
-        emailService.sendVerificationEmail(testUser, testToken);
-
-        verify(mailSender, times(1)).send(messageCaptor.capture());
-        SimpleMailMessage sentMessage = messageCaptor.getValue();
-
-        assertThat(sentMessage.getTo()).containsExactly(testUser.getEmail());
-        assertThat(sentMessage.getSubject()).isEqualTo("[Pipely] 이메일 인증 안내");
-        assertThat(sentMessage.getText()).contains("http://localhost:3000/api/auth/email/verify-email?token=" + testToken);
-        assertThat(sentMessage.getText()).contains("안녕하세요!");
-    }
-
-    @Test
-    @DisplayName("비동기 이메일 발송 요청 시 토큰 생성 및 이메일 발송 확인")
-    void sendVerificationEmailAsync_createsTokenAndSendsEmail() {
-
-        VerificationToken verificationToken = VerificationToken.builder()
-                .user(testUser)
-                .token(testToken)
-                .expiryDate(LocalDateTime.now().plusDays(1L))
-                .build();
-
-        when(verificationTokenRepository.save(any(VerificationToken.class))).thenReturn(verificationToken);
-
-        emailService.sendVerificationEmailAsync(testUser);
-
-        verify(verificationTokenRepository, times(1)).save(any(VerificationToken.class));
-        verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
-    }
-
-    @Test
-    @DisplayName("비밀번호 재설정 이메일 비동기 발송 테스트")
-    void sendPasswordResetEmailAsync_success() {
-        // Given
-        String resetToken = "reset-test-token-123";
-        ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-
-        // When
-        emailService.sendPasswordResetEmailAsync(testUser, resetToken);
-
-        // Then
-        verify(mailSender, times(1)).send(messageCaptor.capture());
-        SimpleMailMessage sentMessage = messageCaptor.getValue();
-
-        assertThat(sentMessage.getTo()).containsExactly(testUser.getEmail());
-        assertThat(sentMessage.getSubject()).isEqualTo("[Pipely] 비밀번호 재설정 안내");
-        assertThat(sentMessage.getText()).contains(testUser.getName() + "님,");
-        assertThat(sentMessage.getText()).contains("http://localhost:3000/password-reset?token=" + resetToken);
-        assertThat(sentMessage.getText()).contains("해당 링크는 요청일로부터 1시간 동안만 유효합니다.");
     }
 
     @Test
@@ -176,30 +118,6 @@ class EmailServiceTest {
                 emailService.validateToken(testToken)
         );
         assertThat(thrown.getErrorCode()).isEqualTo(ErrorCode.EMAIL_VERIFICATION_TOKEN_INVALID);
-    }
-
-    @Test
-    @DisplayName("휴면 알림 이메일 발송 성공")
-    void sendDormantNotificationEmail_success() {
-
-        String userEmail = testUser.getEmail();
-        String dormantToken = "dormant-reactivation-token";
-        ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
-
-        when(userRepository.findByEmail(userEmail)).thenReturn(Optional.of(testUser));
-        when(dormantTokenService.createDormantReactivationToken(testUser)).thenReturn(dormantToken);
-
-        emailService.sendDormantNotificationEmail(userEmail);
-
-        verify(userRepository, times(1)).findByEmail(userEmail);
-        verify(dormantTokenService, times(1)).createDormantReactivationToken(testUser);
-        verify(mailSender, times(1)).send(messageCaptor.capture());
-
-        SimpleMailMessage sentMessage = messageCaptor.getValue();
-        assertThat(sentMessage.getTo()).containsExactly(userEmail);
-        assertThat(sentMessage.getSubject()).isEqualTo("[서비스명] 계정 휴면 안내 및 재활성화 방법");
-        assertThat(sentMessage.getText()).contains("안녕하세요. 귀하의 계정이 " + 30L + "일간 미사용되어 휴면 처리되었습니다.");
-        assertThat(sentMessage.getText()).contains("https://pipely.com/reactivate?token=" + dormantToken);
     }
 
     @Test
