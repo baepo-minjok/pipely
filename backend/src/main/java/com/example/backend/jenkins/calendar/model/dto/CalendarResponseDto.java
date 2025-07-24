@@ -50,4 +50,16 @@ public class CalendarResponseDto {
         private String duration;
         private int buildNumber;
     }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class CalendarEventRes {
+        private String type;        // BUILD or ERROR
+        private String jobName;
+        private int buildNumber;
+        private String start;       // yyyy-MM-dd HH:mm:ss
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.example.backend.jenkins.calendar.model.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,4 +21,14 @@ public class CalendarRequestDto {
     public static class CalendarErrorDto {
         private UUID pipeLine;
     }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CalendarEventReq {
+        @NotNull
+        private UUID infoId;
+    }
+
+
 }
