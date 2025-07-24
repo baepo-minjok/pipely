@@ -40,7 +40,7 @@ public class ScriptService {
      * @param requestDto SCriptBaseDto 타입
      * @return
      */
-    public ResponseDto.LightScriptDto generateScript(RequestDto.ScriptBaseDto requestDto, String userName) {
+    public ResponseDto.LightScriptDto generateScript(RequestDto.ScriptBaseDto requestDto) {
         UUID scriptId = requestDto.getScriptId();
         Script newScript = null;
         String script = null;
@@ -66,7 +66,7 @@ public class ScriptService {
 
             String injectedScript = scriptEditUtil.injectBooleanParams(script);
             newScript = Script.toEntity(requestDto, injectedScript);
-            //newScript = scriptRepository.save(Script.toEntity(requestDto, injectedScript));
+            newScript = scriptRepository.save(newScript);
 
             if (requestDto.getNotificationList() != null) {
                 JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
@@ -76,7 +76,7 @@ public class ScriptService {
 
         List<JobNotification> enabledNotifications = jobNotificationService.getEnabledNotifications(newScript);
 
-        newScript = jobNotificationService.updateScriptWithJobNotifications(newScript, enabledNotifications, userName);
+        newScript = jobNotificationService.updateScriptWithJobNotifications(newScript, enabledNotifications);
 
         return ResponseDto.entityToLightScriptDto(newScript);
     }
