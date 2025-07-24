@@ -95,7 +95,7 @@ public class EmailService {
      */
     @Async
     public void sendPasswordResetEmailAsync(Users user, String token) {
-        String link = "https://www.pipely.kro.kr/user/password/reset?token=" + token;
+        String link = "https://www.pipely.kro.kr/user/reset/password?token=" + token;
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
