@@ -21,27 +21,16 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class ScriptServiceTest {
 
-    @Mock
-    private ScriptRepository scriptRepository;
+    @Mock private ScriptRepository scriptRepository;
+    @Mock private ConfigService configService;
+    @Mock private JenkinsInfoService jenkinsInfoService;
+    @Mock private JobNotificationService jobNotificationService;
+    @Mock private ScriptEditUtil scriptEditUtil;
 
-    @Mock
-    private ConfigService configService;
-
-    @Mock
-    private JenkinsInfoService jenkinsInfoService;
-
-    @Mock
-    private JobNotificationService jobNotificationService;
-
-    @Mock
-    private ScriptEditUtil scriptEditUtil;
-
-    @InjectMocks
-    private ScriptService scriptService;
+    @InjectMocks private ScriptService scriptService;
 
     private RequestDto.ScriptBaseDto requestDto;
     private JenkinsInfo jenkinsInfo;
@@ -62,7 +51,6 @@ class ScriptServiceTest {
                 .shouldNotify(true)
                 .credentialName("credId")
                 .build();
-
         requestDto.setNotificationList(List.of(notification));
 
         jenkinsInfo = JenkinsInfo.builder()
@@ -98,7 +86,8 @@ class ScriptServiceTest {
         when(scriptEditUtil.injectBooleanParams("rawScript")).thenReturn("editedScript");
         when(jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId())).thenReturn(jenkinsInfo);
         when(jobNotificationService.getEnabledNotifications(any())).thenReturn(Collections.emptyList());
-        when(jobNotificationService.updateScriptWithJobNotifications(any(), any())).thenReturn(script);
+        when(jobNotificationService.updateScriptWithJobNotifications(any(), any()))
+                .thenReturn(script);
 
         ResponseDto.LightScriptDto result = scriptService.generateScript(requestDto);
 
@@ -109,14 +98,14 @@ class ScriptServiceTest {
     @Test
     @DisplayName("generateScript: 새 script 생성 및 알림 등록")
     void generateScript_newScript_success() {
-        requestDto.setScriptId(null); // 새 스크립트 시나리오
-
+        requestDto.setScriptId(null); // 새 script 생성 시나리오
         Map<String, Object> context = Map.of("key", "value");
 
         when(configService.buildScriptContext(requestDto)).thenReturn(context);
         when(configService.createScript(context)).thenReturn("rawScript");
         when(scriptEditUtil.injectBooleanParams("rawScript")).thenReturn("editedScript");
         when(jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId())).thenReturn(jenkinsInfo);
+        when(scriptRepository.save(any())).thenReturn(script);
         when(jobNotificationService.getEnabledNotifications(any())).thenReturn(Collections.emptyList());
         when(jobNotificationService.updateScriptWithJobNotifications(any(), any()))
                 .thenReturn(script);
@@ -124,7 +113,8 @@ class ScriptServiceTest {
         ResponseDto.LightScriptDto result = scriptService.generateScript(requestDto);
 
         assertNotNull(result);
-        verify(jobNotificationService).createJobNotifications(any(), eq(jenkinsInfo), any());
+        verify(scriptRepository).save(any());
+        verify(jobNotificationService).createJobNotifications(any(), eq(jenkinsInfo), eq(scriptId));
     }
 
     @Test
