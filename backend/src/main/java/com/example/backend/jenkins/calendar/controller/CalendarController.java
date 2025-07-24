@@ -20,6 +20,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @Tag(name = "Calendar API", description = "캘린더 관련 API")
 @RestController
@@ -59,6 +60,17 @@ public class CalendarController {
             @RequestBody @Valid CalendarEventReq req
     ) {
         return ResponseEntity.ok(BaseResponse.success(calendarService.getCalendarEventList(user, req.getInfoId())));
+    }
+
+    @GetMapping("/events/by-date")
+    public ResponseEntity<BaseResponse<List<CalendarEventRes>>> getEventsByDate(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestParam UUID infoId,
+            @RequestParam String date
+    ) {
+        return ResponseEntity.ok(BaseResponse.success(
+                calendarService.getEventsByDate(user, infoId, date)
+        ));
     }
 
 

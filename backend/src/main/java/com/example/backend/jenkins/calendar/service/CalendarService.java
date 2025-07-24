@@ -224,6 +224,30 @@ public class CalendarService {
         return new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON));
     }
 
+    public List<CalendarEventRes> getEventsByDate(Users user, UUID infoId, String date) {
+        JenkinsInfo info = jenkinsInfoRepository.findById(infoId)
+                .filter(i -> i.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
+
+        List<CalendarEventRes> result = new ArrayList<>();
+
+        for (String jobName : getAllJobNames(info)) {
+            for (Map<String, Object> build : getBuildsForJob(info, jobName)) {
+                String ts = formatTimestamp(((Number) build.get("timestamp")).longValue()); // yyyy-MM-dd HH:mm:ss
+                if (!ts.startsWith(date)) continue;
+
+                result.add(CalendarEventRes.builder()
+                        .type("FAILURE".equals(build.get("result")) ? "ERROR" : "BUILD")
+                        .jobName(jobName)
+                        .buildNumber((Integer) build.get("number"))
+                        .start(ts)
+                        .build());
+            }
+        }
+
+        return result;
+    }
+
 
 
 }
