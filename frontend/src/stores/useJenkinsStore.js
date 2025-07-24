@@ -11,7 +11,7 @@ export const useJenkinsStore = defineStore('jenkinsStore', {
         async getJenkinInfoDetail(jenkinsInfoId) {
             try {
                 const response = await jenkinsInfoApi.getDetail(jenkinsInfoId);
-                this.jenkinsInfoDetail = response.data.data;
+                this.jenkinsInfoDetail = response.data;
             } catch (error) {
                 this.jenkinsInfoDetail = [];
             }
@@ -49,7 +49,8 @@ export const useJenkinsStore = defineStore('jenkinsStore', {
 
         async jenkinsURITest(infoId) {
             try {
-                return await jenkinsInfoApi.verify(infoId);
+                const response = await jenkinsInfoApi.verify(infoId);
+                return response;
             } catch (error) {
                 this.jenkinsInfoDetail = [];
                 return null;
