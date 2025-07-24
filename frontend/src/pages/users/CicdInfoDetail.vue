@@ -1,7 +1,8 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { useJenkinsStore } from "@/stores/useJenkinsStore.js";
-import { useRoute } from "vue-router";
+import { useRoute ,useRouter } from "vue-router";
+const router = useRouter();
 
 const route = useRoute();
 const jenkinsStore = useJenkinsStore();
@@ -42,11 +43,17 @@ async function saveEdit() {
 }
 
 async function deleteInfo() {
-  await jenkinsStore.deleteJenkinsInfoDetail(jenkinsInfoId);
+  try {
+    await jenkinsStore.deleteJenkinsInfoDetail(jenkinsInfoId);
+    router.push('/mypage');
+    alert("삭제가 완료 되었습니다.")
+  } catch (e) {
+    console.error('삭제 중 오류 발생:', e);
+  }
 }
-
 async function jenkinsURITest() {
-  await jenkinsStore.jenkinsURITest(data.id);
+  const result = await jenkinsStore.jenkinsURITest(data.id);
+  console.log("Jenkins URI 테스트 결과:", result);
 }
 
 </script>
