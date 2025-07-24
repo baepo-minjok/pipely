@@ -36,38 +36,24 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-    const userStore = useUserStore();
 
+    const isLoggedIn = await userApi.isLoggedIn();
+    const userStore = useUserStore();
+    console.log(isLoggedIn);
     // 로그인된 사용자가 로그인/회원가입 페이지로 가면 메인으로
     if (
         ['/user/login', '/user/signup', '/user/oAuth'].includes(to.path) &&
-        userStore.isFetched
+        isLoggedIn
     ) {
         next('/');
         return;
     }
-
-    // 인증 필요 페이지
-    if (to.meta.requiresAuth && !userStore.isFetched) {
-        try {
-            const isLoggedIn = await userApi.isLoggedIn();
-            console.log(isLoggedIn);
-            if (isLoggedIn) {
-                await userStore.fetchUserInfo();
-                if (!userStore.isFetched) {
-                    next('/user/login');
-                } else {
-                    next();
-                }
-            } else {
-                userStore.reset();
-                next('/user/login');
-            }
-        } catch (e) {
-            userStore.reset();
-            next('/user/login');
-        }
+    if (to.meta.requiresAuth && !isLoggedIn) {
+        next('/user/login');
     } else {
+        if (userStore.isFetched) {
+            await userStore.fetchUserInfo();
+        }
         next();
     }
 });
