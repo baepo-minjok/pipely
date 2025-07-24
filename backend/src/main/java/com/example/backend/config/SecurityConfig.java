@@ -40,7 +40,7 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers("/api/auth/withdraw", "/api/auth/user/logout").authenticated()
+                        .requestMatchers("/api/auth/withdraw", "/api/auth/user/logout", "api/auth/user/isLogged").authenticated()
                         .requestMatchers(
                                 "/", "/css/**", "/js/**",
                                 "/api/auth/**",

@@ -1,55 +1,55 @@
 <script setup>
-import {onMounted, reactive, ref ,watch} from 'vue';
-import {useJenkinsStore} from "@/stores/useJenkinsStore.js";
-import {useRoute} from "vue-router";
+import { onMounted, reactive, ref } from 'vue';
+import { useJenkinsStore } from "@/stores/useJenkinsStore.js";
+import { useRoute } from "vue-router";
 
 const route = useRoute();
+const jenkinsStore = useJenkinsStore();
 
-const jenkinsStore = useJenkinsStore()
 const isEdit = ref(false);
-const jenkinsInfoId = route.params.id
+const jenkinsInfoId = route.params.id;
 
-
-const data = ref({
-  apiToken:'',
+const data = reactive({
+  apiToken: '',
   description: '',
   id: '',
   jenkinsId: '',
   name: '',
   uri: ''
-})
+});
 
+const originalData = reactive({});
 
 onMounted(async () => {
-  await jenkinsStore.getJenkinInfoDetail(jenkinsInfoId)
-  data.value = { ...jenkinsStore.jenkinsInfoDetail }
-})
-
+  await jenkinsStore.getJenkinInfoDetail(jenkinsInfoId);
+  Object.assign(data, jenkinsStore.jenkinsInfoDetail);
+  Object.assign(originalData, jenkinsStore.jenkinsInfoDetail);
+});
 
 const enabledEdit = () => {
   isEdit.value = true;
 };
 
 const disableEdit = () => {
+  Object.assign(data, originalData);
   isEdit.value = false;
 };
-async function saveEdit() {
-  await jenkinsStore.updateJenkinsInfoDetail(data.value)
-  isEdit.value = false
-}
 
+async function saveEdit() {
+  await jenkinsStore.updateJenkinsInfoDetail(data);
+  Object.assign(originalData, data);
+  isEdit.value = false;
+}
 
 async function deleteInfo() {
-  await jenkinsStore.deleteJenkinsInfoDetail(data.value.id)
+  await jenkinsStore.deleteJenkinsInfoDetail(jenkinsInfoId);
 }
+
 async function jenkinsURITest() {
-
-  await jenkinsStore.jenkinsURITest(data.value.id)
+  await jenkinsStore.jenkinsURITest(data.id);
 }
-
 
 </script>
-
 <template>
   <div class="container">
     <div class="header">
@@ -95,7 +95,7 @@ async function jenkinsURITest() {
       </div>
       <div class="row">
         <div class="label">ID</div>
-        <input type="text" v-model="data.id" :readonly="!isEdit" class="input_text" :class="{ editing: isEdit }" />
+        <input type="text" v-model="data.jenkinsId" :readonly="!isEdit" class="input_text" :class="{ editing: isEdit }" />
       </div>
     </div>
   </div>

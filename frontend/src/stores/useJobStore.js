@@ -2,14 +2,14 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 
 
+
+
+
 export const useJobStore = defineStore('jobstore', {
-    // 상태
+
     state: () => ({
         jobList: [],
-        jenkinsInfo: [
-
-
-        ],
+        jenkinsInfo: [],
     }),
 
 
