@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import {onMounted, ref, watch} from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
-import { useRouter } from 'vue-router';
+import {useRouter} from 'vue-router';
 
-import { useJobStore } from '../../stores/useJobStore.js';
+import {useJobStore} from '../../stores/useJobStore.js';
 
 const jobStore = useJobStore()
 
@@ -18,10 +18,6 @@ watch(selectedJenkins, (id) => {
 
 })
 
-
-
-
-
 const router = useRouter();
 
 </script>
@@ -35,11 +31,10 @@ const router = useRouter();
     </div>
 
 
-
     <div class="jenkins-select-box" style="margin-bottom: 1rem;">
       <label for="jenkins-select">Jenkins 정보 선택:</label>
       <select id="jenkins-select" v-model="selectedJenkins">
-        <option value="" disabled>Jenkins 인스턴스 선택</option>
+        <option disabled value="">Jenkins 인스턴스 선택</option>
         <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
           {{ info.name }}
         </option>
@@ -47,7 +42,7 @@ const router = useRouter();
     </div>
     <div class="job_list">
       <template v-if="selectedJenkins">
-        <JobCard v-for="job in jobStore.jobList" :key="job.name" :job="job" @click="router.push(`/job/${job.name}`)" />
+        <JobCard v-for="job in jobStore.jobList" :key="job.name" :job="job" @click="router.push(`/job/${job.name}`)"/>
       </template>
       <template v-else>
         <div style="text-align: center; color: gray; margin: 30px 0;">
@@ -70,7 +65,7 @@ const router = useRouter();
   justify-content: space-between;
 }
 
-.header>h1 {
+.header > h1 {
   font-size: 28px;
 }
 
