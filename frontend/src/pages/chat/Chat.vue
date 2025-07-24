@@ -2,11 +2,15 @@
 import {useAgenticaRpc} from "@/agentica/agentica.js";
 import {nextTick, onMounted, ref, watch} from "vue";
 import MarkdownIt from 'markdown-it';
+import {userApi} from "@/api/UserApi.js";
 
 const md = new MarkdownIt();
 const {messages, conversate, isConnected, isError, tryConnect} = useAgenticaRpc();
 const input = ref("");
 const chatHistoryRef = ref(null);
+const isLoggedIn = ref(false);
+
+tryConnect();
 
 function renderMarkdown(text) {
   return md.render(text);
@@ -14,6 +18,34 @@ function renderMarkdown(text) {
 
 function send() {
   if (input.value.trim()) {
+    // 사용자 메시지를 먼저 추가
+    const userMessage = {
+      id: Date.now() + '_user',
+      type: 'userMessage',
+      contents: [{text: input.value}],
+      created_at: new Date().toISOString()
+    };
+
+    // 로그인 상태 확인
+    if (!isLoggedIn.value) {
+      // 로그인하지 않은 경우 로컬에서 안내 메시지 생성
+      messages.value.push(userMessage);
+
+      setTimeout(() => {
+        const botMessage = {
+          id: Date.now() + '_bot',
+          type: 'assistantMessage',
+          text: '죄송합니다. 채팅 서비스를 이용하시려면 먼저 **로그인**해 주세요.\n\n로그인 후 다양한 CI/CD 어시스턴트 기능을 사용하실 수 있습니다.',
+          created_at: new Date().toISOString()
+        };
+        messages.value.push(botMessage);
+      }, 500);
+
+      input.value = "";
+      return;
+    }
+
+    // 로그인된 경우 실제 웹소켓으로 메시지 전송
     conversate(input.value);
     input.value = "";
   }
@@ -29,25 +61,41 @@ watch(messages, () => {
 }, {deep: true});
 
 onMounted(async () => {
+
+  messages.value = [];
+
   const inputEl = document.querySelector('.chat-input');
   if (inputEl) inputEl.focus();
 
-  await tryConnect();
+  isLoggedIn.value = await userApi.isLoggedIn();
 
-  // 초기 메시지가 있다면 전송
-  const initialMessage = sessionStorage.getItem('initialMessage');
-  if (initialMessage) {
+  if (isLoggedIn.value) {
     // 연결이 완료된 후 메시지 전송
-    const checkConnection = setInterval(() => {
-      if (isConnected.value) {
-        conversate(initialMessage);
-        sessionStorage.removeItem('initialMessage');
-        clearInterval(checkConnection);
-      }
-    }, 100);
+    const initialMessage = sessionStorage.getItem('initialMessage');
+    if (initialMessage) {
+      const checkConnection = setInterval(() => {
+        if (isConnected.value) {
+          conversate(initialMessage);
+          sessionStorage.removeItem('initialMessage');
+          clearInterval(checkConnection);
+        }
+      }, 100);
+    }
+  } else {
+    // 로그인하지 않은 경우 환영 메시지 표시
+    setTimeout(() => {
+      const welcomeMessage = {
+        id: 'welcome_' + Date.now(),
+        type: 'assistantMessage',
+        text: '안녕하세요! 👋\n\nAI 어시스턴트와 대화하시려면 **로그인**이 필요합니다.\n\n로그인 후 다음과 같은 기능을 이용하실 수 있습니다:\n- CI/CD 어시스턴트\n- 배포 자동화',
+        created_at: new Date().toISOString()
+      };
+      messages.value.push(welcomeMessage);
+    }, 1000);
   }
 });
 </script>
+
 <template>
   <div class="chat-container">
     <!-- Header -->
@@ -61,15 +109,26 @@ onMounted(async () => {
                   fill="currentColor"/>
             </svg>
           </div>
-          <div :class="{ 'connected': isConnected, 'error': isError }" class="status-indicator"></div>
+          <div :class="{ 'connected': isConnected && isLoggedIn, 'error': isError || !isLoggedIn }"
+               class="status-indicator"></div>
         </div>
         <div class="header-info">
-          <h3 class="bot-name">AI Assistant</h3>
+          <h3 class="bot-name">AI CI/CD Assistant</h3>
           <p class="bot-status">
-            <span v-if="isConnected" class="status-text connected">연결됨</span>
+            <span v-if="!isLoggedIn" class="status-text error">로그인 필요</span>
+            <span v-else-if="isConnected" class="status-text connected">연결됨</span>
             <span v-else-if="isError" class="status-text error">연결 오류</span>
             <span v-else class="status-text connecting">연결 중...</span>
           </p>
+        </div>
+        <div v-if="!isLoggedIn" class="header-actions">
+          <button class="login-btn" title="로그인" @click="$router.push('/user/login')">
+            <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+              <path
+                  d="M11 7L9.6 8.4L12.2 11H2V13H12.2L9.6 15.6L11 17L16 12L11 7ZM20 19H12V21H20C21.1 21 22 20.1 22 19V5C22 3.9 21.1 3 20 3H12V5H20V19Z"
+                  fill="currentColor"/>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -126,14 +185,14 @@ onMounted(async () => {
         <div class="input-wrapper">
           <input
               v-model="input"
-              :disabled="!isConnected"
+              :disabled="false"
+              :placeholder="isLoggedIn ? '메시지를 입력하세요...' : '로그인 후 채팅을 시작하세요...'"
               autocomplete="off"
               class="chat-input"
-              placeholder="메시지를 입력하세요..."
               @keyup.enter="send"
           />
           <button
-              :disabled="!input.trim() || !isConnected"
+              :disabled="!input.trim()"
               class="send-button"
               type="submit"
           >
@@ -142,7 +201,14 @@ onMounted(async () => {
             </svg>
           </button>
         </div>
-        <div v-if="!isConnected" class="connection-status">
+        <div v-if="!isLoggedIn" class="connection-status">
+          <span class="login-required-message">
+            채팅을 시작하려면
+            <button class="login-link" @click="$router.push('/user/login')">로그인</button>
+            해주세요
+          </span>
+        </div>
+        <div v-else-if="!isConnected" class="connection-status">
           <span v-if="isError" class="error-message">
             연결에 실패했습니다.
             <button class="retry-btn" @click="tryConnect">다시 시도</button>
@@ -453,6 +519,24 @@ onMounted(async () => {
 
 .connecting-message {
   color: #d97706;
+}
+
+.login-required-message {
+  color: #667eea;
+}
+
+.login-link {
+  background: none;
+  border: none;
+  color: #667eea;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.login-link:hover {
+  color: #4f46e5;
 }
 
 .retry-btn {
