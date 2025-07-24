@@ -20,7 +20,7 @@ export const useJobStore = defineStore('jobstore', {
                     params: { jenkinsInfoId }
                 });
 
-                this.jobList = response.data.data ? response.data.data : response.data;
+                this.jobList = response.data.data;
             } catch (error) {
                 console.error('Error fetching job list:', error);
                 this.jobList = []; // 실패 시 목록 비움
