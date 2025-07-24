@@ -132,7 +132,8 @@ class ScriptControllerTest {
                 .script("pipeline {\n // generated script... \n}")
                 .build();
 
-        when(scriptService.generateScript(any(RequestDto.ScriptBaseDto.class), any(String.class)))
+        // ✅ 파라미터 수정: userName 제거
+        when(scriptService.generateScript(any(RequestDto.ScriptBaseDto.class)))
                 .thenReturn(responseDto);
 
         mockMvc.perform(post("/api/jenkins/job/script/generate")
@@ -144,6 +145,7 @@ class ScriptControllerTest {
                 .andExpect(jsonPath("$.data.script").exists())
                 .andExpect(jsonPath("$.error").doesNotExist());
 
-        verify(scriptService).generateScript(any(RequestDto.ScriptBaseDto.class), any(String.class));
+        // ✅ verify에서도 userName 제거
+        verify(scriptService).generateScript(any(RequestDto.ScriptBaseDto.class));
     }
 }

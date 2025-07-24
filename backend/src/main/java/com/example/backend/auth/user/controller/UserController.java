@@ -134,9 +134,10 @@ public class UserController {
     public ResponseEntity<BaseResponse<String>> logout(
             @AuthenticationPrincipal(expression = "userEntity") Users user
     ) {
-
-        // DB의 refreshToken 삭제
-        refreshTokenService.deleteByUser(user);
+        if (user != null) {
+            // DB의 refreshToken 삭제
+            refreshTokenService.deleteByUser(user);
+        }
 
         // Cookie 만료
         ResponseCookie deleteAccess = cookieService.deleteCookie(accessName);

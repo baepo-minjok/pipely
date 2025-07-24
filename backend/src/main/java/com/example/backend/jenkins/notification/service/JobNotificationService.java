@@ -117,7 +117,7 @@ public class JobNotificationService {
         return result;
     }
 
-    public String createNotificationScript(List<JobNotification> notifications, String userName) {
+    public String createNotificationScript(List<JobNotification> notifications) {
         Mustache mustache = mf.compile("template/notificationScript.mustache");
 
         List<Map<String, Object>> notificationList = notifications.stream().map(n -> {
@@ -133,7 +133,6 @@ public class JobNotificationService {
         }).collect(Collectors.toList());
 
         Map<String, Object> context = new HashMap<>();
-        context.put("userName", userName != null ? userName : "Unknown");
         context.put("notifications", notificationList);
 
         StringWriter writer = new StringWriter();
@@ -222,8 +221,8 @@ public class JobNotificationService {
         httpClientService.exchange(url, HttpMethod.POST, request, String.class);
     }
 
-    public Script updateScriptWithJobNotifications(Script script, List<JobNotification> notifications, String userName) {
-        String newPostBlock = createNotificationScript(notifications, userName);
+    public Script updateScriptWithJobNotifications(Script script, List<JobNotification> notifications) {
+        String newPostBlock = createNotificationScript(notifications);
         String updatedScript = replacePostBlock(script.getScript(), newPostBlock);
         script.setScript(updatedScript);
         return scriptRepository.save(script);

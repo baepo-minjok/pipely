@@ -24,6 +24,10 @@ const fetchUser = () => {
   infoList.value = userInfo.infoList;
 }
 
+const goToChangePassword = () => {
+  router.push({name: 'CheckVerification'});
+};
+
 // 로딩될때 유저 정보 세팅
 onMounted(async () => {
   isLoading.value = true;  // 로딩 시작
@@ -63,7 +67,7 @@ onMounted(async () => {
         <div class="item_box">
           <p class="item_label">비밀번호</p>
           <p>••••••••••••</p>
-          <button class="info_btn">비밀번호 변경</button>
+          <button class="info_btn" @click="goToChangePassword">비밀번호 변경</button>
         </div>
       </div>
     </div>
@@ -83,8 +87,17 @@ onMounted(async () => {
       <div class="cicd_card_list">
         <div v-for="info in infoList" class="cicd_card" @click="router.push(`/mypage/cicd/${info.id}`)">
           <p>{{ info.name }}</p>
+
           <p class="description">{{ info.description }}</p>
+
           <p>{{ info.uri }}</p>
+
+          <div class="connection_status">
+            <div :class="['status_dot', { connected: info.connected }]"></div>
+            <span :class="['status_text', { connected: info.connected }]">
+                {{ info.connected ? '연결됨' : '연결 실패' }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -187,7 +200,18 @@ onMounted(async () => {
   cursor: pointer;
   transition: scale 0.3s;
 
+  & > p:first-child {
+    font-size: 19px;
+    font-weight: bold;
+  }
+
   & > p:nth-last-child(2) {
+    margin-top: 10px;
+    color: var(--gray500);
+    font-size: 14px;
+  }
+
+  & > p:nth-last-child(3) {
     margin-top: 17px;
     color: var(--gray500);
     font-size: 14px;
@@ -198,15 +222,37 @@ onMounted(async () => {
   }
 }
 
-.cicd_card > p:last-child {
-  margin-top: 17px;
-  color: var(--gray500);
-  font-size: 14px;
-}
-
 .description {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.status_text {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.status_text.connected {
+  color: #059669;
+}
+
+.status_dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.status_dot.connected {
+  background: #10b981;
+}
+
+.connection_status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-top: 10px;
 }
 </style>

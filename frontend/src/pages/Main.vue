@@ -1,5 +1,5 @@
 <script setup>
-import {onMounted, ref} from 'vue';
+import {ref} from 'vue';
 import {useRouter} from 'vue-router';
 import {useUserStore} from "@/stores/useUserStore.js";
 
@@ -8,12 +8,6 @@ const router = useRouter();
 const sendText = ref('');
 const isTransitioning = ref(false);
 
-onMounted(async () => {
-  // 유저 정보 패치
-  if (!userStore.isFetched.value) {
-    await userStore.fetchUserInfo();
-  }
-});
 
 // 메시지 전송 함수
 function sendMessage() {
@@ -25,7 +19,7 @@ function sendMessage() {
 
     // 애니메이션 후 페이지 이동
     setTimeout(() => {
-      router.push('/chat');
+      router.push('/ai/chat');
     }, 800);
   }
 }
