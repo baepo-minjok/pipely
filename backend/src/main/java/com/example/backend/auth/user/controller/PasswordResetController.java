@@ -1,5 +1,6 @@
 package com.example.backend.auth.user.controller;
 
+import com.example.backend.auth.email.service.EmailService;
 import com.example.backend.auth.user.model.dto.PasswordResetDto;
 import com.example.backend.auth.user.service.PasswordResetService;
 import com.example.backend.exception.BaseResponse;
@@ -8,12 +9,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Password Reset API", description = "비밀번호 변경 관련 API")
 @RestController
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PasswordResetController {
 
     private final PasswordResetService passwordResetService;
+    private final EmailService emailService;
 
     @Operation(
             summary = "비밀번호 초기화 이메일 발송",
@@ -38,7 +38,8 @@ public class PasswordResetController {
     })
     @PostMapping("/password-reset/request")
     public ResponseEntity<BaseResponse<String>> requestPasswordReset(
-            @RequestBody @Valid PasswordResetDto.PasswordResetRequest req) {
+            @RequestBody @Valid PasswordResetDto.PasswordResetRequest req
+    ) {
 
         passwordResetService.createPasswordResetTokenAndSendEmail(req.getEmail());
 
@@ -66,5 +67,13 @@ public class PasswordResetController {
     ) {
         passwordResetService.resetPassword(req.getToken(), req.getNewPassword());
         return ResponseEntity.ok(BaseResponse.success("password reset success"));
+    }
+
+    @GetMapping
+    public ResponseEntity<BaseResponse<String>> getToken(
+            @RequestParam @NotEmpty String email
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(passwordResetService.getToken(email)));
     }
 }

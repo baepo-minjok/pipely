@@ -105,4 +105,17 @@ export const userApi = {
                 return error.response.data.error;
             })
     },
+
+    getToken(data) {
+        return instance
+            .get("/auth/reset", {
+                params: {email: data}
+            })
+            .then((res) => {
+                return res;
+            })
+            .catch((error) => {
+                return error.response.data.error;
+            });
+    },
 };
