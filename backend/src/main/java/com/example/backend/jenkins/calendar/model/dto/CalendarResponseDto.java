@@ -62,4 +62,14 @@ public class CalendarResponseDto {
         private String start;       // yyyy-MM-dd HH:mm:ss
     }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class CalendarSummaryRes {
+        private int buildCount;
+        private int errorCount;
+    }
+
+
 }
