@@ -2,10 +2,12 @@
 import { reactive, ref, watch } from 'vue';
 import KubernetesInput from '../../components/jobs/KubernetesInput.vue';
 import EC2Input from '../../components/jobs/EC2Input.vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { jobApi } from '../../api/JobApi';
+import { formatSchedule } from '../../utils/formatSchedule';
 
 const route = useRoute();
+const router = useRouter();
 const jenkinsInfo = {
   id: route.query.id,
   name: route.query.jenkinsName,
@@ -32,11 +34,10 @@ const linkData = reactive({
 });
 
 const scheduleData = reactive({
-  isScheduleChecked: false,
-  repeatType: '',
+  repeatType: 'daily',
   selectedDays: [],
   ampm: '오전',
-  hour: 0,
+  hour: 1,
   minute: 0,
 });
 
@@ -60,7 +61,7 @@ const jobData = reactive({
   description: '',
   trigger: false,
   schedule: '',
-  infoId: '',
+  infoId: jenkinsInfo.id,
 });
 
 const scriptData = reactive({
@@ -107,13 +108,44 @@ const selectItem = (item) => {
 
 const handleCreateScriptClick = async () => {
   const response = await jobApi.createScript(scriptData);
-
+  console.log(response);
   if (response.status === 200) {
     console.log(response.data);
     const data = response.data.data;
     scriptText.value = data.script;
     scriptData.scriptId = data.scriptId;
     jobData.scriptId = data.scriptId;
+  }
+};
+
+const handleCreateJobClick = async () => {
+  const validateData = {
+    infoId: jenkinsInfo.id,
+    script: scriptText.value,
+  };
+
+  const response = await jobApi.validateScript(validateData);
+
+  if (response.status === 200 && response.data.success) {
+    await createJob();
+  }
+};
+
+const createJob = async () => {
+  jobData.schedule = formatSchedule(scheduleData);
+
+  const response = await jobApi.createJob(jobData);
+
+  if (response.status === 200) {
+    alert('Job이 생성되었습니다!');
+    router.replace({ name: 'JobList' });
+  }
+};
+
+const handleCancelClick = () => {
+  const confirmed = confirm('Job 생성을 취소하시겠습니까?\n현재 작성한 모든 내용이 삭제됩니다.');
+  if (confirmed) {
+    router.back();
   }
 };
 
@@ -172,12 +204,8 @@ watch(scriptText, (newVal) => {
 
       <div class="schedule_box">
         <h3 class="sub_title">스케줄</h3>
-        <div class="checkbox">
-          <input type="checkbox" v-model="scheduleData.isScheduleChecked" name="schedule_check" id="schedule_check" />
-          <span>스케줄 설정</span>
-        </div>
 
-        <div v-if="scheduleData.isScheduleChecked" class="schedule">
+        <div class="schedule">
           <div class="schedule_row">
             <label>
               <select v-model="scheduleData.repeatType">
@@ -281,8 +309,8 @@ watch(scriptText, (newVal) => {
       </div>
     </div>
     <div class="btn_box">
-      <button class="cancel_btn">취소</button>
-      <button class="create_btn">생성</button>
+      <button class="cancel_btn" @click="handleCancelClick">취소</button>
+      <button class="create_btn" @click="handleCreateJobClick">생성</button>
     </div>
   </div>
 </template>
