@@ -11,7 +11,7 @@ const router = useRouter();
 const handleCreateClick = () => {
   router.push({
     name: 'CreateJob',
-    query: { jenkinsName: selected.value.name, jenkinsUri: selected.value.uri },
+    query: { id: selected.value.id, jenkinsName: selected.value.name, jenkinsUri: selected.value.uri },
   });
 };
 

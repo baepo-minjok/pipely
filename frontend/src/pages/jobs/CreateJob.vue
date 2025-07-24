@@ -1,11 +1,13 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import KubernetesInput from '../../components/jobs/KubernetesInput.vue';
 import EC2Input from '../../components/jobs/EC2Input.vue';
 import { useRoute } from 'vue-router';
+import { jobApi } from '../../api/JobApi';
 
 const route = useRoute();
 const jenkinsInfo = {
+  id: route.query.id,
   name: route.query.jenkinsName,
   uri: route.query.jenkinsUri,
 };
@@ -62,6 +64,7 @@ const jobData = reactive({
 });
 
 const scriptData = reactive({
+  infoId: jenkinsInfo.id,
   scriptId: '',
   githubUrl: '',
   branch: 'main',
@@ -71,9 +74,6 @@ const scriptData = reactive({
   isK8sDeploy: true,
   isEc2Deploy: false,
 
-  sshKeyPath: '',
-  sshPort: '',
-  deployTarget: '',
   tag: '',
   k8sPath: '',
   deploymentName: '',
@@ -85,6 +85,10 @@ const scriptData = reactive({
   replicas: '',
 
   ec2DeployPath: '',
+
+  sshKeyPath: '',
+  sshPort: '',
+  deployTarget: '',
 });
 
 const scriptText = ref('');
@@ -101,9 +105,21 @@ const selectItem = (item) => {
   scriptData.isEc2Deploy = item.value === 'ec2';
 };
 
-const handleCreateScriptClick = () => {
-  // 스크립트 생성 버튼 클릭
+const handleCreateScriptClick = async () => {
+  const response = await jobApi.createScript(scriptData);
+
+  if (response.status === 200) {
+    console.log(response.data);
+    const data = response.data.data;
+    scriptText.value = data.script;
+    scriptData.scriptId = data.scriptId;
+    jobData.scriptId = data.scriptId;
+  }
 };
+
+watch(scriptText, (newVal) => {
+  console.log('watch - scriptText changed:', newVal);
+});
 </script>
 
 <template>
@@ -119,12 +135,13 @@ const handleCreateScriptClick = () => {
       </div>
       <div class="info_box">
         <h3 class="sub_title">Job 기본 정보</h3>
-        <input type="text" id="name" class="input" placeholder="Job 이름을 입력해주세요." />
+        <input type="text" id="name" class="input" placeholder="Job 이름을 입력해주세요." v-model="jobData.name" />
         <textarea
           name="description"
           id="description"
           class="textarea"
           placeholder="Job에 대한 설명을 입력해주세요."
+          v-model="jobData.description"
         ></textarea>
       </div>
 
@@ -260,7 +277,7 @@ const handleCreateScriptClick = () => {
           </div>
         </div>
         <button class="create_script_btn" @click="handleCreateScriptClick">스크립트 생성</button>
-        <textarea name="script" id="script" v-model="scriptText" class="script"></textarea>
+        <textarea name="script" id="script" v-model="scriptText" class="script" spellcheck="false"></textarea>
       </div>
     </div>
     <div class="btn_box">
@@ -503,8 +520,11 @@ label {
 }
 
 .script {
-  background-color: #f3f4f6;
-  resize: none;
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #1e1e1e;
+  color: #dcdcdc;
+  white-space: pre;
+  resize: vertical;
   height: 222px;
   border: none;
   outline: none;
