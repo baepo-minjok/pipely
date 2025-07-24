@@ -3,7 +3,6 @@ package com.example.backend.jenkins.info.model.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -52,9 +51,8 @@ public class InfoRequestDto {
         private String uri;
 
         @NotBlank
-        @Size(min = 8)
         @Schema(
-                description = "Jenkins API 토큰 (최소 8자 이상)",
+                description = "Jenkins API 토큰",
                 example = "abcd1234token",
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
@@ -107,8 +105,6 @@ public class InfoRequestDto {
         )
         private String uri;
 
-        @NotBlank
-        @Size(min = 8)
         @Schema(
                 description = "Jenkins API 토큰",
                 example = "n2swfhn23sdf234513aff34",

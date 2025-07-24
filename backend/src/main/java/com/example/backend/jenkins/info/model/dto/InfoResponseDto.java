@@ -43,12 +43,19 @@ public class InfoResponseDto {
         )
         private String description;
 
+        @Schema(
+                description = "Jenkins Info의 연결테스트 통과 여부",
+                example = "false"
+        )
+        private boolean connected;
+
         public static LightInfoDto fromEntity(JenkinsInfo info) {
             return LightInfoDto.builder()
                     .id(info.getId())
                     .name(info.getName())
                     .uri(info.getUri())
                     .description(info.getDescription())
+                    .connected(info.isConnected())
                     .build();
         }
     }
@@ -96,6 +103,12 @@ public class InfoResponseDto {
         )
         private String uri;
 
+        @Schema(
+                description = "Jenkins Info의 연결테스트 통과 여부",
+                example = "false"
+        )
+        private boolean connected;
+
         public static DetailInfoDto fromEntity(JenkinsInfo info) {
             return DetailInfoDto.builder()
                     .id(info.getId())
@@ -104,6 +117,7 @@ public class InfoResponseDto {
                     .jenkinsId(info.getJenkinsId())
                     .apiToken("JenkinsApiToken")
                     .uri(info.getUri())
+                    .connected(info.isConnected())
                     .build();
         }
     }

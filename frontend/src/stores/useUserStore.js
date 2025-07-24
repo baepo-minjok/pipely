@@ -11,6 +11,7 @@ export const useUserStore = defineStore(
             name: "",
             email: "",
             isVerified: false,
+            connected: false,
             infoList: [],
         });
 
@@ -25,6 +26,7 @@ export const useUserStore = defineStore(
                     userInfo.email = data.email;
                     userInfo.isVerified = data.verified;
                     userInfo.infoList = data.infoDtoList;
+                    userInfo.connected = data.connected;
 
                     isFetched.value = true;
                 } else {

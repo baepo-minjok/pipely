@@ -44,6 +44,7 @@ public class JenkinsInfoService {
                 .jenkinsId(createDto.getJenkinsId())
                 .apiToken(createDto.getApiToken())
                 .uri(createDto.getUri())
+                .connected(false)
                 .user(user)
                 .build();
 
@@ -64,9 +65,13 @@ public class JenkinsInfoService {
 
         info.setName(updateDto.getName());
         info.setDescription(updateDto.getDescription());
-        info.setApiToken(updateDto.getApiToken());
         info.setUri(updateDto.getUri());
+        info.setConnected(false);
         info.setJenkinsId(updateDto.getJenkinsId());
+
+        if (updateDto.getApiToken() != null && !updateDto.getApiToken().isEmpty()) {
+            info.setApiToken(updateDto.getApiToken());
+        }
 
         return jenkinsInfoRepository.save(info);
     }
@@ -108,6 +113,7 @@ public class JenkinsInfoService {
      *
      * @param infoId JenkinsInfo 엔티티의 private key
      */
+    @Transactional
     public void verificationJenkinsInfo(UUID infoId) {
         JenkinsInfo jenkinsInfo = jenkinsInfoRepository.findById(infoId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
@@ -131,13 +137,21 @@ public class JenkinsInfoService {
         } else {
             endpoint = baseUri + "/api/json";
         }
+        try {
+            httpClientService.exchange(
+                    endpoint,
+                    HttpMethod.GET,
+                    requestEntity,
+                    String.class
+            );
+            jenkinsInfo.setConnected(true);
+            jenkinsInfoRepository.save(jenkinsInfo);
+        } catch (Exception e) {
+            jenkinsInfo.setConnected(false);
+            jenkinsInfoRepository.save(jenkinsInfo);
+            throw e;
+        }
 
-        httpClientService.exchange(
-                endpoint,
-                HttpMethod.GET,
-                requestEntity,
-                String.class
-        );
     }
 
     public JenkinsInfo getJenkinsInfo(UUID infoId) {
