@@ -1,10 +1,13 @@
 package com.example.backend.jenkins.calendar.controller;
 
+import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.calendar.model.dto.CalendarRequestDto.CalendarErrorDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarRequestDto.CalendarBuildDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarBuildResDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarErrorResDto;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
+import com.example.backend.jenkins.calendar.model.dto.CalendarRequestDto.CalendarEventReq;
 import com.example.backend.jenkins.calendar.service.CalendarService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -47,6 +51,16 @@ public class CalendarController {
                 calendarService.getErrorCalendar(dto.getPipeLine())
         ));
     }
+
+    @Operation(summary = "전체 Job 이벤트 리스트", description = "infoId로 연결된 Jenkins 계정 전체 Job의 빌드/에러 이벤트 리스트 조회")
+    @PostMapping("/events")
+    public ResponseEntity<BaseResponse<List<CalendarEventRes>>> getAllCalendarEvents(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestBody @Valid CalendarEventReq req
+    ) {
+        return ResponseEntity.ok(BaseResponse.success(calendarService.getCalendarEventList(user, req.getInfoId())));
+    }
+
 
 
 }
