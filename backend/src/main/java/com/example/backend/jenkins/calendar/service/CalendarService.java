@@ -8,6 +8,7 @@ import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.Calend
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarErrorResDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEvent;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.service.HttpClientService;
@@ -22,10 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -248,6 +246,66 @@ public class CalendarService {
         return result;
     }
 
+    public Map<String, CalendarSummaryRes> getCalendarSummary(Users user, UUID infoId) {
+        JenkinsInfo info = jenkinsInfoRepository.findById(infoId)
+                .filter(i -> i.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
+
+        Map<String, CalendarSummaryRes> summaryMap = new HashMap<>();
+
+        for (String jobName : getAllJobNames(info)) {
+            for (Map<String, Object> build : getBuildsForJob(info, jobName)) {
+                long ts = ((Number) build.get("timestamp")).longValue();
+                String result = (String) build.get("result");
+                String date = formatDateOnly(ts); // yyyy-MM-dd
+
+                CalendarSummaryRes existing = summaryMap.getOrDefault(date, new CalendarSummaryRes(0, 0));
+
+                if ("FAILURE".equals(result)) {
+                    existing.setErrorCount(existing.getErrorCount() + 1);
+                } else {
+                    existing.setBuildCount(existing.getBuildCount() + 1);
+                }
+
+                summaryMap.put(date, existing);
+            }
+        }
+
+        return summaryMap;
+    }
+
+    private String formatDateOnly(long millis) {
+        return Instant.ofEpochMilli(millis)
+                .atZone(ZoneId.of("Asia/Seoul"))
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    }
+
+    public CalendarSummaryRes getCalendarSummaryByDate(Users user, UUID infoId, String date) {
+        JenkinsInfo info = jenkinsInfoRepository.findById(infoId)
+                .filter(i -> i.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
+
+        int build = 0;
+        int error = 0;
+
+        for (String jobName : getAllJobNames(info)) {
+            for (Map<String, Object> buildObj : getBuildsForJob(info, jobName)) {
+                long ts = ((Number) buildObj.get("timestamp")).longValue();
+                String result = (String) buildObj.get("result");
+                String tsDate = formatDateOnly(ts); // "yyyy-MM-dd"
+
+                if (!tsDate.equals(date)) continue;
+
+                if ("FAILURE".equals(result)) error++;
+                else build++;
+            }
+        }
+
+        return CalendarSummaryRes.builder()
+                .buildCount(build)
+                .errorCount(error)
+                .build();
+    }
 
 
 }
