@@ -30,7 +30,7 @@ const routes = [
     {path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: {requiresAuth: true}},
     {path: '/job', component: JobList, meta: {requiresAuth: true}},
     {path: '/job/create', component: CreateJob, meta: {requiresAuth: true}},
-    {path: '/user/chat', component: Chat},
+    {path: '/ai/chat', component: Chat},
     {path: '/:catchAll(.*)', redirect: '/'},
 ];
 
