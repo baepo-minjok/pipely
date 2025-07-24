@@ -82,7 +82,7 @@ class ScriptServiceTest {
         when(scriptRepository.existsById(scriptId)).thenReturn(false);
 
         CustomException ex = assertThrows(CustomException.class, () ->
-                scriptService.generateScript(requestDto, "tester"));
+                scriptService.generateScript(requestDto));
 
         assertEquals(ErrorCode.JENKINS_SCRIPT_NOT_FOUND, ex.getErrorCode());
     }
@@ -98,9 +98,9 @@ class ScriptServiceTest {
         when(scriptEditUtil.injectBooleanParams("rawScript")).thenReturn("editedScript");
         when(jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId())).thenReturn(jenkinsInfo);
         when(jobNotificationService.getEnabledNotifications(any())).thenReturn(Collections.emptyList());
-        when(jobNotificationService.updateScriptWithJobNotifications(any(), any(), any())).thenReturn(script);
+        when(jobNotificationService.updateScriptWithJobNotifications(any(), any())).thenReturn(script);
 
-        ResponseDto.LightScriptDto result = scriptService.generateScript(requestDto, "tester");
+        ResponseDto.LightScriptDto result = scriptService.generateScript(requestDto);
 
         assertNotNull(result);
         verify(jobNotificationService).syncJobNotifications(any(), eq(jenkinsInfo), any());
@@ -118,10 +118,10 @@ class ScriptServiceTest {
         when(scriptEditUtil.injectBooleanParams("rawScript")).thenReturn("editedScript");
         when(jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId())).thenReturn(jenkinsInfo);
         when(jobNotificationService.getEnabledNotifications(any())).thenReturn(Collections.emptyList());
-        when(jobNotificationService.updateScriptWithJobNotifications(any(), any(), any()))
+        when(jobNotificationService.updateScriptWithJobNotifications(any(), any()))
                 .thenReturn(script);
 
-        ResponseDto.LightScriptDto result = scriptService.generateScript(requestDto, "tester");
+        ResponseDto.LightScriptDto result = scriptService.generateScript(requestDto);
 
         assertNotNull(result);
         verify(jobNotificationService).createJobNotifications(any(), eq(jenkinsInfo), any());
@@ -139,9 +139,9 @@ class ScriptServiceTest {
         when(configService.createScript(context)).thenReturn("rawScript");
         when(scriptEditUtil.injectBooleanParams("rawScript")).thenReturn("editedScript");
         when(jobNotificationService.getEnabledNotifications(any())).thenReturn(Collections.emptyList());
-        when(jobNotificationService.updateScriptWithJobNotifications(any(), any(), any()))
+        when(jobNotificationService.updateScriptWithJobNotifications(any(), any()))
                 .thenReturn(script);
 
-        assertDoesNotThrow(() -> scriptService.generateScript(requestDto, "tester"));
+        assertDoesNotThrow(() -> scriptService.generateScript(requestDto));
     }
 }
