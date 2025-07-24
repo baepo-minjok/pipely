@@ -48,7 +48,7 @@ public class ScriptController {
             @RequestBody RequestDto.ScriptBaseDto requestDto
     ) {
         return ResponseEntity.ok()
-                .body(BaseResponse.success(scriptService.generateScript(requestDto, user.getName())));
+                .body(BaseResponse.success(scriptService.generateScript(requestDto)));
     }
 
     @Operation(
