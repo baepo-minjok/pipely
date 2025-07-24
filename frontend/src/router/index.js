@@ -30,7 +30,7 @@ const routes = [
     {path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: {requiresAuth: true}},
     {path: '/job', component: JobList, meta: {requiresAuth: true}},
     {path: '/job/create', component: CreateJob, meta: {requiresAuth: true}},
-    {path: '/user/chat', component: Chat},
+    {path: '/ai/chat', component: Chat},
     {path: '/:catchAll(.*)', redirect: '/'},
 ];
 
@@ -45,7 +45,11 @@ router.beforeEach(async (to, from, next) => {
     }
     const isLoggedIn = await userApi.isLoggedIn();
     const userStore = useUserStore();
-    console.log(isLoggedIn);
+
+    if (isLoggedIn && !userStore.isFetched) {
+        await userStore.fetchUserInfo();
+    }
+
     // 로그인된 사용자가 로그인/회원가입 페이지로 가면 메인으로
     if (
         ['/user/login', '/user/signup', '/user/oAuth'].includes(to.path) &&
@@ -57,9 +61,6 @@ router.beforeEach(async (to, from, next) => {
     if (to.meta.requiresAuth && !isLoggedIn) {
         next('/user/login');
     } else {
-        if (userStore.isFetched) {
-            await userStore.fetchUserInfo();
-        }
         next();
     }
 });

@@ -19,7 +19,7 @@ function sendMessage() {
 
     // 애니메이션 후 페이지 이동
     setTimeout(() => {
-      router.push('/user/chat');
+      router.push('/ai/chat');
     }, 800);
   }
 }
