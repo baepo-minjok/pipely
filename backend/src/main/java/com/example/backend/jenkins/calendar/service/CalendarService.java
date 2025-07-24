@@ -1,19 +1,28 @@
 package com.example.backend.jenkins.calendar.service;
 
+import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.build.service.BuildService;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarBuildResDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarErrorResDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEvent;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
+import com.example.backend.jenkins.info.model.JenkinsInfo;
+import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
+import com.example.backend.service.HttpClientService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +33,8 @@ import java.util.stream.Collectors;
 public class CalendarService {
 
     private final BuildService buildService;
+    private final JenkinsInfoRepository jenkinsInfoRepository;
+    private final HttpClientService httpClientService;
 
     public List<CalendarBuildResDto> toCalendarBuildResDtoList(List<Map<String, Object>> builds) {
         return builds.stream()
@@ -152,5 +163,67 @@ public class CalendarService {
             return remainingSeconds + "초";
         }
     }
+
+    public List<CalendarEventRes> getCalendarEventList(Users user, UUID infoId) {
+        JenkinsInfo info = jenkinsInfoRepository.findById(infoId)
+                .filter(i -> i.getUser().getId().equals(user.getId()))
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
+
+        List<CalendarEventRes> result = new ArrayList<>();
+
+        List<String> jobNames = getAllJobNames(info);
+
+        for (String jobName : jobNames) {
+            List<Map<String, Object>> builds = getBuildsForJob(info, jobName);
+
+            for (Map<String, Object> build : builds) {
+                int buildNumber = (Integer) build.get("number");
+                long ts = ((Number) build.get("timestamp")).longValue();
+                String resultStr = (String) build.get("result");
+
+                String type = "FAILURE".equals(resultStr) ? "ERROR" : "BUILD";
+
+                result.add(CalendarEventRes.builder()
+                        .type(type)
+                        .jobName(jobName)
+                        .buildNumber(buildNumber)
+                        .start(formatTimestamp(ts))
+                        .build());
+            }
+        }
+
+        return result;
+    }
+
+    private List<String> getAllJobNames(JenkinsInfo info) {
+        String url = info.getUri() + "/api/json?tree=jobs[name]";
+        Map<?, ?> response = httpClientService.exchange(url, HttpMethod.GET, buildHttpEntity(info), Map.class);
+        List<Map<String, Object>> jobs = (List<Map<String, Object>>) response.get("jobs");
+        return jobs.stream()
+                .map(job -> (String) job.get("name"))
+                .collect(Collectors.toList());
+    }
+
+    private List<Map<String, Object>> getBuildsForJob(JenkinsInfo info, String jobName) {
+        String url = info.getUri() + "/job/" + jobName + "/api/json?tree=builds[number,timestamp,result]";
+        Map<?, ?> response = httpClientService.exchange(url, HttpMethod.GET, buildHttpEntity(info), Map.class);
+        Object buildsObj = response.get("builds");
+
+        if (buildsObj instanceof List<?>) {
+            return ((List<?>) buildsObj).stream()
+                    .filter(e -> e instanceof Map)
+                    .map(e -> (Map<String, Object>) e)
+                    .toList();
+        }
+
+        return new ArrayList<>();
+
+    }
+
+    private HttpEntity<?> buildHttpEntity(JenkinsInfo info) {
+        return new HttpEntity<>(httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON));
+    }
+
+
 
 }
