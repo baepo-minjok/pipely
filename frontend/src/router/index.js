@@ -24,7 +24,7 @@ const routes = [
   { path: '/mypage', component: Mypage, name: 'Mypage', meta: { requiresAuth: true } },
   { path: '/mypage/cicd/create', component: CreateCicdInfo, meta: { requiresAuth: true } },
   { path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: { requiresAuth: true } },
-  { path: '/job', component: JobList, meta: { requiresAuth: true } },
+  { path: '/job', component: JobList, name: 'JobList', meta: { requiresAuth: true } },
   { path: '/job/create', component: CreateJob, name: 'CreateJob', meta: { requiresAuth: true } },
   { path: '/chat', component: Chat },
   { path: '/:catchAll(.*)', redirect: '/' },
