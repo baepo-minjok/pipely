@@ -83,29 +83,39 @@ const githubLogin = () => {
   <div class="container">
     <div class="left_wrapper">
       <h1>Sign In</h1>
-      <div class="login_box">
-        <button class="oauth_btn" @click="googleLogin">
+      <form class="login_box" @submit.prevent="login">
+        <button class="oauth_btn" type="button" @click="googleLogin">
           <img alt="google" src="/src/assets/images/google_logo.png"/>
           Google로 로그인
         </button>
-        <button class="oauth_btn" @click="githubLogin">
+        <button class="oauth_btn" type="button" @click="githubLogin">
           <img alt="github" src="/src/assets/images/github_logo.png"/>
           Github로 로그인
         </button>
         <p>또는</p>
-        <input v-model="email" :class="['input_box', emailError ? 'input_box--error' : '']"
-               placeholder="이메일 주소를 입력해주세요." type="text"/>
-        <input v-model="password" :class="['input_box', passwordError ? 'input_box--error' : '']"
-               placeholder="비밀번호를 입력해주세요." type="password"/>
-        <button class="btn login_btn" @click="login">로그인</button>
+        <input
+            v-model="email"
+            :class="['input_box', emailError ? 'input_box--error' : '']"
+            autocomplete="username"
+            placeholder="이메일 주소를 입력해주세요."
+            type="text"
+        />
+        <input
+            v-model="password"
+            :class="['input_box', passwordError ? 'input_box--error' : '']"
+            autocomplete="current-password"
+            placeholder="비밀번호를 입력해주세요."
+            type="password"
+        />
+        <button class="btn login_btn" type="submit">로그인</button>
         <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-
         <div class="bottom_box">
           <router-link to="/user/signup">회원가입</router-link>
           <div class="col_line"></div>
           <router-link to="/user/find/password">비밀번호 찾기</router-link>
         </div>
-      </div>
+      </form>
+
     </div>
     <div class="right_wrapper">
       <img alt="logo" src="/src/assets/images/logo.png"/>
