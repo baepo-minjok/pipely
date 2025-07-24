@@ -22,5 +22,32 @@ export const emailApi = {
             .catch((error) => {
                 return false;
             })
+    },
+
+
+    // 비밀번호 재설정 이메일 요청
+    sendResetEmail(data) {
+        return instance
+            .post("/auth/reset/password-reset/request", {
+                email: data,
+            })
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
+    },
+
+    // 비밀번호 재설정 요청
+    resetPassword(data) {
+        return instance
+            .post("/auth/reset/password-reset", data)
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
     }
 }

@@ -1,37 +1,42 @@
 <script setup>
-import { ref } from 'vue';
+import {ref} from 'vue';
+import {emailApi} from "@/api/EmailApi.js";
 
 const sendEmail = ref(false);
-const emailValue = ref('');
+const email = ref('');
+const isLoading = ref(false);
 
-const handleNextClick = () => {
-  console.log(emailValue.value);
-  // [TODO] : 이메일 발송 인증 보내기
-  // [TODO] : 이메일 발송 완료 문구 띄우기
+const handleNextClick = async () => {
+  isLoading.value = true;
+  await emailApi.sendResetEmail(email.value);
+  isLoading.value = false;
+  alert("비밀번호 재설정 이메일이 발송되었습니다!");
   sendEmail.value = true;
 };
 </script>
 
 <template>
   <div class="container">
-    <img src="/src/assets/images/logo.png" alt="logo" />
+    <img alt="logo" src="/src/assets/images/logo.png"/>
     <h1>{{ sendEmail ? '비밀번호 찾기' : '비밀번호 찾기' }}</h1>
     <form v-if="!sendEmail" action="" class="form_box">
       <p>기존에 가입하신 이메일을 입력하시면, 비밀번호 변경 메일을 발송해드립니다.</p>
       <input
-        type="email"
-        id="email"
-        name="email"
-        v-model="emailValue"
-        class="input_box"
-        placeholder="이메일 주소를 입력해주세요."
+          id="email"
+          v-model="email"
+          class="input_box"
+          name="email"
+          placeholder="이메일 주소를 입력해주세요."
+          type="email"
       />
-      <button type="button" class="btn find_btn" @click="handleNextClick">다음</button>
+      <button :disabled="isLoading" class="btn find_btn" type="button" @click="handleNextClick">
+        {{ isLoading ? '이메일 발송중..' : '다음' }}
+      </button>
     </form>
     <div v-if="sendEmail" class="send_email_box">
-      <img src="/src/assets/icons/check.svg" alt="check" />
-      <p>비밀번호 재설정 링크가 포함된 메일이 발송되었습니다. <br />이메일을 확인해주세요.</p>
-      <router-link to="/user/login" class="btn login_btn">로그인 화면으로</router-link>
+      <img alt="check" src="/src/assets/icons/check.svg"/>
+      <p>비밀번호 재설정 링크가 포함된 메일이 발송되었습니다. <br/>이메일을 확인해주세요.</p>
+      <router-link class="btn login_btn" to="/user/login">로그인 화면으로</router-link>
     </div>
   </div>
 </template>
@@ -103,5 +108,10 @@ const handleNextClick = () => {
   margin-top: 40px;
   text-decoration: none;
   box-sizing: border-box;
+}
+
+.btn[disabled] {
+  color: #bbb;
+  cursor: not-allowed;
 }
 </style>

@@ -13,6 +13,7 @@ import CreateJob from '../pages/jobs/CreateJob.vue';
 import OAuth from '../pages/users/OAuthSignup.vue';
 import VerifyEmail from '../pages/users/VerifyEmail.vue';
 import Chat from '../pages/chat/Chat.vue';
+import ResetPassword from '../pages/users/ResetPassword.vue';
 
 const routes = [
     {path: '/', component: Main, name: 'Main'},
@@ -20,7 +21,8 @@ const routes = [
     {path: '/user/oAuth', component: OAuth, name: 'OAuth'},
     {path: '/user/signup', component: Signup, name: 'Signup'},
     {path: '/user/email/verify', component: VerifyEmail},
-    {path: '/user/find/password', component: FindPassword, meta: {requiresAuth: true}},
+    {path: '/user/find/password', component: FindPassword},
+    {path: '/user/reset/password', component: ResetPassword, name: 'ResetPassword'},
     {path: '/mypage', component: Mypage, name: 'Mypage', meta: {requiresAuth: true}},
     {path: '/mypage/cicd/create', component: CreateCicdInfo, meta: {requiresAuth: true}},
     {path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: {requiresAuth: true}},
@@ -36,7 +38,9 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-
+    if (!to.meta.requiresAuth) {
+        next();
+    }
     const isLoggedIn = await userApi.isLoggedIn();
     const userStore = useUserStore();
     console.log(isLoggedIn);
