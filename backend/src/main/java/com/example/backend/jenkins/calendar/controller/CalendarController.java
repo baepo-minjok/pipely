@@ -4,9 +4,11 @@ import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.calendar.model.dto.CalendarRequestDto.CalendarErrorDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarRequestDto.CalendarBuildDto;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarBuildResDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarErrorResDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
 import com.example.backend.jenkins.calendar.model.dto.CalendarRequestDto.CalendarEventReq;
 import com.example.backend.jenkins.calendar.service.CalendarService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +22,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Tag(name = "Calendar API", description = "캘린더 관련 API")
@@ -70,6 +73,29 @@ public class CalendarController {
     ) {
         return ResponseEntity.ok(BaseResponse.success(
                 calendarService.getEventsByDate(user, infoId, date)
+        ));
+    }
+
+    @Operation(summary = "캘린더 빌드/에러 요약", description = "날짜별 buildCount / errorCount 반환")
+    @PostMapping("/summary")
+    public ResponseEntity<BaseResponse<Map<String, CalendarSummaryRes>>> getSummary(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestBody @Valid CalendarEventReq req
+    ) {
+        return ResponseEntity.ok(BaseResponse.success(
+                calendarService.getCalendarSummary(user, req.getInfoId())
+        ));
+    }
+
+    @Operation(summary = "특정 날짜 요약", description = "특정 날짜 기준 BUILD/ERROR 개수 반환")
+    @GetMapping("/summary/by-date")
+    public ResponseEntity<BaseResponse<CalendarSummaryRes>> getSummaryByDate(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestParam UUID infoId,
+            @RequestParam String date
+    ) {
+        return ResponseEntity.ok(BaseResponse.success(
+                calendarService.getCalendarSummaryByDate(user, infoId, date)
         ));
     }
 
