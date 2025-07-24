@@ -24,6 +24,10 @@ const fetchUser = () => {
   infoList.value = userInfo.infoList;
 }
 
+const goToChangePassword = () => {
+  router.push({name: 'CheckVerification'});
+};
+
 // 로딩될때 유저 정보 세팅
 onMounted(async () => {
   isLoading.value = true;  // 로딩 시작
@@ -63,7 +67,7 @@ onMounted(async () => {
         <div class="item_box">
           <p class="item_label">비밀번호</p>
           <p>••••••••••••</p>
-          <button class="info_btn">비밀번호 변경</button>
+          <button class="info_btn" @click="goToChangePassword">비밀번호 변경</button>
         </div>
       </div>
     </div>

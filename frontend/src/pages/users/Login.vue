@@ -55,17 +55,20 @@ const login = async () => {
   };
 
   const response = await userApi.login(loginRequest);
+  try {
+    if (response.status === 200) { // 로그인 성공
 
-  if (response.status === 200) { // 로그인 성공
+      await userStore.fetchUserInfo();
 
-    await userStore.fetchUserInfo();
+      // 메인으로
+      router.push({name: "Main"});
 
-    // 메인으로
-    router.push({name: "Main"});
-
-  } else if (response.status === 401) {
-    errorMessage.value = response.message;
-  } else {
+    } else if (response.status === 401) {
+      errorMessage.value = response.message;
+    } else {
+      errorMessage.value = "로그인에 실패했습니다.";
+    }
+  } catch (error) {
     errorMessage.value = "로그인에 실패했습니다.";
   }
 };

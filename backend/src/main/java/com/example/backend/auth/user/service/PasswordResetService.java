@@ -46,6 +46,16 @@ public class PasswordResetService {
         }
         Users user = userOpt.get();
 
+        // 새로운 토큰 생성
+        String tokenStr = createPasswordResetToken(user);
+
+        // 이메일 전송
+        emailService.sendPasswordResetEmailAsync(user, tokenStr);
+        log.info("[Password Reset] 이메일 전송 요청 완료: to={}", email);
+    }
+
+    @Transactional
+    public String createPasswordResetToken(Users user) {
         // 기존 토큰 정리
         tokenRepository.deleteAllByUser(user);
 
@@ -59,11 +69,16 @@ public class PasswordResetService {
                 .expiresAt(now.plusHours(EXPIRATION_HOURS))
                 .build();
         tokenRepository.save(prt);
-        log.info("[Password Reset] 토큰 생성: userEmail={}, token={}", email, tokenStr);
+        log.info("[Password Reset] 토큰 생성: userEmail={}, token={}", user.getEmail(), tokenStr);
+        return tokenStr;
+    }
 
-        // 이메일 전송
-        emailService.sendPasswordResetEmailAsync(user, tokenStr);
-        log.info("[Password Reset] 이메일 전송 요청 완료: to={}", email);
+    @Transactional
+    public String getToken(String email) {
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        return createPasswordResetToken(user);
     }
 
     /**

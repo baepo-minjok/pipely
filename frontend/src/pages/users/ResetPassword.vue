@@ -58,10 +58,6 @@ const resetPassword = async () => {
   if (!valid) return;
 
   const token = route.query.token;
-
-  console.log(token);
-  console.log(password.value);
-
   const data = {
     token: token,
     newPassword: password.value,
@@ -70,7 +66,7 @@ const resetPassword = async () => {
   const response = await emailApi.resetPassword(data);
 
   sendApi.value = true;
-  
+
   if (response) {
     successApi.value = true;
   } else {
