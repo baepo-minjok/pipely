@@ -1,6 +1,6 @@
-import {createRouter, createWebHistory} from 'vue-router';
-import {useUserStore} from "@/stores/useUserStore.js"
-import {userApi} from "@/api/UserApi.js";
+import { createRouter, createWebHistory } from 'vue-router';
+import { useUserStore } from '@/stores/useUserStore.js';
+import { userApi } from '@/api/UserApi.js';
 import Login from '../pages/users/Login.vue';
 import Signup from '../pages/users/Signup.vue';
 import FindPassword from '../pages/users/FindPassword.vue';
@@ -35,8 +35,8 @@ const routes = [
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes,
+  history: createWebHistory(),
+  routes,
 });
 
 router.beforeEach(async (to, from, next) => {
@@ -64,6 +64,5 @@ router.beforeEach(async (to, from, next) => {
         next();
     }
 });
-
 
 export default router;

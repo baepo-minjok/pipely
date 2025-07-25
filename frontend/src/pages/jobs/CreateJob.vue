@@ -1,15 +1,44 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import KubernetesInput from '../../components/jobs/KubernetesInput.vue';
 import EC2Input from '../../components/jobs/EC2Input.vue';
+import { useRoute, useRouter } from 'vue-router';
+import { jobApi } from '../../api/JobApi';
+import { formatSchedule } from '../../utils/formatSchedule';
+
+const route = useRoute();
+const router = useRouter();
+const jenkinsInfo = {
+  id: route.query.id,
+  name: route.query.jenkinsName,
+  uri: route.query.jenkinsUri,
+};
 
 const isGithubChecked = ref(false);
 const isWebhookChecked = ref(false);
 const openDropdown = ref(false);
 
+const weekdays = [
+  { label: '월', value: 'mon' },
+  { label: '화', value: 'tue' },
+  { label: '수', value: 'wed' },
+  { label: '목', value: 'thu' },
+  { label: '금', value: 'fri' },
+  { label: '토', value: 'sat' },
+  { label: '일', value: 'sun' },
+];
+
 const linkData = reactive({
   githubUrl: '',
   webhookUrl: '',
+});
+
+const scheduleData = reactive({
+  repeatType: 'daily',
+  selectedDays: [],
+  ampm: '오전',
+  hour: 1,
+  minute: 0,
 });
 
 const cicdItems = [
@@ -26,7 +55,17 @@ const cicdItems = [
 ];
 const selectedItem = ref(cicdItems[0]);
 
+const jobData = reactive({
+  scriptId: '',
+  name: '',
+  description: '',
+  trigger: false,
+  schedule: '',
+  infoId: jenkinsInfo.id,
+});
+
 const scriptData = reactive({
+  infoId: jenkinsInfo.id,
   scriptId: '',
   githubUrl: '',
   branch: 'main',
@@ -36,9 +75,6 @@ const scriptData = reactive({
   isK8sDeploy: true,
   isEc2Deploy: false,
 
-  sshKeyPath: '',
-  sshPort: '',
-  deployTarget: '',
   tag: '',
   k8sPath: '',
   deploymentName: '',
@@ -50,6 +86,10 @@ const scriptData = reactive({
   replicas: '',
 
   ec2DeployPath: '',
+
+  sshKeyPath: '',
+  sshPort: '',
+  deployTarget: '',
 });
 
 const scriptText = ref('');
@@ -66,23 +106,74 @@ const selectItem = (item) => {
   scriptData.isEc2Deploy = item.value === 'ec2';
 };
 
-const handleCreateScriptClick = () => {
-  // 스크립트 생성 버튼 클릭
+const handleCreateScriptClick = async () => {
+  const response = await jobApi.createScript(scriptData);
+  console.log(response);
+  if (response.status === 200) {
+    console.log(response.data);
+    const data = response.data.data;
+    scriptText.value = data.script;
+    scriptData.scriptId = data.scriptId;
+    jobData.scriptId = data.scriptId;
+  }
 };
+
+const handleCreateJobClick = async () => {
+  const validateData = {
+    infoId: jenkinsInfo.id,
+    script: scriptText.value,
+  };
+
+  const response = await jobApi.validateScript(validateData);
+
+  if (response.status === 200 && response.data.success) {
+    await createJob();
+  }
+};
+
+const createJob = async () => {
+  jobData.schedule = formatSchedule(scheduleData);
+
+  const response = await jobApi.createJob(jobData);
+
+  if (response.status === 200) {
+    alert('Job이 생성되었습니다!');
+    router.replace({ name: 'JobList' });
+  }
+};
+
+const handleCancelClick = () => {
+  const confirmed = confirm('Job 생성을 취소하시겠습니까?\n현재 작성한 모든 내용이 삭제됩니다.');
+  if (confirmed) {
+    router.back();
+  }
+};
+
+watch(scriptText, (newVal) => {
+  console.log('watch - scriptText changed:', newVal);
+});
 </script>
 
 <template>
   <div class="container">
     <h1>새 Job 생성</h1>
     <div class="body">
+      <div class="jenkins_box">
+        <h3 class="sub_title">Jenkins 인스턴스 정보</h3>
+        <div>
+          <p><span>이름 </span>{{ jenkinsInfo.name }}</p>
+          <p><span>URI </span> {{ jenkinsInfo.uri }}</p>
+        </div>
+      </div>
       <div class="info_box">
         <h3 class="sub_title">Job 기본 정보</h3>
-        <input type="text" id="name" class="input" placeholder="Job 이름을 입력해주세요." />
+        <input type="text" id="name" class="input" placeholder="Job 이름을 입력해주세요." v-model="jobData.name" />
         <textarea
           name="description"
           id="description"
           class="textarea"
           placeholder="Job에 대한 설명을 입력해주세요."
+          v-model="jobData.description"
         ></textarea>
       </div>
 
@@ -110,6 +201,51 @@ const handleCreateScriptClick = () => {
           <input type="text" v-model="linkData.webhookUrl" placeholder="Webhook 링크를 입력해주세요." class="input" />
         </div>
       </div>
+
+      <div class="schedule_box">
+        <h3 class="sub_title">스케줄</h3>
+
+        <div class="schedule">
+          <div class="schedule_row">
+            <label>
+              <select v-model="scheduleData.repeatType">
+                <option value="daily">매일</option>
+                <option value="weekly">매주</option>
+              </select>
+            </label>
+          </div>
+
+          <div v-if="scheduleData.repeatType === 'weekly'" class="weekdays">
+            <label v-for="day in weekdays" :key="day.value">
+              <input type="checkbox" v-model="scheduleData.selectedDays" :value="day.value" />
+              {{ day.label }}
+            </label>
+          </div>
+          <div class="time_select_row">
+            <label>
+              <select v-model="scheduleData.ampm">
+                <option value="오전">오전</option>
+                <option value="오후">오후</option>
+              </select>
+            </label>
+
+            <label>
+              <select v-model="scheduleData.hour">
+                <option v-for="n in 12" :key="n" :value="n">{{ n }}시</option>
+              </select>
+            </label>
+
+            <label>
+              <select v-model="scheduleData.minute">
+                <option v-for="m in [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]" :key="m" :value="m">
+                  {{ m.toString().padStart(2, '0') }}분
+                </option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+
       <div class="script_box">
         <h3 class="sub_title">스크립트</h3>
         <div>
@@ -169,12 +305,12 @@ const handleCreateScriptClick = () => {
           </div>
         </div>
         <button class="create_script_btn" @click="handleCreateScriptClick">스크립트 생성</button>
-        <textarea name="script" id="script" v-model="scriptText" class="script"></textarea>
+        <textarea name="script" id="script" v-model="scriptText" class="script" spellcheck="false"></textarea>
       </div>
     </div>
     <div class="btn_box">
-      <button class="cancel_btn">취소</button>
-      <button class="create_btn">생성</button>
+      <button class="cancel_btn" @click="handleCancelClick">취소</button>
+      <button class="create_btn" @click="handleCreateJobClick">생성</button>
     </div>
   </div>
 </template>
@@ -201,11 +337,29 @@ const handleCreateScriptClick = () => {
   }
 }
 
+.jenkins_box > div {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  border: 1px solid var(--gray200);
+  border-radius: 8px;
+  margin-top: 20px;
+  padding: 24px 20px;
+  background-color: white;
+
+  & span {
+    color: var(--gray500);
+    font-size: 14px;
+    margin-right: 16px;
+  }
+}
+
 .info_box {
   gap: 14px;
 }
 
-.link_box {
+.link_box,
+.schedule_box {
   gap: 17px;
 }
 
@@ -268,6 +422,38 @@ label {
   display: block;
   margin-bottom: 10px;
   color: var(--gray700);
+}
+
+/* 스케줄 */
+.schedule select {
+  background-color: white;
+  padding: 8px 14px;
+  outline: none;
+  border-radius: 4px;
+  border: 1px solid var(--gray300);
+}
+
+.schedule option {
+  padding: 8px 14px;
+}
+
+.weekdays {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap; /* 필요 시 줄바꿈도 가능하게 */
+
+  & > label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--gray900);
+  }
+}
+
+.time_select_row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .deploy_section {
@@ -362,8 +548,11 @@ label {
 }
 
 .script {
-  background-color: #f3f4f6;
-  resize: none;
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #1e1e1e;
+  color: #dcdcdc;
+  white-space: pre;
+  resize: vertical;
   height: 222px;
   border: none;
   outline: none;
