@@ -194,4 +194,14 @@ public class UserService {
                 .infoDtoList(infoDtoList)
                 .build();
     }
+
+    @Transactional
+    public void reactivation(String email) {
+        Users user = findByEmail(email);
+
+        user.setStatus(Users.UserStatus.ACTIVE);
+        user.setDeletedAt(null);
+
+        userRepository.save(user);
+    }
 }
