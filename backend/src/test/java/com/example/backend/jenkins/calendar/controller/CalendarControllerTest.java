@@ -61,7 +61,7 @@ class CalendarControllerTest {
     @Test
     @DisplayName("이벤트 조회 API 응답 성공 테스트")
     void getEventsByDate_정상응답() throws Exception {
-        // Mocked event data
+        // 테스트용 이벤트 응답 데이터 생성
         List<CalendarEventRes> mockEvents = List.of(
                 CalendarEventRes.builder()
                         .type("BUILD")
@@ -71,15 +71,15 @@ class CalendarControllerTest {
                         .build()
         );
 
-        // Mocking the calendar service response
+        // calendarService의 응답을 mock 처리
         Mockito.when(calendarService.getEventsByDate(Mockito.any(), Mockito.eq(infoId), Mockito.eq("2025-07-24")))
                 .thenReturn(mockEvents);
 
-        // Creating the CustomUserDetails and authentication object
+        // CustomUserDetails와 인증 객체 생성
         CustomUserDetails userDetails = new CustomUserDetails(mockUser);
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
-        // Perform the GET request with the mocked authentication
+        // 인증 정보를 포함한 GET 요청 실행 및 응답 검증
         mockMvc.perform(get("/api/calendar/events/by-date")
                         .param("infoId", infoId.toString())
                         .param("date", "2025-07-24")
@@ -92,21 +92,21 @@ class CalendarControllerTest {
     @Test
     @DisplayName("요약 조회 API 응답 성공 테스트")
     void getSummaryByDate_정상응답() throws Exception {
-        // Mocked summary data
+        // 테스트용 요약 응답 데이터 생성
         CalendarSummaryRes summary = CalendarSummaryRes.builder()
                 .buildCount(3)
                 .errorCount(1)
                 .build();
 
-        // Mock service behavior
+        // calendarService의 응답을 mock 처리
         Mockito.when(calendarService.getCalendarSummaryByDate(Mockito.any(), Mockito.eq(infoId), Mockito.eq("2025-07-24")))
                 .thenReturn(summary);
 
-        // 인증 객체 설정
+        // CustomUserDetails와 인증 객체 생성
         CustomUserDetails userDetails = new CustomUserDetails(mockUser);
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
-        // Perform GET request
+        // 인증 정보를 포함한 GET 요청 실행 및 응답 검증
         mockMvc.perform(get("/api/calendar/summary/by-date")
                         .param("infoId", infoId.toString())
                         .param("date", "2025-07-24")
