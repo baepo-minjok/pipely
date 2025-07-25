@@ -233,4 +233,9 @@ public class JobNotificationService {
     public List<JobNotification> getEnabledNotifications(Script script) {
         return notificationRepository.findByScriptIdAndShouldNotifyTrue(script.getId());
     }
+
+    @Transactional
+    public void deleteAllByScriptId(UUID scriptId) {
+        notificationRepository.deleteAllByScriptId(scriptId);
+    }
 }

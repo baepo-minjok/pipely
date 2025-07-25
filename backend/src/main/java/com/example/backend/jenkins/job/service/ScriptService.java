@@ -65,6 +65,7 @@ public class ScriptService {
 
     @Transactional
     public void deleteScript(UUID scriptId) {
+        jobNotificationService.deleteAllByScriptId(scriptId);
         scriptRepository.deleteById(scriptId);
     }
 
