@@ -57,6 +57,17 @@ export const userApi = {
             })
     },
 
+    // 회원 탈퇴
+    withdraw() {
+        return instance.delete("/auth/user/withdraw")
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
+    },
+
     // 이메일 중복확인
     checkDuplicate(email) {
         return instance

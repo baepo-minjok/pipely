@@ -2,6 +2,7 @@
 import {useRouter} from 'vue-router';
 import {onMounted, ref} from 'vue';
 import {useUserStore} from "@/stores/useUserStore.js"
+import CheckPasswordModal from "@/pages/users/CheckPasswordModal.vue";
 
 const userStore = useUserStore();
 
@@ -10,10 +11,21 @@ const router = useRouter();
 const email = ref("");
 const name = ref("");
 const isVerified = ref(true);
-
+const modalTarget = ref("reset");
 const isLoading = ref(false);
 
 const infoList = ref([]);
+
+const isPasswordModalOpen = ref(false);
+
+const goToChangePassword = () => {
+  modalTarget.value = "reset";
+  isPasswordModalOpen.value = true;
+};
+
+const closePasswordModal = () => {
+  isPasswordModalOpen.value = false;
+};
 
 const fetchUser = () => {
   const userInfo = userStore.getUserInfo();
@@ -24,9 +36,18 @@ const fetchUser = () => {
   infoList.value = userInfo.infoList;
 }
 
-const goToChangePassword = () => {
-  router.push({name: 'CheckVerification'});
-};
+const withdraw = () => {
+  const isOk = confirm(
+      "정말로 서비스를 탈퇴하시겠습니까?\n\n" +
+      "탈퇴 시 계정 및 모든 데이터가 삭제되며,\n" +
+      "10일 이내에는 다시 로그인하면 복구가 가능합니다."
+  );
+  if (!isOk) {
+    return;
+  }
+  modalTarget.value = "withdraw";
+  isPasswordModalOpen.value = true;
+}
 
 // 로딩될때 유저 정보 세팅
 onMounted(async () => {
@@ -101,10 +122,29 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+    <div class="withdraw_container">
+      <button class="withdraw" @click="withdraw">회원탈퇴</button>
+    </div>
   </div>
+  <CheckPasswordModal v-if="isPasswordModalOpen"
+                      :destination="modalTarget" @close="closePasswordModal"/>
 </template>
 
 <style scoped>
+
+.withdraw_container {
+  display: flex;
+  align-items: center;
+  justify-content: right;
+  margin-top: 50px;
+}
+
+.withdraw {
+  all: unset;
+  cursor: pointer;
+  color: #2e2e2e;
+}
+
 .container {
   width: 60%;
   margin: 70px auto;
