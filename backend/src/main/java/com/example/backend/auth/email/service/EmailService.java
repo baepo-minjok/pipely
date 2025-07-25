@@ -36,7 +36,7 @@ public class EmailService {
     public void sendVerificationEmail(Users user, UUID token) {
         log.info("[EmailService] 이메일 인증 메일 발송 시작: email={}, token={}", user.getEmail(), token);
 
-        String link = "https://www.pipely.com/user/email/verify?token=" + token;
+        String link = "https://www.pipely.kro.kr/user/email/verify?token=" + token;
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
@@ -95,7 +95,7 @@ public class EmailService {
      */
     @Async
     public void sendPasswordResetEmailAsync(Users user, String token) {
-        String link = "https://www.pipely.com/user/password/reset?token=" + token;
+        String link = "https://www.pipely.kro.kr/user/reset/password?token=" + token;
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
@@ -177,7 +177,7 @@ public class EmailService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         String token = dormantTokenService.createDormantReactivationToken(user);
-        String activationLink = "https://www.pipely.com/user/reactivate?token=" + token;
+        String activationLink = "https://www.pipely.kro.kr/user/reactivate?token=" + token;
 
         try {
 

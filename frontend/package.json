@@ -9,14 +9,23 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@agentica/core": "^0.30.4",
+    "@agentica/rpc": "^0.30.4",
+    "@samchon/openapi": "^4.6.0",
     "axios": "^1.10.0",
+    "lucide-vue-next": "^0.525.0",
+    "markdown-it": "^14.1.0",
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.4.1",
+    "tgrid": "^1.2.0",
     "vue": "^3.5.13",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
-    "vite": "^6.3.5"
+    "@vue/tsconfig": "^0.7.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5",
+    "vue-tsc": "^2.2.12"
   }
 }

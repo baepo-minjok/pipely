@@ -36,16 +36,16 @@ public class JobNotificationService {
 
 
     @Transactional
-    public List<JobNotification> createJobNotifications(List<RequestDto.createCredential> dtoList, JenkinsInfo info, UUID scriptId, String userName) {
+    public List<JobNotification> createJobNotifications(List<RequestDto.NotificationDto> dtoList, JenkinsInfo info, UUID scriptId) {
         List<JobNotification> savedNotifications = new ArrayList<>();
 
-        for (RequestDto.createCredential dto : dtoList) {
+        for (RequestDto.NotificationDto dto : dtoList) {
             Script script = scriptRepository.findById(scriptId)
                     .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND));
 
             String credentialName = generateCredentialName(script.getId(), dto.getChannel(), dto.getEventType());
 
-            JobNotification notification = dto.toEntity(null, credentialName, scriptId);
+            JobNotification notification = dto.toEntity(credentialName, scriptId);
             JobNotification saved = notificationRepository.save(notification);
             savedNotifications.add(saved);
 
@@ -56,15 +56,17 @@ public class JobNotificationService {
     }
 
     @Transactional
-    public List<JobNotification> syncJobNotifications(UUID pipelineId, List<RequestDto.updateCredential> incomingList, JenkinsInfo info, UUID scriptId, String userName) {
-        List<JobNotification> existingList = notificationRepository.findByPipelineId(pipelineId);
+    public List<JobNotification> syncJobNotifications(List<RequestDto.NotificationDto> incomingList, JenkinsInfo info, Script script) {
+        UUID scriptId = script.getId();
+
+        List<JobNotification> existingList = notificationRepository.findByScriptId(scriptId);
 
         Map<String, JobNotification> existingMap = existingList.stream()
                 .collect(Collectors.toMap(JobNotification::getCredentialName, n -> n));
 
         List<JobNotification> result = new ArrayList<>();
 
-        for (RequestDto.updateCredential dto : incomingList) {
+        for (RequestDto.NotificationDto dto : incomingList) {
             String credentialName = dto.getCredentialName();
 
             JobNotification existing = credentialName != null
@@ -72,16 +74,13 @@ public class JobNotificationService {
                     : null;
 
             if (existing == null) {
-                scriptRepository.findById(scriptId)
-                        .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND));
-
                 String newCredentialName = credentialName != null
                         ? credentialName
                         : generateCredentialName(scriptId, dto.getChannel(), dto.getEventType());
 
                 createCredential(info, newCredentialName, dto.getWebhookUrl());
 
-                JobNotification created = dto.toEntity(pipelineId, newCredentialName, scriptId);
+                JobNotification created = dto.toEntity(newCredentialName, scriptId);
                 result.add(notificationRepository.save(created));
             } else {
                 boolean changed = false;
@@ -118,7 +117,7 @@ public class JobNotificationService {
         return result;
     }
 
-    public String createNotificationScript(String jobName, List<JobNotification> notifications, String userName) {
+    public String createNotificationScript(List<JobNotification> notifications) {
         Mustache mustache = mf.compile("template/notificationScript.mustache");
 
         List<Map<String, Object>> notificationList = notifications.stream().map(n -> {
@@ -134,8 +133,6 @@ public class JobNotificationService {
         }).collect(Collectors.toList());
 
         Map<String, Object> context = new HashMap<>();
-        context.put("jobName", jobName != null ? jobName : "");
-        context.put("userName", userName != null ? userName : "Unknown");
         context.put("notifications", notificationList);
 
         StringWriter writer = new StringWriter();
@@ -224,14 +221,14 @@ public class JobNotificationService {
         httpClientService.exchange(url, HttpMethod.POST, request, String.class);
     }
 
-    public Script updateScriptWithJobNotifications(Script script, String jobName, List<JobNotification> notifications, String userName) {
-        String newPostBlock = createNotificationScript(jobName, notifications, userName);
+    public Script updateScriptWithJobNotifications(Script script, List<JobNotification> notifications) {
+        String newPostBlock = createNotificationScript(notifications);
         String updatedScript = replacePostBlock(script.getScript(), newPostBlock);
         script.setScript(updatedScript);
         return scriptRepository.save(script);
     }
 
-    public List<JobNotification> getEnabledNotifications(UUID pipelineId) {
-        return notificationRepository.findByPipelineIdAndShouldNotifyTrue(pipelineId);
+    public List<JobNotification> getEnabledNotifications(Script script) {
+        return notificationRepository.findByScriptIdAndShouldNotifyTrue(script.getId());
     }
 }

@@ -57,6 +57,17 @@ export const userApi = {
             })
     },
 
+    // 회원 탈퇴
+    withdraw() {
+        return instance.delete("/auth/user/withdraw")
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
+    },
+
     // 이메일 중복확인
     checkDuplicate(email) {
         return instance
@@ -104,5 +115,18 @@ export const userApi = {
             .catch((error) => {
                 return error.response.data.error;
             })
+    },
+
+    getToken(data) {
+        return instance
+            .get("/auth/reset", {
+                params: {email: data}
+            })
+            .then((res) => {
+                return res;
+            })
+            .catch((error) => {
+                return error.response.data.error;
+            });
     },
 };

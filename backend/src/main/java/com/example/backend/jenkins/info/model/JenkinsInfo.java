@@ -88,6 +88,14 @@ public class JenkinsInfo {
     @Schema(description = "연결된 사용자 정보 (내부 참조)", hidden = true)
     private Users user;
 
+    @Column(nullable = false, name = "connected")
+    @Schema(
+            description = "Jenkins Info의 연결테스트 통과 여부",
+            example = "false",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    private boolean connected;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @Schema(
             description = "레코드 생성 일시 (ISO-8601 형식)",

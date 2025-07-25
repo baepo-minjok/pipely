@@ -3,95 +3,107 @@ post {
         echo '🎉 빌드가 성공했습니다!'
 
         script {
+            def seconds = (int)(currentBuild.duration / 1000) % 60
+            def minutes = (int)(currentBuild.duration / 1000 / 60)
+            env.TIME_STRING = "${minutes} min ${seconds} sec"
+        }
+
+        wrap([$class: 'BuildUser']) {
+        script {
+            def user = env.BUILD_USER ?: "자동 트리거"
+
+            {{#notifications}}
+                {{#shouldNotify}}
+                    {{#isBuildSuccess}}
+                        {{#isSlack}}
+                            withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
+                            sh """
+                            curl -X POST "$WEBHOOK_URL" \
+                            -H "Content-Type: application/json" \
+                            -d '{
+                            "text": "[{{eventType}}] ${env.JOB_NAME} #${env.BUILD_NUMBER} 빌드 성공 🎉\\n실행자: ${user}\\n소요시간: ${TIME_STRING}\\n🔗 URL: ${env.BUILD_URL}"
+                            }'
+                            """
+                            }
+                        {{/isSlack}}
+                        {{^isSlack}}
+                            withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
+                            sh """
+                            curl -X POST "$WEBHOOK_URL" \
+                            -H "Content-Type: application/json" \
+                            -d '{
+                            "username": "CI/CD Bot",
+                            "avatar_url": "https://i.imgur.com/CI-CD-Bot.png",
+                            "embeds": [{
+                            "title": "BUILD_SUCCESS 🚀",
+                            "description": "**Job:** ${env.JOB_NAME} #${env.BUILD_NUMBER}\\n**실행자:** ${user}\\n**소요시간:** ${TIME_STRING}\\n**URL:** [바로가기](${env.BUILD_URL})",
+                            "color": 3066993,
+                            "footer": {
+                            "text": "Powered by Jenkins Notification System"
+                            }
+                            }]
+                            }'
+                            """
+                            }
+                        {{/isSlack}}
+                    {{/isBuildSuccess}}
+                {{/shouldNotify}}
+            {{/notifications}}
+        }
+    }
+}
+
+failure {
+    echo '❌ 빌드가 실패했습니다!'
+
+    script {
         def seconds = (int)(currentBuild.duration / 1000) % 60
         def minutes = (int)(currentBuild.duration / 1000 / 60)
         env.TIME_STRING = "${minutes} min ${seconds} sec"
-        }
-
-        {{#notifications}}
-            {{#shouldNotify}}
-                {{#isBuildSuccess}}
-                    {{#isSlack}}
-                        withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
-                        sh """
-                        curl -X POST "$WEBHOOK_URL" \
-                        -H "Content-Type: application/json" \
-                        -d '{
-                        "text": "[{{eventType}}] {{jobName}} 성공 알림입니다. (실행자: {{userName}}, 소요시간: $TIME_STRING)"
-                        }'
-                        """
-                        }
-                    {{/isSlack}}
-                    {{^isSlack}}
-                        withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
-                        sh """
-                        curl -X POST "$WEBHOOK_URL" \
-                        -H "Content-Type: application/json" \
-                        -d '{
-                        "username": "CI/CD Bot",
-                        "avatar_url": "https://i.imgur.com/CI-CD-Bot.png",
-                        "embeds": [{
-                        "title": "BUILD_SUCCESS 🚀",
-                        "description": "**Job:** {{jobName}}\\n**실행자:** {{userName}}\\n**소요시간:** $TIME_STRING",
-                        "color": 3066993,
-                        "footer": {
-                        "text": "Powered by Jenkins Notification System"
-                        }
-                        }]
-                        }'
-                        """
-                        }
-                    {{/isSlack}}
-                {{/isBuildSuccess}}
-            {{/shouldNotify}}
-        {{/notifications}}
     }
 
-    failure {
-        echo '❌ 빌드가 실패했습니다!'
+    wrap([$class: 'BuildUser']) {
+            script {
+                def user = env.BUILD_USER ?: "자동 트리거"
 
-        script {
-        def seconds = (int)(currentBuild.duration / 1000) % 60
-        def minutes = (int)(currentBuild.duration / 1000 / 60)
-        env.TIME_STRING = "${minutes} min ${seconds} sec"
+                {{#notifications}}
+                    {{#shouldNotify}}
+                        {{#isBuildFail}}
+                            {{#isSlack}}
+                                withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
+                                sh """
+                                curl -X POST "$WEBHOOK_URL" \
+                                -H "Content-Type: application/json" \
+                                -d '{
+                                "text": "[{{eventType}}] ${env.JOB_NAME} #${env.BUILD_NUMBER} 빌드 실패 ❌\\n실행자: ${user}\\n소요시간: ${TIME_STRING}\\n🔗 URL: ${env.BUILD_URL}"
+                                }'
+                                """
+                                }
+                            {{/isSlack}}
+                            {{^isSlack}}
+                                withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
+                                sh """
+                                curl -X POST "$WEBHOOK_URL" \
+                                -H "Content-Type: application/json" \
+                                -d '{
+                                "username": "CI/CD Bot",
+                                "avatar_url": "https://i.imgur.com/CI-CD-Bot.png",
+                                "embeds": [{
+                                "title": "BUILD_FAIL ❌",
+                                "description": "**Job:** ${env.JOB_NAME} #${env.BUILD_NUMBER}\\n**실행자:** ${user}\\n**소요시간:** ${TIME_STRING}\\n**URL:** [바로가기](${env.BUILD_URL})",
+                                "color": 15158332,
+                                "footer": {
+                                "text": "Powered by Jenkins Notification System"
+                                }
+                                }]
+                                }'
+                                """
+                                }
+                            {{/isSlack}}
+                        {{/isBuildFail}}
+                    {{/shouldNotify}}
+                {{/notifications}}
+            }
         }
-
-        {{#notifications}}
-            {{#shouldNotify}}
-                {{#isBuildFail}}
-                    {{#isSlack}}
-                        withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
-                        sh """
-                        curl -X POST "$WEBHOOK_URL" \
-                        -H "Content-Type: application/json" \
-                        -d '{
-                        "text": "[{{eventType}}] {{jobName}} 실패 알림입니다. (실행자: {{userName}}, 소요시간: $TIME_STRING)"
-                        }'
-                        """
-                        }
-                    {{/isSlack}}
-                    {{^isSlack}}
-                        withCredentials([string(credentialsId: '{{credentialId}}', variable: 'WEBHOOK_URL')]) {
-                        sh """
-                        curl -X POST "$WEBHOOK_URL" \
-                        -H "Content-Type: application/json" \
-                        -d '{
-                        "username": "CI/CD Bot",
-                        "avatar_url": "https://i.imgur.com/CI-CD-Bot.png",
-                        "embeds": [{
-                        "title": "BUILD_FAIL ❌",
-                        "description": "**Job:** {{jobName}}\\n**실행자:** {{userName}}\\n**소요시간:** $TIME_STRING",
-                        "color": 15158332,
-                        "footer": {
-                        "text": "Powered by Jenkins Notification System"
-                        }
-                        }]
-                        }'
-                        """
-                        }
-                    {{/isSlack}}
-                {{/isBuildFail}}
-            {{/shouldNotify}}
-        {{/notifications}}
     }
 }

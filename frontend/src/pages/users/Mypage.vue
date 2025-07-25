@@ -2,6 +2,7 @@
 import {useRouter} from 'vue-router';
 import {onMounted, ref} from 'vue';
 import {useUserStore} from "@/stores/useUserStore.js"
+import CheckPasswordModal from "@/pages/users/CheckPasswordModal.vue";
 
 const userStore = useUserStore();
 
@@ -10,10 +11,21 @@ const router = useRouter();
 const email = ref("");
 const name = ref("");
 const isVerified = ref(true);
-
+const modalTarget = ref("reset");
 const isLoading = ref(false);
 
 const infoList = ref([]);
+
+const isPasswordModalOpen = ref(false);
+
+const goToChangePassword = () => {
+  modalTarget.value = "reset";
+  isPasswordModalOpen.value = true;
+};
+
+const closePasswordModal = () => {
+  isPasswordModalOpen.value = false;
+};
 
 const fetchUser = () => {
   const userInfo = userStore.getUserInfo();
@@ -22,6 +34,19 @@ const fetchUser = () => {
   name.value = userInfo.name;
   isVerified.value = userInfo.isVerified;
   infoList.value = userInfo.infoList;
+}
+
+const withdraw = () => {
+  const isOk = confirm(
+      "정말로 서비스를 탈퇴하시겠습니까?\n\n" +
+      "탈퇴 시 계정 및 모든 데이터가 삭제되며,\n" +
+      "10일 이내에는 다시 로그인하면 복구가 가능합니다."
+  );
+  if (!isOk) {
+    return;
+  }
+  modalTarget.value = "withdraw";
+  isPasswordModalOpen.value = true;
 }
 
 // 로딩될때 유저 정보 세팅
@@ -63,7 +88,7 @@ onMounted(async () => {
         <div class="item_box">
           <p class="item_label">비밀번호</p>
           <p>••••••••••••</p>
-          <button class="info_btn">비밀번호 변경</button>
+          <button class="info_btn" @click="goToChangePassword">비밀번호 변경</button>
         </div>
       </div>
     </div>
@@ -81,17 +106,45 @@ onMounted(async () => {
         />
       </div>
       <div class="cicd_card_list">
-        <div v-for="info in infoList" class="cicd_card" @click="router.push(`/mypage/cicd/${infod.id}`)">
+        <div v-for="info in infoList" class="cicd_card" @click="router.push(`/mypage/cicd/${info.id}`)">
           <p>{{ info.name }}</p>
+
           <p class="description">{{ info.description }}</p>
+
           <p>{{ info.uri }}</p>
+
+          <div class="connection_status">
+            <div :class="['status_dot', { connected: info.connected }]"></div>
+            <span :class="['status_text', { connected: info.connected }]">
+                {{ info.connected ? '연결됨' : '연결 실패' }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
+    <div class="withdraw_container">
+      <button class="withdraw" @click="withdraw">회원탈퇴</button>
+    </div>
   </div>
+  <CheckPasswordModal v-if="isPasswordModalOpen"
+                      :destination="modalTarget" @close="closePasswordModal"/>
 </template>
 
 <style scoped>
+
+.withdraw_container {
+  display: flex;
+  align-items: center;
+  justify-content: right;
+  margin-top: 50px;
+}
+
+.withdraw {
+  all: unset;
+  cursor: pointer;
+  color: #2e2e2e;
+}
+
 .container {
   width: 60%;
   margin: 70px auto;
@@ -187,7 +240,18 @@ onMounted(async () => {
   cursor: pointer;
   transition: scale 0.3s;
 
+  & > p:first-child {
+    font-size: 19px;
+    font-weight: bold;
+  }
+
   & > p:nth-last-child(2) {
+    margin-top: 10px;
+    color: var(--gray500);
+    font-size: 14px;
+  }
+
+  & > p:nth-last-child(3) {
     margin-top: 17px;
     color: var(--gray500);
     font-size: 14px;
@@ -198,15 +262,37 @@ onMounted(async () => {
   }
 }
 
-.cicd_card > p:last-child {
-  margin-top: 17px;
-  color: var(--gray500);
-  font-size: 14px;
-}
-
 .description {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.status_text {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.status_text.connected {
+  color: #059669;
+}
+
+.status_dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.status_dot.connected {
+  background: #10b981;
+}
+
+.connection_status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-top: 10px;
 }
 </style>

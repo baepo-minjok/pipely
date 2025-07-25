@@ -1,5 +1,6 @@
 package com.example.backend.jenkins.job.controller;
 
+import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -42,6 +44,7 @@ public class ScriptController {
     )
     @PostMapping("/generate")
     public ResponseEntity<BaseResponse<ResponseDto.LightScriptDto>> generateScript(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody RequestDto.ScriptBaseDto requestDto
     ) {
         return ResponseEntity.ok()

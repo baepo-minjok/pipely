@@ -11,23 +11,29 @@ export const useUserStore = defineStore(
             name: "",
             email: "",
             isVerified: false,
+            connected: false,
             infoList: [],
         });
 
         async function fetchUserInfo() {
-            const response = await userApi.getUserDetail();
+            try {
+                const response = await userApi.getUserDetail();
 
-            if (response.status === 200) {
-                const data = response.data.data;
+                if (response.status === 200) {
+                    const data = response.data.data;
 
-                userInfo.name = data.name;
-                userInfo.email = data.email;
-                userInfo.isVerified = data.verified;
-                userInfo.infoList = data.infoDtoList;
+                    userInfo.name = data.name;
+                    userInfo.email = data.email;
+                    userInfo.isVerified = data.verified;
+                    userInfo.infoList = data.infoDtoList;
+                    userInfo.connected = data.connected;
 
-                isFetched.value = true;
-            } else {
+                    isFetched.value = true;
+                } else {
 
+                    isFetched.value = false;
+                }
+            } catch (error) {
                 isFetched.value = false;
             }
         }

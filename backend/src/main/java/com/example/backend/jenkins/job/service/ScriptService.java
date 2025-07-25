@@ -8,11 +8,14 @@ import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.ScriptRepository;
+import com.example.backend.jenkins.notification.model.JobNotification;
+import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -23,6 +26,7 @@ public class ScriptService {
     private final ScriptEditUtil scriptEditUtil;
     private final ScriptRepository scriptRepository;
     private final JenkinsInfoService jenkinsInfoService;
+    private final JobNotificationService jobNotificationService;
 
     public Script getScriptById(UUID scriptId) {
 
@@ -51,14 +55,28 @@ public class ScriptService {
             newScript = Script.toEntity(requestDto, injectedScript);
             newScript.setId(scriptId);
 
-            newScript = scriptRepository.save(newScript);
+            //newScript = scriptRepository.save(newScript);
+
+            if (requestDto.getNotificationList() != null) {
+                JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
+                jobNotificationService.syncJobNotifications(requestDto.getNotificationList(), info, newScript);
+            }
         } else {
             script = configService.createScript(configService.buildScriptContext(requestDto));
 
             String injectedScript = scriptEditUtil.injectBooleanParams(script);
-            //newScript = Script.toEntity(requestDto, injectedScript);
-            newScript = scriptRepository.save(Script.toEntity(requestDto, injectedScript));
+            newScript = Script.toEntity(requestDto, injectedScript);
+            newScript = scriptRepository.save(newScript);
+
+            if (requestDto.getNotificationList() != null) {
+                JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
+                jobNotificationService.createJobNotifications(requestDto.getNotificationList(), info, newScript.getId());
+            }
         }
+
+        List<JobNotification> enabledNotifications = jobNotificationService.getEnabledNotifications(newScript);
+
+        newScript = jobNotificationService.updateScriptWithJobNotifications(newScript, enabledNotifications);
 
         return ResponseDto.entityToLightScriptDto(newScript);
     }
