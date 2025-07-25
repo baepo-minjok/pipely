@@ -10,7 +10,6 @@ import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
-import com.example.backend.jenkins.notification.model.JobNotification;
 import com.example.backend.jenkins.notification.repository.JobNotificationRepository;
 import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.service.HttpClientService;
@@ -83,7 +82,6 @@ class PipelineServiceTest {
                 .description("some desc")
                 .trigger(true)
                 .schedule("매일 오전 9시")
-                .notificationList(null)
                 .build();
 
         JenkinsInfo info = new JenkinsInfo();
@@ -114,7 +112,7 @@ class PipelineServiceTest {
         );
 
         // 실제 서비스 호출
-        pipelineService.createJob(dto, "tester");
+        pipelineService.createJob(dto);
 
         // 예상되는 동작이 일어났는지 검증
         verify(configService).createConfig(any());
@@ -126,78 +124,6 @@ class PipelineServiceTest {
     }
 
 
-
-    @Test
-    @DisplayName("[알림 시나리오] shouldNotify=true 알림이 존재할 경우 Script 수정 로직 호출 확인")
-    void createJob_withNotifications_shouldUpdateScript() {
-        // given
-        UUID infoId = UUID.randomUUID();
-        UUID scriptId = UUID.randomUUID();
-        UUID pipelineId = UUID.randomUUID();
-
-        // 알림 생성용 DTO (shouldNotify = true)
-        RequestDto.createCredential notificationDto = new RequestDto.createCredential();
-        notificationDto.setName("Build Success 알림");
-        notificationDto.setShouldNotify(true);
-        notificationDto.setWebhookUrl("https://discord.com/api/webhooks/...");
-        notificationDto.setChannel(JobNotification.Channel.DISCORD);
-        notificationDto.setEventType(JobNotification.EventType.BUILD_SUCCESS);
-
-        List<RequestDto.createCredential> notificationList = List.of(notificationDto);
-
-        RequestDto.CreateDto dto = RequestDto.CreateDto.builder()
-                .infoId(infoId)
-                .scriptId(scriptId)
-                .name("job-with-noti")
-                .description("desc")
-                .trigger(true)
-                .schedule("매일 오전 10시")
-                .notificationList(notificationList)
-                .build();
-
-        JenkinsInfo info = new JenkinsInfo();
-        Script script = new Script();
-        Pipeline pipeline = Pipeline.builder()
-                .id(pipelineId)
-                .jenkinsInfo(info)
-                .name(dto.getName())
-                .isDeleted(false)
-                .versionList(new ArrayList<>())
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        // 알림 도메인 객체 (shouldNotify = true)
-        JobNotification notiEntity = JobNotification.builder()
-                .shouldNotify(true)
-                .build();
-        List<JobNotification> savedNotifications = List.of(notiEntity);
-
-
-        when(jenkinsInfoService.getJenkinsInfo(infoId)).thenReturn(info);
-        when(scriptService.getScriptById(scriptId)).thenReturn(script);
-        when(jobNotificationService.createJobNotifications(any(), eq(info), eq(scriptId), any()))
-                .thenReturn(savedNotifications);
-        when(jobNotificationService.updateScriptWithJobNotifications(any(), anyString(), any(), any()))
-                .thenReturn(script);
-        when(configService.buildConfigContext(any(), any())).thenReturn(Map.of());
-        when(configService.createConfig(any())).thenReturn("<xml/>");
-        when(pipelineRepository.save(any())).thenReturn(pipeline);
-
-        PipelineVersion version = PipelineVersion.builder()
-                .id(UUID.randomUUID())
-                .pipeline(pipeline)
-                .name("Initial Version")
-                .config("<xml/>")
-                .build();
-        when(pipelineVersionRepository.save(any())).thenReturn(version);
-
-
-        pipelineService.createJob(dto, "tester");
-
-
-        verify(jobNotificationService).updateScriptWithJobNotifications(
-                any(), eq("job-with-noti"), any(), eq("tester"));
-    }
 
     @Test
     @DisplayName("[예외] 중복된 Job 이름이 존재할 경우 CustomException 발생")
@@ -213,7 +139,6 @@ class PipelineServiceTest {
                 .description("desc")
                 .trigger(true)
                 .schedule("매일 오전 9시")
-                .notificationList(null)
                 .build();
 
 
@@ -236,7 +161,7 @@ class PipelineServiceTest {
                 .thenReturn(Optional.of(pipeline));
 
         assertThrows(CustomException.class, () -> {
-            pipelineService.createJob(dto, "tester");
+            pipelineService.createJob(dto);
         });
 
         verify(pipelineRepository, never()).save(any());
@@ -304,7 +229,6 @@ class PipelineServiceTest {
                 .trigger(true)
                 .schedule("매일 오전 10시")
                 .scriptId(scriptId)
-                .notificationList(null)
                 .build();
 
 
@@ -314,11 +238,10 @@ class PipelineServiceTest {
         when(pipelineVersionRepository.findById(versionId)).thenReturn(Optional.of(version));
         when(configService.buildConfigContext(any(), any())).thenReturn(Map.of());
         when(configService.createConfig(any())).thenReturn("<xml/>");
-        when(jobNotificationService.getEnabledNotifications(pipelineId)).thenReturn(List.of());
         when(pipelineRepository.save(any())).thenReturn(pipeline);
 
 
-        pipelineService.updateJob(dto, "tester");
+        pipelineService.updateJob(dto);
 
         verify(httpClientService).callJenkins(
                 eq(info.getUri() + "/job/" + jobName + "/config.xml"),
@@ -385,10 +308,9 @@ class PipelineServiceTest {
         when(scriptService.getScriptById(scriptId)).thenReturn(script);
         when(configService.buildConfigContext(dto, script)).thenReturn(Map.of());
         when(configService.createConfig(any())).thenReturn("<xml/>");
-        when(jobNotificationService.getEnabledNotifications(pipelineId)).thenReturn(List.of());
 
 
-        pipelineService.updateJob(dto, "test-user");
+        pipelineService.updateJob(dto);
 
 
         verify(httpClientService).deleteJobOnJenkins(
