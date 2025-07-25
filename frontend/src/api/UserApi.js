@@ -68,6 +68,17 @@ export const userApi = {
             })
     },
 
+    // 탈퇴한 회원 재활성화
+    reactivation(data) {
+        return instance.post("/auth/user/reactivation", data)
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
+    },
+
     // 이메일 중복확인
     checkDuplicate(email) {
         return instance

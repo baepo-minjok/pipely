@@ -3,6 +3,7 @@ import {ref} from "vue";
 import {userApi} from "@/api/UserApi.js";
 import {useRouter} from "vue-router";
 import {useUserStore} from "@/stores/useUserStore.js";
+import {emailApi} from "@/api/EmailApi.js";
 
 const router = useRouter();
 
@@ -18,7 +19,54 @@ function isValidEmail(email) {
   return /^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/.test(email);
 }
 
+const reset = () => {
+  emailError.value = false;
+  passwordError.value = false;
+  errorMessage.value = "";
+}
+
+const reactivation = async (data) => {
+
+  email.value = "";
+  password.value = "";
+  reset();
+
+  const isOk = confirm("탈퇴한 유저입니다.\n 계정을 복구하시겠습니까?");
+
+  if (!isOk) {
+    return;
+  }
+
+  const response = await userApi.reactivation(data);
+  if (response) {
+    alert("계정이 복구되었습니다🎉!\n 다시 로그인해주세요!");
+  } else {
+    alert("오류가 발생했습니다.\n 다시 시도해주세요.");
+  }
+}
+
+const dormant = async (email) => {
+
+  email.value = "";
+  password.value = "";
+  reset();
+
+  const isOk = confirm("휴면 처리된 유저입니다.\n 계정을 복구하시겠습니까?");
+
+  if (!isOk) {
+    return;
+  }
+  const res = await emailApi.sendDormantEmail(email);
+  if (res) {
+    alert("재활성화 이메일이 발송되었습니다!");
+  } else {
+    alert("오류가 발생했습니다.\n 다시 시도해주세요");
+  }
+}
+
 const login = async () => {
+  reset();
+
   let valid = true;
 
   // 이메일 입력 여부 검사
@@ -56,7 +104,7 @@ const login = async () => {
 
   const response = await userApi.login(loginRequest);
   try {
-    if (response.status === 200) { // 로그인 성공
+    if (response.status === 200) { // 로그인 성공;
 
       await userStore.fetchUserInfo();
 
@@ -64,7 +112,13 @@ const login = async () => {
       router.push({name: "Main"});
 
     } else if (response.status === 401) {
-      errorMessage.value = response.message;
+      if (response.code === "USER_WITHDRAWN_401") {
+        await reactivation(loginRequest);
+      } else if (response.code === "USER_DORMANT_401") {
+        await dormant(loginRequest.email);
+      } else {
+        errorMessage.value = response.message;
+      }
     } else {
       errorMessage.value = "로그인에 실패했습니다.";
     }
