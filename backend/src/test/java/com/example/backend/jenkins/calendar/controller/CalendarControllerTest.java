@@ -7,22 +7,16 @@ import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.jenkins.calendar.service.CalendarService;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.oauth2.client.OAuth2ClientAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -40,8 +34,6 @@ class CalendarControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-    @Autowired
-    private ObjectMapper objectMapper;
     @MockitoBean
     private CalendarService calendarService;
     @MockitoBean
