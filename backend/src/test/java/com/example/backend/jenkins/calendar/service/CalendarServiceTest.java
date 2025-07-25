@@ -3,11 +3,11 @@ package com.example.backend.jenkins.calendar.service;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.service.HttpClientService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.springframework.http.HttpMethod;
 
 import java.util.*;
@@ -75,6 +75,35 @@ class CalendarServiceTest {
 
         assertThat(buildEvent.getType()).isEqualTo("BUILD");
         assertThat(errorEvent.getType()).isEqualTo("ERROR");
+    }
+
+    @Test
+    void getSummaryByDate_통계테스트() {
+        // given
+        when(jenkinsInfoRepository.findById(infoId)).thenReturn(Optional.of(mockInfo));
+        when(httpClientService.exchange(
+                contains("/api/json?tree=jobs[name]"),
+                eq(HttpMethod.GET),
+                any(),
+                eq(Map.class)
+        )).thenReturn(Map.of("jobs", List.of(Map.of("name", "pipeline-test"))));
+
+        when(httpClientService.exchange(
+                contains("/job/pipeline-test/api/json?tree=builds[number,timestamp,result]"),
+                eq(HttpMethod.GET),
+                any(),
+                eq(Map.class)
+        )).thenReturn(Map.of("builds", List.of(
+                Map.of("number", 42, "timestamp", 1753305600000L, "result", "FAILURE"),
+                Map.of("number", 43, "timestamp", 1753305600000L, "result", "SUCCESS")
+        )));
+
+        // when
+        CalendarSummaryRes summary = calendarService.getCalendarSummaryByDate(mockUser, infoId, "2025-07-24");
+
+        // then
+        assertThat(summary.getBuildCount()).isEqualTo(1);
+        assertThat(summary.getErrorCount()).isEqualTo(1);
     }
 
 }
