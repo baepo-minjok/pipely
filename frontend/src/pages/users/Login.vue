@@ -18,7 +18,15 @@ function isValidEmail(email) {
   return /^[\w-.]+@([\w-]+\.)+[\w-]{2,}$/.test(email);
 }
 
+const reset = () => {
+  emailError.value = false;
+  passwordError.value = false;
+  errorMessage.value = "";
+}
+
 const login = async () => {
+  reset();
+
   let valid = true;
 
   // 이메일 입력 여부 검사
@@ -54,9 +62,28 @@ const login = async () => {
     password: password.value,
   };
 
+  const reactivation = async () => {
+
+    const isOk = confirm("탈퇴한 유저입니다.\n 계정을 복구하시겠습니까?");
+
+    if (!isOk) {
+      return;
+    }
+
+    const response = await userApi.reactivation(loginRequest);
+    if (response) {
+      alert("계정이 복구되었습니다🎉!\n 다시 로그인해주세요!");
+    } else {
+      alert("오류가 발생했습니다.\n 다시 시도해주세요.");
+    }
+    email.value = "";
+    password.value = "";
+    reset();
+  }
+
   const response = await userApi.login(loginRequest);
   try {
-    if (response.status === 200) { // 로그인 성공
+    if (response.status === 200) { // 로그인 성공;
 
       await userStore.fetchUserInfo();
 
@@ -64,7 +91,11 @@ const login = async () => {
       router.push({name: "Main"});
 
     } else if (response.status === 401) {
-      errorMessage.value = response.message;
+      if (response.code === "USER_WITHDRAWN_401") {
+        await reactivation();
+      } else {
+        errorMessage.value = response.message;
+      }
     } else {
       errorMessage.value = "로그인에 실패했습니다.";
     }
