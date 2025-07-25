@@ -32,7 +32,7 @@ public class ResponseDto {
                 .build();
     }
 
-    public static DetailJobDto entityToDetailJobDto(Pipeline pipeline, List<JobNotification> notifications) {
+    public static DetailJobDto entityToDetailJobDto(Pipeline pipeline) {
 
         UUID latestVersionId = pipeline.getLatestVersionId();
 
@@ -56,11 +56,6 @@ public class ResponseDto {
                 .isBuildSuccess(pipeline.getIsBuildSuccess())
                 .schedule(latestVersion.getSchedule())
                 .pipelineVersionList(toListOfPipelineVersionDtos(pipeline.getVersionList()))
-                .notificationList(
-                        notifications.stream()
-                                .map(ResponseDto.JobNotificationListResponseDto::fromEntity)
-                                .toList()
-                )
                 .build();
     }
 

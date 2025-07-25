@@ -9,8 +9,6 @@ import java.util.UUID;
 
 public interface JobNotificationRepository extends JpaRepository<JobNotification, String> {
 
-    List<JobNotification> findByPipelineId(UUID pipelineId);
-
     List<JobNotification> findByScriptId(UUID scriptId);
 
     List<JobNotification> findByScriptIdAndShouldNotifyTrue(UUID id);

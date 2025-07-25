@@ -228,6 +228,8 @@ public class JobNotificationService {
         return scriptRepository.save(script);
     }
 
+
+
     public List<JobNotification> getEnabledNotifications(Script script) {
         return notificationRepository.findByScriptIdAndShouldNotifyTrue(script.getId());
     }
