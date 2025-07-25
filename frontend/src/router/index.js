@@ -14,7 +14,7 @@ import OAuth from '../pages/users/OAuthSignup.vue';
 import VerifyEmail from '../pages/users/VerifyEmail.vue';
 import Chat from '../pages/chat/Chat.vue';
 import ResetPassword from '../pages/users/ResetPassword.vue';
-import CheckVerification from "@/pages/users/CheckVerification.vue";
+import Withdraw from '../pages/users/Withdraw.vue';
 
 const routes = [
     {path: '/', component: Main, name: 'Main'},
@@ -24,7 +24,7 @@ const routes = [
     {path: '/user/email/verify', component: VerifyEmail},
     {path: '/user/find/password', component: FindPassword},
     {path: '/user/reset/password', component: ResetPassword, name: 'ResetPassword'},
-    {path: '/user/check', component: CheckVerification, name: 'CheckVerification'},
+    {path: '/user/withdraw', component: Withdraw, name: 'Withdraw'},
     {path: '/mypage', component: Mypage, name: 'Mypage', meta: {requiresAuth: true}},
     {path: '/mypage/cicd/create', component: CreateCicdInfo, meta: {requiresAuth: true}},
     {path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: {requiresAuth: true}},

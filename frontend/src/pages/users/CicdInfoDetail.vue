@@ -87,19 +87,23 @@ async function jenkinsURITest() {
   } catch (e) {
     data.connected = false;
   } finally {
-    await fetchJenkinsInfo();
+    await fetchApi();
     data.apiToken = "";
   }
+}
+
+const fetchApi = async () => {
+  const response = await jenkinsInfoApi.getDetail(jenkinsInfoId);
+  const responseData = response.data.data;
+  Object.assign(data, responseData);
+  Object.assign(originalData, data);
+  data.apiToken = "";
 }
 
 const fetchJenkinsInfo = async () => {
   isLoading.value = true; // 로딩 시작
   try {
-    const response = await jenkinsInfoApi.getDetail(jenkinsInfoId);
-    const responseData = response.data.data;
-    Object.assign(data, responseData);
-    Object.assign(originalData, data);
-    data.apiToken = "";
+    await fetchApi();
   } catch (e) {
     router.back();
   } finally {
