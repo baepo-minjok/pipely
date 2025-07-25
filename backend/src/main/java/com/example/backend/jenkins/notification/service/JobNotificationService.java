@@ -5,7 +5,6 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
-import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.ScriptRepository;
 import com.example.backend.jenkins.notification.model.JobNotification;
 import com.example.backend.jenkins.notification.repository.JobNotificationRepository;
@@ -37,12 +36,12 @@ public class JobNotificationService {
 
     @Transactional
     public List<JobNotification> createJobNotifications(List<RequestDto.NotificationDto> dtoList, JenkinsInfo info, UUID scriptId) {
+        Script script = scriptRepository.findById(scriptId)
+                .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND));
+
         List<JobNotification> savedNotifications = new ArrayList<>();
 
         for (RequestDto.NotificationDto dto : dtoList) {
-            Script script = scriptRepository.findById(scriptId)
-                    .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND));
-
             String credentialName = generateCredentialName(script.getId(), dto.getChannel(), dto.getEventType());
 
             JobNotification notification = dto.toEntity(credentialName, script);
@@ -219,13 +218,6 @@ public class JobNotificationService {
         HttpEntity<String> request = new HttpEntity<>("Submit=OK", headers);
 
         httpClientService.exchange(url, HttpMethod.POST, request, String.class);
-    }
-
-    public Script updateScriptWithJobNotifications(Script script, List<JobNotification> notifications) {
-        String newPostBlock = createNotificationScript(notifications);
-        String updatedScript = replacePostBlock(script.getScript(), newPostBlock);
-        script.setScript(updatedScript);
-        return scriptRepository.save(script);
     }
 
     public List<JobNotification> getEnabledNotifications(Script script) {
