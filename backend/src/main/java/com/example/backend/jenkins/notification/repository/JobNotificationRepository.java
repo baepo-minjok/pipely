@@ -12,6 +12,4 @@ public interface JobNotificationRepository extends JpaRepository<JobNotification
     List<JobNotification> findByScriptId(UUID scriptId);
 
     List<JobNotification> findByScriptIdAndShouldNotifyTrue(UUID id);
-
-    void deleteAllByScriptId(UUID scriptId);
 }

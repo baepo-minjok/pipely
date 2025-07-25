@@ -43,6 +43,12 @@ public class ResponseDto {
 
         Script script = latestVersion.getScript();
 
+        List<JobNotificationListResponseDto> notificationDtos = (script != null && script.getJobNotificationList() != null)
+                ? script.getJobNotificationList().stream()
+                .map(JobNotificationListResponseDto::fromEntity)
+                .toList()
+                : List.of();
+
         return DetailJobDto.builder()
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
@@ -56,6 +62,7 @@ public class ResponseDto {
                 .isBuildSuccess(pipeline.getIsBuildSuccess())
                 .schedule(latestVersion.getSchedule())
                 .pipelineVersionList(toListOfPipelineVersionDtos(pipeline.getVersionList()))
+                .notificationList(notificationDtos)
                 .build();
     }
 
@@ -167,7 +174,8 @@ public class ResponseDto {
 
         @Schema(description = "파이프라인의 전체 버전 기록 리스트")
         private List<PipelineVersionDto> pipelineVersionList;
-
+        
+        @Schema(description = "현재 Job의 알림 설정 목록")
         private List<JobNotificationListResponseDto> notificationList;
     }
 

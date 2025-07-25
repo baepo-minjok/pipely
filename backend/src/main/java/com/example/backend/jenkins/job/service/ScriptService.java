@@ -28,7 +28,6 @@ public class ScriptService {
     private final ScriptRepository scriptRepository;
     private final JenkinsInfoService jenkinsInfoService;
     private final JobNotificationService jobNotificationService;
-    private final JobNotificationRepository jobNotificationRepository;
 
     public Script getScriptById(UUID scriptId) {
 
@@ -65,7 +64,6 @@ public class ScriptService {
 
     @Transactional
     public void deleteScript(UUID scriptId) {
-        jobNotificationService.deleteAllByScriptId(scriptId);
         scriptRepository.deleteById(scriptId);
     }
 

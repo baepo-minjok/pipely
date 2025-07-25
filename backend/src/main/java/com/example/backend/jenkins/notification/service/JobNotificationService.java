@@ -45,7 +45,7 @@ public class JobNotificationService {
 
             String credentialName = generateCredentialName(script.getId(), dto.getChannel(), dto.getEventType());
 
-            JobNotification notification = dto.toEntity(credentialName, scriptId);
+            JobNotification notification = dto.toEntity(credentialName, script);
             JobNotification saved = notificationRepository.save(notification);
             savedNotifications.add(saved);
 
@@ -80,7 +80,7 @@ public class JobNotificationService {
 
                 createCredential(info, newCredentialName, dto.getWebhookUrl());
 
-                JobNotification created = dto.toEntity(newCredentialName, scriptId);
+                JobNotification created = dto.toEntity(newCredentialName, script);
                 result.add(notificationRepository.save(created));
             } else {
                 boolean changed = false;
@@ -228,14 +228,7 @@ public class JobNotificationService {
         return scriptRepository.save(script);
     }
 
-
-
     public List<JobNotification> getEnabledNotifications(Script script) {
         return notificationRepository.findByScriptIdAndShouldNotifyTrue(script.getId());
-    }
-
-    @Transactional
-    public void deleteAllByScriptId(UUID scriptId) {
-        notificationRepository.deleteAllByScriptId(scriptId);
     }
 }
