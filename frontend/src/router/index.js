@@ -1,6 +1,6 @@
-import {createRouter, createWebHistory} from 'vue-router';
-import {useUserStore} from "@/stores/useUserStore.js"
-import {userApi} from "@/api/UserApi.js";
+import { createRouter, createWebHistory } from 'vue-router';
+import { useUserStore } from '@/stores/useUserStore.js';
+import { userApi } from '@/api/UserApi.js';
 import Login from '../pages/users/Login.vue';
 import Signup from '../pages/users/Signup.vue';
 import FindPassword from '../pages/users/FindPassword.vue';
@@ -17,26 +17,26 @@ import ResetPassword from '../pages/users/ResetPassword.vue';
 import CheckVerification from "@/pages/users/CheckVerification.vue";
 
 const routes = [
-    {path: '/', component: Main, name: 'Main'},
-    {path: '/user/login', component: Login, name: 'Login'},
-    {path: '/user/oAuth', component: OAuth, name: 'OAuth'},
-    {path: '/user/signup', component: Signup, name: 'Signup'},
-    {path: '/user/email/verify', component: VerifyEmail},
-    {path: '/user/find/password', component: FindPassword},
-    {path: '/user/reset/password', component: ResetPassword, name: 'ResetPassword'},
-    {path: '/user/check', component: CheckVerification, name: 'CheckVerification'},
-    {path: '/mypage', component: Mypage, name: 'Mypage', meta: {requiresAuth: true}},
-    {path: '/mypage/cicd/create', component: CreateCicdInfo, meta: {requiresAuth: true}},
-    {path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: {requiresAuth: true}},
-    {path: '/job', component: JobList, meta: {requiresAuth: true}},
-    {path: '/job/create', component: CreateJob, meta: {requiresAuth: true}},
-    {path: '/ai/chat', component: Chat},
-    {path: '/:catchAll(.*)', redirect: '/'},
+  { path: '/', component: Main, name: 'Main' },
+  { path: '/user/login', component: Login, name: 'Login' },
+  { path: '/user/oAuth', component: OAuth, name: 'OAuth' },
+  { path: '/user/signup', component: Signup, name: 'Signup' },
+  { path: '/user/email/verify', component: VerifyEmail },
+  { path: '/user/find/password', component: FindPassword, meta: { requiresAuth: true } },
+  { path: '/user/reset/password', component: ResetPassword, name: 'ResetPassword' },
+  { path: '/user/check', component: CheckVerification, name: 'CheckVerification' },
+  { path: '/mypage', component: Mypage, name: 'Mypage', meta: { requiresAuth: true } },
+  { path: '/mypage/cicd/create', component: CreateCicdInfo, meta: { requiresAuth: true } },
+  { path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: { requiresAuth: true } },
+  { path: '/job', component: JobList, name: 'JobList', meta: { requiresAuth: true } },
+  { path: '/job/create', component: CreateJob, name: 'CreateJob', meta: { requiresAuth: true } },
+  { path: '/ai/chat', component: Chat},
+  { path: '/:catchAll(.*)', redirect: '/' },
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes,
+  history: createWebHistory(),
+  routes,
 });
 
 router.beforeEach(async (to, from, next) => {
@@ -64,6 +64,5 @@ router.beforeEach(async (to, from, next) => {
         next();
     }
 });
-
 
 export default router;

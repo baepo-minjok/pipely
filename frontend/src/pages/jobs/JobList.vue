@@ -1,25 +1,30 @@
 <script setup>
-import {onMounted, ref, watch} from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
 import {useRouter} from 'vue-router';
 
 import {useJobStore} from '../../stores/useJobStore.js';
 
-const jobStore = useJobStore()
+const jobStore = useJobStore();
+const router = useRouter();
+
+const handleCreateClick = () => {
+  router.push({
+    name: 'CreateJob',
+    query: { id: selected.value.id, jenkinsName: selected.value.name, jenkinsUri: selected.value.uri },
+  });
+};
 
 onMounted(() => {
-  jobStore.getJenkinsInfo()
-
+  jobStore.getJenkinsInfo();
 });
 const selectedJenkins = ref('');
 
 watch(selectedJenkins, (id) => {
-  if (id) jobStore.fetchJobList(id)
+  if (id) jobStore.fetchJobList(id);
+});
 
-})
-
-const router = useRouter();
-
+const selected = computed(() => jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value));
 </script>
 
 <template>
@@ -29,11 +34,10 @@ const router = useRouter();
       <button v-if="selectedJenkins" class="create_job_btn" @click="handleCreateClick">+ 새 Job 생성</button>
     </div>
 
-
-    <div class="jenkins-select-box" style="margin-bottom: 1rem;">
+    <div class="jenkins_select_box" style="margin-bottom: 1rem">
       <label for="jenkins-select">Jenkins 정보 선택:</label>
-      <select id="jenkins-select" v-model="selectedJenkins">
-        <option disabled value="">Jenkins 인스턴스 선택</option>
+      <select id="jenkins-select" v-model="selectedJenkins" :class="{ placeholder_selected: selectedJenkins === '' }">
+        <option value="" disabled>Jenkins 인스턴스 선택</option>
         <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
           {{ info.name }}
         </option>
@@ -44,9 +48,7 @@ const router = useRouter();
         <JobCard v-for="job in jobStore.jobList" :key="job.name" :job="job" @click="router.push(`/job/${job.name}`)"/>
       </template>
       <template v-else>
-        <div style="text-align: center; color: gray; margin: 30px 0;">
-          Jenkins 인스턴스를 먼저 선택하세요.
-        </div>
+        <div style="text-align: center; color: gray; margin: 30px 0">Jenkins 인스턴스를 먼저 선택하세요.</div>
       </template>
     </div>
   </div>
@@ -90,5 +92,24 @@ const router = useRouter();
   display: flex;
   flex-direction: column;
   gap: 21px;
+}
+
+.jenkins_select_box {
+  margin-top: 20px;
+}
+
+.jenkins_select_box > label {
+  margin-right: 10px;
+}
+
+.jenkins_select_box > select {
+  padding: 10px 15px;
+  border-radius: 4px;
+  border: 1px solid var(--gray300);
+  outline: none;
+}
+
+.placeholder_selected {
+  color: var(--gray500);
 }
 </style>
