@@ -1,11 +1,10 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
-import { useJenkinsStore } from "@/stores/useJenkinsStore.js";
-import { useRoute ,useRouter } from "vue-router";
-const router = useRouter();
+import { useRoute, useRouter } from "vue-router";
+import { jenkinsInfoApi } from "@/api/jenkinsInfoApi.js";
 
 const route = useRoute();
-const jenkinsStore = useJenkinsStore();
+const router = useRouter();
 
 const isEdit = ref(false);
 const jenkinsInfoId = route.params.id;
@@ -19,12 +18,19 @@ const data = reactive({
   uri: ''
 });
 
+
+
+
 const originalData = reactive({});
 
 onMounted(async () => {
-  await jenkinsStore.getJenkinInfoDetail(jenkinsInfoId);
-  Object.assign(data, jenkinsStore.jenkinsInfoDetail);
-  Object.assign(originalData, jenkinsStore.jenkinsInfoDetail);
+  try {
+    const result = await jenkinsInfoApi.getDetail(jenkinsInfoId);
+    Object.assign(data, result);
+    Object.assign(originalData, result);
+  } catch (e) {
+    console.error("불러오기 실패:", e);
+  }
 });
 
 const enabledEdit = () => {
@@ -37,26 +43,49 @@ const disableEdit = () => {
 };
 
 async function saveEdit() {
-  await jenkinsStore.updateJenkinsInfoDetail(data);
-  Object.assign(originalData, data);
-  isEdit.value = false;
+  try {
+    const payload = {
+      infoId: data.id,
+      apiToken: data.apiToken,
+      description: data.description,
+      jenkinsId: data.jenkinsId,
+      name: data.name,
+      uri: data.uri,
+    };
+    await jenkinsInfoApi.update(payload);
+    Object.assign(originalData, data);
+    isEdit.value = false;
+  } catch (e) {
+    console.error("저장 중 오류:", e);
+  }
 }
 
 async function deleteInfo() {
   try {
-    await jenkinsStore.deleteJenkinsInfoDetail(jenkinsInfoId);
+    await jenkinsInfoApi.delete(jenkinsInfoId);
     router.push('/mypage');
-    alert("삭제가 완료 되었습니다.")
+    alert("삭제가 완료 되었습니다.");
   } catch (e) {
+    alert(e.message)
     console.error('삭제 중 오류 발생:', e);
   }
 }
-async function jenkinsURITest() {
-  const result = await jenkinsStore.jenkinsURITest(data.id);
-  console.log("Jenkins URI 테스트 결과:", result);
-}
 
+async function jenkinsURITest() {
+  try {
+    const result = await jenkinsInfoApi.verify(data.id);
+    console.log("Jenkins URI 테스트 결과:", result);
+  } catch (e) {
+    alert(e.message)
+    console.error("테스트 오류:", e);
+  }
+}
 </script>
+
+
+
+
+
 <template>
   <div class="container">
     <div class="header">

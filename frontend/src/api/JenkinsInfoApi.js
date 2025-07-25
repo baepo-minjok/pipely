@@ -15,20 +15,19 @@ export const jenkinsInfoApi = {
         return instance.post("/jenkins/info", { infoId })
 
 
-            .then((res) => res.data)
+            .then((res) => res.data.data)
             .catch((error) => {
                 console.error("getDetail error:", error);
-                throw error.response?.data?.error || error;
+                throw error.response.data.error || error;
             });
     },
 
     // Jenkins Info 삭제
     delete(infoId) {
         return instance.delete(`/jenkins/info/${infoId}`)
-            .then((res) => res.data)
+            .then((res) => res)
             .catch((error) => {
-                console.error("delete error:", error);
-                throw error.response?.data?.error || error;
+                throw error.response.data.error || error;
             });
     },
 
@@ -36,22 +35,22 @@ export const jenkinsInfoApi = {
     update(payload) {
 
 
-
+        console.log(payload)
         return instance.put("/jenkins/info", payload)
-            .then((res) => res.data)
+            .then((res) => res)
             .catch((error) => {
                 console.error("update error:", error);
-                throw error.response?.data?.error || error;
+                throw error.response.data.error || error;
             });
     },
 
     // Jenkins 연결 확인
     verify(infoId) {
         return instance.post("/jenkins/info/verification", { infoId })
-            .then((res) => res.data)
+            .then((res) => res)
             .catch((error) => {
                 console.error("verify error:", error);
-                throw error.response?.data?.error || error;
+                throw error.response.data.error || error;
             });
     },
 };

@@ -1,6 +1,6 @@
 <script setup>
 import {  toRefs } from 'vue';
-import { formatDateTime } from '../../utils/formatDateTime';
+import { formatDateTime } from '@/utils/formatDateTime.js';
 
 
 const props = defineProps({

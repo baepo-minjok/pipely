@@ -1,9 +1,9 @@
 <script setup>
 import {onMounted, ref, watch} from 'vue';
-import JobCard from '../../components/jobs/JobCard.vue';
+import JobCard from '@/components/jobs/JobCard.vue';
 import {useRouter} from 'vue-router';
 
-import {useJobStore} from '../../stores/useJobStore.js';
+import {useJobStore} from '@/stores/useJobStore.js';
 
 const jobStore = useJobStore()
 
