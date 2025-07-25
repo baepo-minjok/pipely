@@ -1,6 +1,7 @@
 package com.example.backend.jenkins.calendar.service;
 
 import com.example.backend.auth.user.model.Users;
+import com.example.backend.exception.CustomException;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
@@ -104,6 +105,20 @@ class CalendarServiceTest {
         // then
         assertThat(summary.getBuildCount()).isEqualTo(1);
         assertThat(summary.getErrorCount()).isEqualTo(1);
+    }
+
+    @Test
+    void getEventsByDate_권한없을때_예외() {
+        // given
+        UUID 다른유저Id = UUID.randomUUID();
+        Users 다른유저 = Users.builder().id(다른유저Id).build();
+        mockInfo.setUser(다른유저);
+
+        when(jenkinsInfoRepository.findById(infoId)).thenReturn(Optional.of(mockInfo));
+
+        // when & then
+        assertThatThrownBy(() -> calendarService.getEventsByDate(mockUser, infoId, "2025-07-24"))
+                .isInstanceOf(CustomException.class);
     }
 
 }
