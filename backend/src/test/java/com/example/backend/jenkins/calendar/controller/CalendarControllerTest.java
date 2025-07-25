@@ -6,7 +6,7 @@ import com.example.backend.config.jwt.JwtAuthenticationFilter;
 import com.example.backend.config.jwt.JwtTokenProvider;
 import com.example.backend.jenkins.calendar.service.CalendarService;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
-import com.example.backend.jenkins.error.controller.ErrorController;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -88,4 +88,33 @@ class CalendarControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].jobName").value("pipeline-test"));
     }
+
+    @Test
+    @DisplayName("요약 조회 API 응답 성공 테스트")
+    void getSummaryByDate_정상응답() throws Exception {
+        // Mocked summary data
+        CalendarSummaryRes summary = CalendarSummaryRes.builder()
+                .buildCount(3)
+                .errorCount(1)
+                .build();
+
+        // Mock service behavior
+        Mockito.when(calendarService.getCalendarSummaryByDate(Mockito.any(), Mockito.eq(infoId), Mockito.eq("2025-07-24")))
+                .thenReturn(summary);
+
+        // 인증 객체 설정
+        CustomUserDetails userDetails = new CustomUserDetails(mockUser);
+        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+        // Perform GET request
+        mockMvc.perform(get("/api/calendar/summary/by-date")
+                        .param("infoId", infoId.toString())
+                        .param("date", "2025-07-24")
+                        .with(SecurityMockMvcRequestPostProcessors.authentication(auth))
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.buildCount").value(3))
+                .andExpect(jsonPath("$.data.errorCount").value(1));
+    }
+
 }
