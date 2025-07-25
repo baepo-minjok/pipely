@@ -280,6 +280,7 @@ public class RequestDto {
         private UUID infoId;
     }
 
+    @EqualsAndHashCode(callSuper = true)
     @SuperBuilder
     @Data
     @AllArgsConstructor
