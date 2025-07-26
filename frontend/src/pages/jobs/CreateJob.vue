@@ -19,7 +19,7 @@ const jenkinsInfo = {
   uri: route.query.jenkinsUri,
   connected: route.query.connected,
 };
-const isGithubChecked = ref(false);
+
 const isDiscordChecked = ref(false);
 const isSlackChecked = ref(false);
 const openDropdown = ref(false);
@@ -82,11 +82,6 @@ const schedulePreview = computed(() => {
 
   const timeText = scheduleData.time || '시간 미설정';
   return `${repeatText} ${daysText} ${timeText}`;
-});
-
-
-const linkData = reactive({
-  githubUrl: ''
 });
 
 const notificationData = reactive({
@@ -349,7 +344,7 @@ watch(scriptText, (newVal) => {
 
           <div class="checkbox-group">
             <label class="toggle-switch">
-              <input id="webhook_check" v-model="isGithubChecked" type="checkbox"/>
+              <input id="webhook_check" v-model="jobData.trigger" type="checkbox"/>
               <span class="slider"></span>
               <img alt="icon" class="dropdown-icon" src="/src/assets/icons/github.svg"/>
               <span class="toggle-label">Github</span>
