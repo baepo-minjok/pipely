@@ -92,15 +92,7 @@ export const jobApi = {
 
              });
     },
-    createSnapshot(jobId, snapshotName) {
-        return instance
-            .post(`/jenkins/job/${jobId}/snapshot`, null, {params: {snapshotName}})
-            .then((res) => res)
-            .catch((error) => {
-                console.error('API Error(createSnapshot):', error.response?.status, error.response?.data);
-                return error.response.data.error;
-            });
-    }
+
 
 
 };
