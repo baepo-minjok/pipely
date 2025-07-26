@@ -10,7 +10,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -77,9 +76,6 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String schedule;
-
-        //@Schema(description = "Job 알림 설정 리스트")
-        //private List<NotificationDto> notificationList;
     }
 
     @Data
