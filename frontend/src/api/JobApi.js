@@ -91,8 +91,20 @@ export const jobApi = {
                 throw (error.response?.data?.error || error);
 
              });
-    },
 
 
 
+  },
+  getDetail(jobId) {
+    return instance
+      .get('/jenkins/job/detail', {
+        params: { jobId: jobId },
+      })
+      .then((res) => {
+        return res;
+      })
+      .catch((error) => {
+        return error.response.data.error;
+      });
+  },
 };
