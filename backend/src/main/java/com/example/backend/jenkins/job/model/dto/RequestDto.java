@@ -2,17 +2,17 @@ package com.example.backend.jenkins.job.model.dto;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
-import com.example.backend.jenkins.job.model.Script;
-import com.example.backend.jenkins.notification.model.JobNotification;
+import com.example.backend.jenkins.notification.model.dto.NotificationDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class RequestDto {
@@ -67,7 +67,7 @@ public class RequestDto {
 
         @Size(max = 100)
         @Pattern(
-                regexp = "^(매일|매주)\\s*(?:([월화수목금토일](?:,\\s*[월화수목금토일])*)(?:요일)?)?\\s*(오전\\s*\\d{1,2}시\\s*\\d{1,2}분?|오후\\s*\\d{1,2}시\\s*\\d{1,2}분?|\\d{1,2}:\\d{1,2})$",
+                regexp = "^$|^(매일|매주)\\s*(?:([월화수목금토일](?:,\\s*[월화수목금토일])*)(?:요일)?)?\\s*(오전\\s*\\d{1,2}시\\s*\\d{1,2}분?|오후\\s*\\d{1,2}시\\s*\\d{1,2}분?|\\d{1,2}:\\d{1,2})$",
                 message = "형식 예시: '매일 오후 3시 5분', '매주 월,수,금 오전 9시 30분' 등으로 입력해야 합니다."
         )
         @Schema(
@@ -76,6 +76,8 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String schedule;
+
+        private Map<String, NotificationDto> notificationMap;
     }
 
     @Data
@@ -84,15 +86,6 @@ public class RequestDto {
     @NoArgsConstructor
     @Schema(name = "ScriptBaseDto", description = "Jenkins Script 생성/수정에 필요한 파라미터")
     public static class ScriptBaseDto {
-
-        @NotNull
-        @Schema(
-                description = "Jenkins 서버 정보의 UUID",
-                example = "2c1edbe1-4e6a-420d-84cd-3ffb2b9d7c85",
-                requiredMode = Schema.RequiredMode.REQUIRED
-        )
-        private UUID infoId;
-
         @Schema(
                 description = "Script 고유 식별자 (UUID)",
                 example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e",
@@ -252,12 +245,6 @@ public class RequestDto {
         )
         private String deployTarget;
 
-
-        @Schema(
-                description = "Job 알림 설정 리스트",
-                requiredMode = Schema.RequiredMode.NOT_REQUIRED
-        )
-        private List<NotificationDto> notificationList;
     }
 
     @SuperBuilder
@@ -315,42 +302,4 @@ public class RequestDto {
         private String script;
     }
 
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Schema(name = "NotificationDto", description = "Job 알림 생성/수정 DTO")
-    public static class NotificationDto {
-
-        @Schema(description = "알림 Credential 이름 (기존 알림 수정 시에만 필요, 신규 알림은 null)")
-        private String credentialName;
-
-        @Schema(description = "알림 설명", example = "디스코드 빌드 성공 알림")
-        private String name;
-
-        @Schema(description = "Webhook URL", example = "https://discord.com/api/webhooks/...")
-        private String webhookUrl;
-
-        @Schema(description = "알림 여부", example = "true")
-        private Boolean shouldNotify;
-
-        @Schema(description = "이벤트 유형", example = "BUILD_SUCCESS")
-        private JobNotification.EventType eventType;
-
-        @Schema(description = "알림 채널", example = "DISCORD")
-        private JobNotification.Channel channel;
-
-        public JobNotification toEntity(String credentialName, Script script) {
-            return JobNotification.builder()
-                    .script(script)
-                    .credentialName(credentialName)
-                    .name(this.name)
-                    .shouldNotify(this.shouldNotify)
-                    .channel(this.channel)
-                    .webhookUrl(this.webhookUrl)
-                    .eventType(this.eventType)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-        }
-    }
 }

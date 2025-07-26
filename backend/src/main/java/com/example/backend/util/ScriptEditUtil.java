@@ -1,7 +1,6 @@
 package com.example.backend.util;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
-import com.example.backend.jenkins.notification.model.JobNotification;
 import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
@@ -140,11 +139,6 @@ public class ScriptEditUtil {
         return result;
     }
 
-    public String injectNotificationPostBlock(String scriptContent, List<JobNotification> notifications) {
-        String newPostBlock = jobNotificationService.createNotificationScript(notifications); // 기존 로직 활용
-        return jobNotificationService.replacePostBlock(scriptContent, newPostBlock); // 기존 로직 활용
-    }
-
 
     /**
      * Jenkins Declarative Pipeline 스크립트 문법 검증.
@@ -170,4 +164,52 @@ public class ScriptEditUtil {
 
         return response.contains("Jenkinsfile successfully validated.");
     }
+
+    /**
+     * Jenkins pipeline 스크립트에 post 블록(notificationScript)을 삽입한다.
+     * - 기존 script가 없으면 기본 pipeline { agent any stages {} post {} } 구조를 생성
+     * - pipeline {} 블록의 마지막 } 앞에 post 블록 추가
+     * - }를 찾지 못하면 그냥 끝에 추가
+     */
+    public String replacePostBlock(String currentScript, String notificationScript) {
+        String defaultStage = """
+                stages {
+                  stage('Init') {
+                    steps {
+                      echo 'Initializing pipeline...'
+                    }
+                  }
+                }
+                """;
+
+        if (notificationScript == null || notificationScript.isBlank()) {
+            return currentScript.isBlank() ? """
+                    pipeline {
+                      agent any
+                      %s
+                    }
+                    """.formatted(defaultStage) : currentScript;
+        }
+
+        if (currentScript.isBlank()) {
+            return """
+                    pipeline {
+                      agent any
+                      %s
+                      %s
+                    }
+                    """.formatted(defaultStage, notificationScript);
+        }
+
+        int lastBraceIndex = currentScript.lastIndexOf("}");
+        if (lastBraceIndex != -1) {
+            String before = currentScript.substring(0, lastBraceIndex).trim();
+            String after = currentScript.substring(lastBraceIndex);
+            return before + "\n\n  " + notificationScript + "\n" + after;
+        }
+
+        return currentScript.trim() + "\n" + notificationScript;
+    }
+
+
 }

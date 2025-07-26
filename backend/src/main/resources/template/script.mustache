@@ -109,13 +109,4 @@ spec:
     }
     {{/isEc2Deploy}}
   }
-  // 파이프라인 전체의 성공/실패 후 처리 정의
-  post {
-    success {
-      echo '🎉 빌드가 성공했습니다!'
-    }
-    failure {
-      echo '❌ 빌드가 실패했습니다!'
-    }
-  }
 }

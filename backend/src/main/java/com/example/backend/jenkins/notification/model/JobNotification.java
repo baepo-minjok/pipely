@@ -1,15 +1,14 @@
 package com.example.backend.jenkins.notification.model;
 
-import com.example.backend.jenkins.job.model.Pipeline;
-import com.example.backend.jenkins.job.model.Script;
+import com.example.backend.jenkins.job.model.PipelineVersion;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.GenericGenerator;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -26,21 +25,14 @@ import java.util.UUID;
 public class JobNotification {
 
     @Id
-    @Column(name = "credential_name", nullable = false)
-    @Schema(description = "알림 이름 (Primary Key)", example = "DISCORD_1472d5da_BUILD_SUCCESS_5850a9c6", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String credentialName;
-
-    @Column(name = "name", nullable = false)
-    @Schema(description = "알림 이름", example = "Slack 빌드 성공 알림", requiredMode = Schema.RequiredMode.REQUIRED)
-    private String name;
-
-    @Column(name = "created_at", nullable = false)
-    @Schema(description = "알림 등록 시간", example = "2025-07-20T15:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
-    private LocalDateTime createdAt;
-
-    @Column(name = "should_notify")
-    @Schema(description = "해당 알림을 보낼지 여부", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
-    private Boolean shouldNotify;
+    @GeneratedValue(generator = "UUID")
+    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
+    @Column(name = "id", updatable = false, nullable = false)
+    @Schema(
+            description = "알림 고유 UUID",
+            example = "b1a7c7b2-8123-4cce-80ec-ccf79d5e2f7a"
+    )
+    private UUID id;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "channel", nullable = false)
@@ -57,8 +49,8 @@ public class JobNotification {
     private EventType eventType;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "script_id", nullable = false, insertable = false, updatable = false)
-    private Script script;
+    @JoinColumn(name = "pipeline_version_id", nullable = false, updatable = false)
+    private PipelineVersion pipelineVersion;
 
     public enum EventType {
         @Schema(description = "빌드 성공 이벤트")
