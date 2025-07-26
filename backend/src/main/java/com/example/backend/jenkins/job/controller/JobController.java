@@ -36,9 +36,7 @@ public class JobController {
     @Operation(
             summary = "새 Job 생성",
             description = """
-                        사용자가 지정한 설정(CreateDto)로 Jenkins에 새 Job을 생성합니다.
-                        - JenkinsInfo ID, Script ID, Job 이름, 설명, 트리거 여부, 스케줄 등을 입력받습니다.
-                        - 이미 동일한 이름의 Job이 존재하면 400 반환.
+                        사용자가 지정한 설정에 맞게 Jenkins에 새 Job을 생성합니다.
                     """
     )
     @ApiResponses({
@@ -64,9 +62,7 @@ public class JobController {
     @Operation(
             summary = "기존 Job 수정",
             description = """
-                        사용자가 지정한 설정(UpdateDto)로 Jenkins Job을 수정합니다.
-                        - 이름 변경 시 중복 검사/삭제/재생성 처리
-                        - Script, 설명, 트리거, 스케줄 등 변경 가능
+                        사용자가 지정한 설정에 맞게 Jenkins Job을 수정합니다.
                     """
     )
     @ApiResponses({
@@ -91,7 +87,7 @@ public class JobController {
 
     @Operation(
             summary = "Job soft-delete",
-            description = "지정한 Job을 소프트 삭제 처리합니다. (isDeleted=true, 삭제시간 기록)"
+            description = "지정한 Job을 소프트 삭제 처리합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Job 삭제 성공"),
@@ -141,7 +137,7 @@ public class JobController {
 
     @Operation(
             summary = "Job 목록 조회",
-            description = "JenkinsInfo에 연결된 모든 Job을 조회합니다."
+            description = "JenkinsInfo에 연결된 삭제되지 않은 모든 Job을 조회합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Job 목록 조회 성공"),
@@ -165,7 +161,7 @@ public class JobController {
 
     @Operation(
             summary = "Job 상세 조회",
-            description = "Job Id로 상세 정보를 조회합니다."
+            description = "해당 Job의 상세 정보를 조회합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Job 상세 조회 성공"),
@@ -189,7 +185,7 @@ public class JobController {
 
     @Operation(
             summary = "삭제된 Job 목록 조회",
-            description = "JenkinsInfo에 연결된 삭제된 Job 목록을 조회합니다."
+            description = "JenkinsInfo의 삭제된 Job 목록을 조회합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "삭제된 Job 목록 조회 성공"),
@@ -212,7 +208,7 @@ public class JobController {
 
     @Operation(
             summary = "삭제된 Job 복구",
-            description = "Job Id로 소프트삭제된 Job을 복구합니다."
+            description = "소프트 삭제된 Job을 복구합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Job 복구 성공"),
