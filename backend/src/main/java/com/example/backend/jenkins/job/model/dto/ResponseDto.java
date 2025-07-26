@@ -5,12 +5,17 @@ import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.model.PipelineVersion;
 import com.example.backend.jenkins.job.model.Script;
-import com.example.backend.jenkins.notification.model.JobNotification;
 import com.example.backend.jenkins.job.model.VersionStage;
+import com.example.backend.jenkins.notification.model.dto.NotificationDto;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class ResponseDto {
@@ -28,6 +33,7 @@ public class ResponseDto {
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
                 .description(latestVersion.getDescription())
+                .isBuildSuccess(pipeline.getIsBuildSuccess())
                 .build();
     }
 
@@ -42,11 +48,7 @@ public class ResponseDto {
 
         Script script = latestVersion.getScript();
 
-        List<JobNotificationListResponseDto> notificationDtos = (script != null && script.getJobNotificationList() != null)
-                ? script.getJobNotificationList().stream()
-                .map(JobNotificationListResponseDto::fromEntity)
-                .toList()
-                : List.of();
+        Map<String, NotificationDto> notificationDtos = NotificationDto.toNotificationMap(latestVersion.getJobNotificationList());
 
         return DetailJobDto.builder()
                 .pipelineId(pipeline.getId())
@@ -129,6 +131,8 @@ public class ResponseDto {
 
         @Schema(description = "Job 설명", example = "테스트 Job")
         private String description;
+
+        private boolean isBuildSuccess;
     }
 
     @Data
@@ -173,9 +177,9 @@ public class ResponseDto {
 
         @Schema(description = "파이프라인의 전체 버전 기록 리스트")
         private List<PipelineVersionDto> pipelineVersionList;
-        
+
         @Schema(description = "현재 Job의 알림 설정 목록")
-        private List<JobNotificationListResponseDto> notificationList;
+        private Map<String, NotificationDto> notificationList;
     }
 
     @Data
@@ -272,38 +276,4 @@ public class ResponseDto {
         private String stageName;
     }
 
-    @Getter
-    @Builder
-    @Schema(description = "Job에 연결된 알림 설정 정보 DTO")
-    public static class JobNotificationListResponseDto {
-
-        @Schema(description = "알림 Credential 이름", example = "DISCORD_1472d5da_BUILD_SUCCESS_5850a9c6")
-        private String credentialName;
-
-        @Schema(description = "알림 설명", example = "디스코드 빌드 성공 알림")
-        private String name;
-
-        @Schema(description = "Webhook URL", example = "https://discord.com/api/webhooks/...")
-        private String webhookUrl;
-
-        @Schema(description = "알림 여부", example = "true")
-        private Boolean shouldNotify;
-
-        @Schema(description = "이벤트 유형", example = "BUILD_SUCCESS")
-        private JobNotification.EventType eventType;
-
-        @Schema(description = "알림 채널", example = "DISCORD")
-        private JobNotification.Channel channel;
-
-        public static JobNotificationListResponseDto fromEntity(JobNotification notification) {
-            return JobNotificationListResponseDto.builder()
-                    .credentialName(notification.getCredentialName())
-                    .name(notification.getName())
-                    .webhookUrl(notification.getWebhookUrl())
-                    .shouldNotify(notification.getShouldNotify())
-                    .eventType(notification.getEventType())
-                    .channel(notification.getChannel())
-                    .build();
-        }
-    }
 }

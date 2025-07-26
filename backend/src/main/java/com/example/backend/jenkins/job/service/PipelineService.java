@@ -12,8 +12,6 @@ import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
-import com.example.backend.jenkins.notification.model.JobNotification;
-import com.example.backend.jenkins.notification.repository.JobNotificationRepository;
 import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -42,7 +39,6 @@ public class PipelineService {
     private final StageService stageService;
     private final PipelineVersionRepository pipelineVersionRepository;
     private final JobNotificationService jobNotificationService;
-    private final JobNotificationRepository jobNotificationRepository;
 
     /**
      * Create a new Jenkins job and persist the pipeline.
@@ -233,6 +229,8 @@ public class PipelineService {
                 .build();
         PipelineVersion savedVersion = pipelineVersionRepository.save(version);
 
+        jobNotificationService.saveJobNotifications(dto.getNotificationMap(), savedVersion);
+
         stageService.createStages(savedVersion, script);
 
         pipeline.getVersionList().add(version);
@@ -249,10 +247,19 @@ public class PipelineService {
         pipelineVersion.setConfig(config);
         pipelineVersion.setScript(script);
 
+        jobNotificationService.updateJobNotifications(dto.getNotificationMap(), pipelineVersion);
+
         stageService.updateStages(pipelineVersion, script);
 
         pipelineVersionRepository.save(pipelineVersion);
         pipelineVersionRepository.flush();
+    }
+
+    @Transactional
+    public void setStatus(RequestDto.StatusDto dto) {
+        Pipeline pipeline = getPipelineById(dto.getJobId());
+        pipeline.setIsBuildSuccess(dto.isSuccess());
+        pipelineRepository.save(pipeline);
     }
 
 }

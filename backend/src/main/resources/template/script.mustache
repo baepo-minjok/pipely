@@ -1,4 +1,7 @@
 pipeline {
+  parameters {
+      string(name: 'ID', defaultValue: '', description: 'Job 식별자 (서버에 전달할 ID)')
+  }
   agent any
 
   stages {
@@ -109,13 +112,28 @@ spec:
     }
     {{/isEc2Deploy}}
   }
-  // 파이프라인 전체의 성공/실패 후 처리 정의
-  post {
-    success {
-      echo '🎉 빌드가 성공했습니다!'
+    post {
+        success {
+            sh """
+            curl -X POST \\
+                 -H "Content-Type: application/json" \\
+                 -d '{
+                        "success": true,
+                        "jobId": "${params.ID}"
+                      }' \\
+                 https://www.pipely.kro.kr/api/jenkins/job/build/status
+            """
+        }
+        failure {
+            sh """
+            curl -X POST \\
+                 -H "Content-Type: application/json" \\
+                 -d '{
+                        "success": false,
+                        "jobId": "${params.ID}"
+                      }' \\
+                 https://www.pipely.kro.kr/api/jenkins/job/build/status
+            """
+        }
     }
-    failure {
-      echo '❌ 빌드가 실패했습니다!'
-    }
-  }
 }

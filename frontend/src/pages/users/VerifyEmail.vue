@@ -15,7 +15,7 @@ onMounted(async () => {
           if (response) {
             alert("이메일 인증 성공!\n 로그인해주세요");
           } else {
-            alert("이메일 인증 성공!\n 로그인해주세요");
+            alert("이메일 인증 실패!\n 다시 시도해주세요");
           }
         } catch (e) {
           alert("이메일 인증 실패!\n 다시 시도해주세요");
