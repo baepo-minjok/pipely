@@ -1,6 +1,8 @@
 package com.example.backend.util;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
+import com.example.backend.jenkins.notification.model.JobNotification;
+import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
@@ -24,6 +26,7 @@ public class ScriptEditUtil {
             "stage\\s*\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*\\)\\s*\\{"
     );
     private final HttpClientService httpClientService;
+    private final JobNotificationService jobNotificationService;
 
     /**
      * 주어진 Jenkins pipeline script에서 모든 stage 이름을 추출합니다.
@@ -135,6 +138,11 @@ public class ScriptEditUtil {
             result = sb.toString();
         }
         return result;
+    }
+
+    public String injectNotificationPostBlock(String scriptContent, List<JobNotification> notifications) {
+        String newPostBlock = jobNotificationService.createNotificationScript(notifications); // 기존 로직 활용
+        return jobNotificationService.replacePostBlock(scriptContent, newPostBlock); // 기존 로직 활용
     }
 
 

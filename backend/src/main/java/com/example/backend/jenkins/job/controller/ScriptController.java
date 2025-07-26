@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -45,7 +46,7 @@ public class ScriptController {
     @PostMapping("/generate")
     public ResponseEntity<BaseResponse<ResponseDto.LightScriptDto>> generateScript(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody RequestDto.ScriptBaseDto requestDto
+            @RequestBody @Valid RequestDto.ScriptBaseDto requestDto
     ) {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(scriptService.generateScript(requestDto)));
@@ -91,7 +92,7 @@ public class ScriptController {
     )
     @PostMapping("/validate")
     public ResponseEntity<BaseResponse<String>> validateScript(
-            @RequestBody RequestDto.ScriptValidateDto requestDto
+            @RequestBody @Valid RequestDto.ScriptValidateDto requestDto
     ) {
         scriptService.validateScript(requestDto);
 

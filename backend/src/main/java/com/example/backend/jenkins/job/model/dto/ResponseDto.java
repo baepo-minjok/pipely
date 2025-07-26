@@ -31,7 +31,7 @@ public class ResponseDto {
                 .build();
     }
 
-    public static DetailJobDto entityToDetailJobDto(Pipeline pipeline, List<JobNotification> notifications) {
+    public static DetailJobDto entityToDetailJobDto(Pipeline pipeline) {
 
         UUID latestVersionId = pipeline.getLatestVersionId();
 
@@ -41,6 +41,12 @@ public class ResponseDto {
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
 
         Script script = latestVersion.getScript();
+
+        List<JobNotificationListResponseDto> notificationDtos = (script != null && script.getJobNotificationList() != null)
+                ? script.getJobNotificationList().stream()
+                .map(JobNotificationListResponseDto::fromEntity)
+                .toList()
+                : List.of();
 
         return DetailJobDto.builder()
                 .pipelineId(pipeline.getId())
@@ -55,11 +61,7 @@ public class ResponseDto {
                 .isBuildSuccess(pipeline.getIsBuildSuccess())
                 .schedule(latestVersion.getSchedule())
                 .pipelineVersionList(toListOfPipelineVersionDtos(pipeline.getVersionList()))
-                .notificationList(
-                        notifications.stream()
-                                .map(ResponseDto.JobNotificationListResponseDto::fromEntity)
-                                .toList()
-                )
+                .notificationList(notificationDtos)
                 .build();
     }
 
@@ -171,7 +173,8 @@ public class ResponseDto {
 
         @Schema(description = "파이프라인의 전체 버전 기록 리스트")
         private List<PipelineVersionDto> pipelineVersionList;
-
+        
+        @Schema(description = "현재 Job의 알림 설정 목록")
         private List<JobNotificationListResponseDto> notificationList;
     }
 

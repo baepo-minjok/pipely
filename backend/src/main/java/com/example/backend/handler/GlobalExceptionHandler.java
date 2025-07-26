@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.io.IOException;
 import java.util.stream.Collectors;
@@ -49,6 +50,23 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(errorCode.getHttpStatus().value())
+                .body(BaseResponse.error(errorCode, path));
+    }
+
+    // URL 파라미터 타입 변환 실패 (ex. UUID 잘못된 형식) → 400
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<BaseResponse<Object>> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+
+        ErrorCode errorCode = ErrorCode.VALIDATION_FAILED;
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+
+        log.warn("Type mismatch [{} {}]: parameter={}, requiredType={}, message={}",
+                method, path, ex.getName(), ex.getRequiredType(), ex.getMessage());
+
+        return ResponseEntity
+                .status(errorCode.getHttpStatus())
                 .body(BaseResponse.error(errorCode, path));
     }
 

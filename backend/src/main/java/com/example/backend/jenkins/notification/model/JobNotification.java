@@ -1,6 +1,7 @@
 package com.example.backend.jenkins.notification.model;
 
 import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.Script;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,19 +30,6 @@ public class JobNotification {
     @Schema(description = "알림 이름 (Primary Key)", example = "DISCORD_1472d5da_BUILD_SUCCESS_5850a9c6", requiredMode = Schema.RequiredMode.REQUIRED)
     private String credentialName;
 
-    @Column(name = "pipeline_id")
-    @Schema(description = "연결된 파이프라인 ID (Pipeline Entity의 UUID)", example = "4fd7a1a1-c209-44a2-b18e-b3e8c73eeb82", requiredMode = Schema.RequiredMode.REQUIRED)
-    private UUID pipelineId;
-
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "pipeline_id", referencedColumnName = "id", insertable = false, updatable = false)
-//    @Schema(description = "연결된 Pipeline 엔티티 객체 (읽기 전용)", hidden = true)
-//    private Pipeline pipeline;
-
-    @Column(name = "script_id", nullable = false)
-    @Schema(description = "스크립트 식별자 (Script UUID)", example = "2de67452-b4aa-46b0-9e3d-523db27c43c4", requiredMode = Schema.RequiredMode.REQUIRED)
-    private UUID scriptId;
-
     @Column(name = "name", nullable = false)
     @Schema(description = "알림 이름", example = "Slack 빌드 성공 알림", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
@@ -67,6 +55,10 @@ public class JobNotification {
     @Column(name = "event_type", nullable = false)
     @Schema(description = "알림을 보낼 빌드 이벤트 종류", example = "BUILD_SUCCESS", requiredMode = Schema.RequiredMode.REQUIRED)
     private EventType eventType;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "script_id", nullable = false, insertable = false, updatable = false)
+    private Script script;
 
     public enum EventType {
         @Schema(description = "빌드 성공 이벤트")
