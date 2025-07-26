@@ -94,6 +94,7 @@ async function jenkinsURITest() {
 
 const fetchApi = async () => {
   const response = await jenkinsInfoApi.getDetail(jenkinsInfoId);
+  await userStore.fetchUserInfo();
   const responseData = response.data.data;
   Object.assign(data, responseData);
   Object.assign(originalData, data);

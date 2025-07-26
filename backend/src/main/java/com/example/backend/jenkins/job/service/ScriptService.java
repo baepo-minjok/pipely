@@ -8,15 +8,12 @@ import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.ScriptRepository;
-import com.example.backend.jenkins.notification.model.JobNotification;
-import com.example.backend.jenkins.notification.repository.JobNotificationRepository;
 import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -51,13 +48,12 @@ public class ScriptService {
             script = scriptRepository.save(script);
         }
 
-        handleNotifications(script, requestDto);
 
-        List<JobNotification> enabledNotifications = jobNotificationService.getEnabledNotifications(script);
+        /*List<JobNotification> enabledNotifications = jobNotificationService.getEnabledNotifications(script);
         String updatedScript = scriptEditUtil.injectNotificationPostBlock(script.getScript(), enabledNotifications);
         script.setScript(updatedScript);
 
-        script = scriptRepository.save(script);
+        script = scriptRepository.save(script);*/
 
         return ResponseDto.entityToLightScriptDto(script);
     }
@@ -97,7 +93,7 @@ public class ScriptService {
         return script;
     }
 
-    private void handleNotifications(Script script, RequestDto.ScriptBaseDto dto) {
+    /*private void handleNotifications(Script script, RequestDto.ScriptBaseDto dto) {
         List<RequestDto.NotificationDto> notiList = dto.getNotificationList();
         if (notiList == null || notiList.isEmpty()) return;
 
@@ -108,6 +104,6 @@ public class ScriptService {
         } else {
             jobNotificationService.createJobNotifications(notiList, info, script.getId());
         }
-    }
+    }*/
 
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
+import {computed, onMounted, ref, watch} from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
 import {useRouter} from 'vue-router';
 
@@ -9,9 +9,15 @@ const jobStore = useJobStore();
 const router = useRouter();
 
 const handleCreateClick = () => {
+
   router.push({
     name: 'CreateJob',
-    query: { id: selected.value.id, jenkinsName: selected.value.name, jenkinsUri: selected.value.uri },
+    query: {
+      id: selected.value.id,
+      jenkinsName: selected.value.name,
+      jenkinsUri: selected.value.uri,
+      connected: selected.value.connected,
+    },
   });
 };
 
@@ -37,7 +43,7 @@ const selected = computed(() => jobStore.jenkinsInfo.find((j) => j.id === select
     <div class="jenkins_select_box" style="margin-bottom: 1rem">
       <label for="jenkins-select">Jenkins 정보 선택:</label>
       <select id="jenkins-select" v-model="selectedJenkins" :class="{ placeholder_selected: selectedJenkins === '' }">
-        <option value="" disabled>Jenkins 인스턴스 선택</option>
+        <option disabled value="">Jenkins 인스턴스 선택</option>
         <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
           {{ info.name }}
         </option>

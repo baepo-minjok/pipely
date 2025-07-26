@@ -1,6 +1,5 @@
 package com.example.backend.jenkins.job.model;
 
-import com.example.backend.jenkins.notification.model.JobNotification;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -120,10 +119,6 @@ public class Script {
             hidden = true // API 응답에서 숨김
     )
     private List<PipelineVersion> pipelineVersionList = new ArrayList<>();
-
-    @OneToMany(mappedBy = "script", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Schema(hidden = true)
-    private List<JobNotification> jobNotificationList = new ArrayList<>();
 
     public static Script toEntity(com.example.backend.jenkins.job.model.dto.RequestDto.ScriptBaseDto requestDto, String script) {
         return Script.builder()

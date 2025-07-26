@@ -74,7 +74,7 @@ public class JobController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PreAuthorize("@pipelineService.isOwner(#user, #requestDto.pipelineId)")
-    @PutMapping("/update")
+    @PutMapping
     public ResponseEntity<BaseResponse<String>> update(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid UpdateDto requestDto
