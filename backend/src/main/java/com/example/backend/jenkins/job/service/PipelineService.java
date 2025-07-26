@@ -131,9 +131,7 @@ public class PipelineService {
 
     public ResponseDto.DetailJobDto getDetailJob(UUID jobId) {
         Pipeline pipeline = getPipelineById(jobId);
-        List<JobNotification> notifications = jobNotificationRepository.findByPipelineId(jobId);
-
-        return ResponseDto.entityToDetailJobDto(pipeline, notifications);
+        return ResponseDto.entityToDetailJobDto(pipeline);
     }
 
     public boolean isOwner(Users user, UUID pipelineId) {

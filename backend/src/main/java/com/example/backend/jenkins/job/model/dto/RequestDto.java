@@ -2,6 +2,7 @@ package com.example.backend.jenkins.job.model.dto;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.notification.model.JobNotification;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -339,9 +340,9 @@ public class RequestDto {
         @Schema(description = "알림 채널", example = "DISCORD")
         private JobNotification.Channel channel;
 
-        public JobNotification toEntity(String credentialName, UUID scriptId) {
+        public JobNotification toEntity(String credentialName, Script script) {
             return JobNotification.builder()
-                    .scriptId(scriptId)
+                    .script(script)
                     .credentialName(credentialName)
                     .name(this.name)
                     .shouldNotify(this.shouldNotify)
