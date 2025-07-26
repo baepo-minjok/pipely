@@ -258,7 +258,17 @@ public class PipelineService {
     @Transactional
     public void setStatus(RequestDto.StatusDto dto) {
         Pipeline pipeline = getPipelineById(dto.getJobId());
-        pipeline.setIsBuildSuccess(dto.isSuccess());
+        if (dto.isSuccess()) {
+            pipeline.setBuildStatus(Pipeline.BuildStatus.BUILD_SUCCESS);
+        } else {
+            pipeline.setBuildStatus(Pipeline.BuildStatus.BUILD_FAILURE);
+        }
+        pipelineRepository.save(pipeline);
+    }
+
+    @Transactional
+    public void setStatusPending(Pipeline pipeline) {
+        pipeline.setBuildStatus(Pipeline.BuildStatus.BUILD_RUNNING);
         pipelineRepository.save(pipeline);
     }
 
