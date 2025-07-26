@@ -9,6 +9,7 @@ const jobStore = useJobStore();
 const router = useRouter();
 
 const selectedJenkins = ref('');
+const openedDropdownId = ref(null); // 드롭다운 열려있는 job.id
 
 const selected = computed(() =>
     jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value)
@@ -115,24 +116,100 @@ watch(selectedJenkins, (id) => {
         </div>
       </div>
     </div>
-    <div class="job_list">
-      <template v-if="selectedJenkins">
-        <JobCard
-          v-for="job in jobStore.jobList"
-          :key="job.pipelineId"
-          :job="job"
-          @click="router.push(`/job/${job.pipelineId}`)"
-        />
-      </template>
-      <template v-else>
-        <div style="text-align: center; color: gray; margin: 30px 0">Jenkins 인스턴스를 먼저 선택하세요.</div>
-      </template>
+
+    <!-- Job 목록 섹션 -->
+    <div class="section job-list-section">
+      <h3 class="section-title">
+        <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="16" x2="8" y1="13" y2="13"/>
+          <line x1="16" x2="8" y1="17" y2="17"/>
+          <polyline points="10,9 9,9 8,9"/>
+        </svg>
+        Job 목록
+        <span v-if="selectedJenkins && jobStore.jobList.length > 0" class="job-count">
+          ({{ jobStore.jobList.length }}개)
+        </span>
+      </h3>
+
+      <div class="job-list-content">
+        <template v-if="selectedJenkins">
+          <div v-if="jobStore.jobList.length === 0" class="empty-state">
+            <svg class="empty-icon" fill="none" height="64" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"
+                 width="64">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <line x1="16" x2="8" y1="13" y2="13"/>
+              <line x1="16" x2="8" y1="17" y2="17"/>
+              <polyline points="10,9 9,9 8,9"/>
+            </svg>
+            <h4 class="empty-title">Job이 없습니다</h4>
+            <p class="empty-description">새로운 Job을 생성해보세요!</p>
+            <button class="btn btn-primary" @click="handleCreateClick">
+              <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+                <line x1="12" x2="12" y1="5" y2="19"/>
+                <line x1="5" x2="19" y1="12" y2="12"/>
+              </svg>
+              첫 번째 Job 생성하기
+            </button>
+          </div>
+
+          <div v-else class="job-grid">
+<!--            <JobCard-->
+<!--                v-for="job in jobStore.jobList"-->
+<!--                :key="job.name"-->
+<!--                :job="job"-->
+<!--                @click="router.push(`/job/${job.name}`)"-->
+<!--                class="job-card-item"-->
+<!--            />-->
+            <JobCard
+                v-for="job in jobStore.jobList"
+                :key="job.pipelineId"
+                :job="job"
+                :openedDropdownId="openedDropdownId"
+                @toggleDropdown="id => openedDropdownId = id"
+                @closeDropdown="() => openedDropdownId = null"
+            />
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="select-prompt">
+            <svg class="prompt-icon" fill="none" height="48" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"
+                 width="48">
+              <rect height="14" rx="2" ry="2" width="20" x="2" y="3"/>
+              <line x1="8" x2="16" y1="21" y2="11"/>
+              <line x1="12" x2="12" y1="17" y2="17"/>
+            </svg>
+            <h4 class="prompt-title">Jenkins 인스턴스를 선택하세요</h4>
+            <p class="prompt-description">Job 목록을 확인하려면 먼저 Jenkins 인스턴스를 선택해주세요.</p>
+          </div>
+        </template>
+      </div>
     </div>
+    <div
+        v-if="openedDropdownId"
+        class="dropdown-overlay"
+        @click="openedDropdownId = null"
+    />
   </div>
 </template>
 
 
 <style scoped>
+
+.dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999; /* 드롭다운보다 낮고 카드보다 높게 */
+  background: transparent;
+}
+
+
 .container {
   max-width: 1000px;
   margin: 20px auto 0;

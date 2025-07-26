@@ -126,7 +126,12 @@
 
         <!-- 드롭다운 메뉴 -->
         <Teleport to="body">
-          <div v-if="showDropdown" class="dropdown-menu" :style="dropdownPosition" @click.stop>
+          <div
+              v-if="openedDropdownId === job.pipelineId"
+              class="dropdown-menu"
+              :style="dropdownPosition"
+              @click.stop
+          >
             <button class="dropdown-item" @click="handleSaveSnapshot">
               <!-- ... -->
               스냅샷 저장
@@ -160,6 +165,8 @@ const props = defineProps({
     type: Object,
     required: true
   }
+  ,openedDropdownId: String,
+
 });
 
 const { job } = toRefs(props);
@@ -171,22 +178,15 @@ const dropdownPosition = ref({});
 
 
 
-
-
 const toggleDropdown = (event) => {
-  showDropdown.value = !showDropdown.value;
-
-  if (showDropdown.value) {
-    const rect = event.target.getBoundingClientRect();
-    dropdownPosition.value = {
-      position: 'absolute',
-      top: `${rect.bottom + 4}px`, // 버튼 아래로 약간 띄움
-      left: `${rect.right - 160}px`, // 버튼 오른쪽 끝 기준으로 정렬
-      width: `160px`, // 고정 너비 (기존 드롭다운 너비랑 맞춤)
-      zIndex: 9999,
-    };
+  if (props.openedDropdownId === props.job.pipelineId) {
+    emit('closeDropdown');
+  } else {
+    emit('toggleDropdown', props.job.pipelineId);
+    calculatePosition(event);
   }
 };
+
 
 // const toggleDropdown = () => {
 //   showDropdown.value = !showDropdown.value;
