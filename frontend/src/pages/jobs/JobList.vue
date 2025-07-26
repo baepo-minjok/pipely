@@ -65,11 +65,27 @@ const handleDeleteJob = async (job) => {
   }
 };
 
+
+
+
+
+
+
 const handleSaveSnapshot = (job) => {
   console.log('Save snapshot for job:', job);
   // 스냅샷 저장 로직
+
+
   openDropdownJob.value = null; // 드롭다운 닫기
 };
+
+
+
+
+
+
+
+
 
 const handleViewSnapshots = (job) => {
   console.log('View snapshots for job:', job);
