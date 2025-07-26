@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onMounted, watch, computed } from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
-import {useRouter} from 'vue-router';
+import { useRouter } from 'vue-router';
 
-import {useJobStore} from '../../stores/useJobStore.js';
+import { useJobStore } from '../../stores/useJobStore.js';
 
 const jobStore = useJobStore();
 const router = useRouter();
@@ -45,7 +45,12 @@ const selected = computed(() => jobStore.jenkinsInfo.find((j) => j.id === select
     </div>
     <div class="job_list">
       <template v-if="selectedJenkins">
-        <JobCard v-for="job in jobStore.jobList" :key="job.name" :job="job" @click="router.push(`/job/${job.name}`)"/>
+        <JobCard
+          v-for="job in jobStore.jobList"
+          :key="job.pipelineId"
+          :job="job"
+          @click="router.push(`/job/${job.pipelineId}`)"
+        />
       </template>
       <template v-else>
         <div style="text-align: center; color: gray; margin: 30px 0">Jenkins 인스턴스를 먼저 선택하세요.</div>

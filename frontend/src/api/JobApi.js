@@ -44,4 +44,17 @@ export const jobApi = {
         return error.response.data.error;
       });
   },
+
+  getDetail(jobId) {
+    return instance
+      .get('/jenkins/job/detail', {
+        params: { jobId: jobId },
+      })
+      .then((res) => {
+        return res;
+      })
+      .catch((error) => {
+        return error.response.data.error;
+      });
+  },
 };
