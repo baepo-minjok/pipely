@@ -45,9 +45,9 @@ export const jobApi = {
                 return error.response.data.error;
             });
     },
-    deletedJobs(jobId ) {
+    deletedJobs(jobId) {
         return instance
-            .delete (`/jenkins/job`, { params: { jobId  } })
+            .delete(`/jenkins/job`, {params: {jobId: jobId}})
             .then((res) => res)
             .catch((error) => {
                 console.error('API Error:', error.response?.status, error.response?.data);
@@ -57,15 +57,20 @@ export const jobApi = {
     fetchJobList(jenkinsInfoId) {
         const store = useJobStore();
         return instance
-            .get('/jenkins/job', { params: { jenkinsInfoId } })
+            .get('/jenkins/job', { params: { jenkinsInfoId:jenkinsInfoId } })
             .then((res) => {
-                store.jobList = res.data.data;
-                return res;
+                const data = res.data?.data;
+                if (!data) {
+                    throw new Error('서버 응답에 jobList 데이터가 없습니다.');
+                }
+
+                store.jobList = data;
             })
             .catch((error) => {
-                console.error('API Error(getJobList):', error.response?.status, error.response?.data);
-                throw error;
+                console.error('API Error(getJobList):', error.response?.status, error.response?.data || error.message);
+                throw (error.response?.data?.error || error);
             });
+
     },
 
     getJenkinsInfo() {
@@ -73,13 +78,29 @@ export const jobApi = {
         return instance
             .get('/jenkins/info')
             .then((res) => {
-                store.jenkinsInfo = res.data.data;
+                const data = res.data?.data;
+                if (!data) {
+                    throw new Error('서버 응답에 젠킨스 정보가 없습니다.');
+                }
+                store.jenkinsInfo = data;
                 return res;
+
             })
             .catch((error) => {
-                console.error('API Error(getJenkinsInfo):', error.response?.status, error.response?.data);
-                throw error;
-            });
+                console.error('API Error(getJenkinsInfo):', error.response?.status, error.response?.data|| error.message);
+                throw (error.response?.data?.error || error);
+
+             });
     },
+    createSnapshot(jobId, snapshotName) {
+        return instance
+            .post(`/jenkins/job/${jobId}/snapshot`, null, {params: {snapshotName}})
+            .then((res) => res)
+            .catch((error) => {
+                console.error('API Error(createSnapshot):', error.response?.status, error.response?.data);
+                return error.response.data.error;
+            });
+    }
+
 
 };
