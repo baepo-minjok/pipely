@@ -1,38 +1,8 @@
-import {defineStore} from 'pinia'
-import axios from 'axios'
-
+import { defineStore } from 'pinia';
 
 export const useJobStore = defineStore('jobstore', {
-
     state: () => ({
         jobList: [],
         jenkinsInfo: [],
-    }),
-
-
-    actions: {
-        async fetchJobList(jenkinsInfoId) {
-            try {
-                const response = await axios.get('/api/jenkins/job', {
-                    params: {jenkinsInfoId: jenkinsInfoId}
-                });
-
-                this.jobList = response.data.data;
-            } catch (error) {
-                console.error('Error fetching job list:', error);
-                this.jobList = []; // 실패 시 목록 비움
-            }
-        }
-        ,
-
-        async getJenkinsInfo() {
-            try {
-                const response = await axios.get('/api/jenkins/info');
-                this.jenkinsInfo = response.data.data;
-
-            } catch (error) {
-                console.error('Error fetching Jenkins info:', error);
-            }
-        }
-    }
-})
+    })
+});
