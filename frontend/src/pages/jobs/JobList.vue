@@ -8,6 +8,7 @@ const jobStore = useJobStore();
 const router = useRouter();
 
 const selectedJenkins = ref('');
+const openedDropdownId = ref(null); // 드롭다운 열려있는 job.id
 
 const selected = computed(() =>
     jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value)
@@ -154,12 +155,20 @@ watch(selectedJenkins, (id) => {
           </div>
 
           <div v-else class="job-grid">
+<!--            <JobCard-->
+<!--                v-for="job in jobStore.jobList"-->
+<!--                :key="job.name"-->
+<!--                :job="job"-->
+<!--                @click="router.push(`/job/${job.name}`)"-->
+<!--                class="job-card-item"-->
+<!--            />-->
             <JobCard
                 v-for="job in jobStore.jobList"
-                :key="job.name"
+                :key="job.pipelineId"
                 :job="job"
-                @click="router.push(`/job/${job.name}`)"
-                class="job-card-item"
+                :openedDropdownId="openedDropdownId"
+                @toggleDropdown="id => openedDropdownId = id"
+                @closeDropdown="() => openedDropdownId = null"
             />
           </div>
         </template>
@@ -178,11 +187,28 @@ watch(selectedJenkins, (id) => {
         </template>
       </div>
     </div>
+    <div
+        v-if="openedDropdownId"
+        class="dropdown-overlay"
+        @click="openedDropdownId = null"
+    />
   </div>
 </template>
 
 
 <style scoped>
+
+.dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999; /* 드롭다운보다 낮고 카드보다 높게 */
+  background: transparent;
+}
+
+
 .container {
   max-width: 1000px;
   margin: 20px auto 0;
