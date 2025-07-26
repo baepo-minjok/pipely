@@ -1,218 +1,37 @@
-``<template>
-  <div class="job-card">
-    <!-- 카드 헤더 -->
-    <div class="card-header">
-      <div class="job-info">
-        <h3 class="job-title">{{ job.name }}</h3>
-        <div class="job-meta">
-          <span class="meta-item">
-            <svg class="meta-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-            {{ job.createdBy }}
-          </span>
-          <span class="meta-separator">·</span>
-          <span class="meta-item">
-            <svg class="meta-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12,6 12,12 16,14"/>
-            </svg>
-            {{ formatDateTime(job.lastExe) }}
-          </span>
-        </div>
-      </div>
-
-      <div class="status-badge" :class="getStatusClass(job.buildState)">
-        <svg v-if="job.buildState === 'SUCCESS'" class="status-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <polyline points="20,6 9,17 4,12"/>
-        </svg>
-        <svg v-else-if="job.buildState === 'FAILED'" class="status-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <line x1="18" x2="6" y1="6" y2="18"/>
-          <line x1="6" x2="18" y1="6" y2="18"/>
-        </svg>
-        <svg v-else-if="job.buildState === 'RUNNING'" class="status-icon animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <path d="M21 12a9 9 0 11-6.219-8.56"/>
-        </svg>
-        <svg v-else class="status-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" x2="12" y1="8" y2="12"/>
-          <line x1="12" x2="12.01" y1="16" y2="16"/>
-        </svg>
-        <span class="status-text">{{ getStatusText(job.buildState) }}</span>
-      </div>
-    </div>
-
-    <!-- 설명 -->
-    <div class="card-content">
-      <p class="job-description">
-        <svg class="description-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14,2 14,8 20,8"/>
-          <line x1="16" x2="8" y1="13" y2="13"/>
-          <line x1="16" x2="8" y1="17" y2="17"/>
-          <polyline points="10,9 9,9 8,9"/>
-        </svg>
-        {{ job.description || '설명이 없습니다.' }}
-      </p>
-    </div>
-
-    <!-- 스테이지 표시 (있는 경우) -->
-    <div v-if="job.stages && job.stages.length > 0" class="stages-container">
-      <div class="stages-header">
-        <svg class="stages-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-        </svg>
-        <span class="stages-title">스테이지</span>
-      </div>
-      <div class="stages-list">
-        <div
-            v-for="(stage, index) in job.stages"
-            :key="index"
-            class="stage-item"
-            :class="getStatusClass(stage.state)"
-        >
-          <div class="stage-indicator">
-            <svg v-if="stage.state === 'SUCCESS'" class="stage-icon" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
-              <polyline points="20,6 9,17 4,12"/>
-            </svg>
-            <svg v-else-if="stage.state === 'FAILED'" class="stage-icon" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
-              <line x1="18" x2="6" y1="6" y2="18"/>
-              <line x1="6" x2="18" y1="6" y2="18"/>
-            </svg>
-            <svg v-else-if="stage.state === 'RUNNING'" class="stage-icon animate-spin" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
-              <path d="M21 12a9 9 0 11-6.219-8.56"/>
-            </svg>
-            <div v-else class="stage-dot"></div>
-          </div>
-          <span class="stage-name">{{ stage.type }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 액션 버튼 -->
-    <div class="card-footer">
-      <button
-          class="action-btn"
-          :class="getButtonClass(job.buildState)"
-          @click.stop="handleActionClick"
-      >
-        <svg v-if="job.buildState === 'SUCCESS'" class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-          <path d="M21 3v5h-5"/>
-        </svg>
-        <svg v-else-if="job.buildState === 'FAILED'" class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-          <path d="M3 3v5h5"/>
-        </svg>
-        <svg v-else-if="job.buildState === 'RUNNING'" class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <rect height="10" rx="1" ry="1" width="4" x="6" y="7"/>
-          <rect height="10" rx="1" ry="1" width="4" x="14" y="7"/>
-        </svg>
-        <svg v-else class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <polygon points="5,3 19,12 5,21"/>
-        </svg>
-        <span>{{ getButtonText(job.buildState) }}</span>
-      </button>
-
-      <div class="more-container">
-        <button class="more-btn" @click.stop="toggleDropdown">
-          <svg class="more-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-            <circle cx="12" cy="12" r="1"/>
-            <circle cx="19" cy="12" r="1"/>
-            <circle cx="5" cy="12" r="1"/>
-          </svg>
-        </button>
-
-        <!-- 드롭다운 메뉴 -->
-        <Teleport to="body">
-          <div
-              v-if="openedDropdownId === job.pipelineId"
-              class="dropdown-menu"
-              :style="dropdownPosition"
-              @click.stop
-          >
-            <button class="dropdown-item" @click="handleSaveSnapshot">
-              <!-- ... -->
-              스냅샷 저장
-            </button>
-            <button class="dropdown-item" @click="handleViewSnapshots">
-              <!-- ... -->
-              스냅샷 목록
-            </button>
-            <div class="dropdown-divider"></div>
-            <button class="dropdown-item danger" @click="handleDeleteJob">
-              <!-- ... -->
-              삭제
-            </button>
-          </div>
-        </Teleport>
-
-
-        <!-- 오버레이 (드롭다운 외부 클릭 시 닫기) -->
-        <div v-if="showDropdown" class="dropdown-overlay" @click="closeDropdown"></div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { toRefs, ref  ,nextTick} from 'vue';
-import { formatDateTime } from '../../utils/formatDateTime';
+import {toRefs, computed} from 'vue';
+import {formatDateTime} from '../../utils/formatDateTime';
 
 const props = defineProps({
   job: {
     type: Object,
     required: true
-  }
-  ,openedDropdownId: String,
-
+  },
+  openDropdownJob: String
 });
 
-const { job } = toRefs(props);
+const {job, openDropdownJob} = toRefs(props);
 
-const showDropdown = ref(false);
+// 현재 카드의 드롭다운이 열려있는지 확인
+const isDropdownOpen = computed(() => openDropdownJob.value === job.value.name);
 
-const dropdownRef = ref(null);
-const dropdownPosition = ref({});
-
-
-
-const toggleDropdown = (event) => {
-  if (props.openedDropdownId === props.job.pipelineId) {
-    emit('closeDropdown');
-  } else {
-    emit('toggleDropdown', props.job.pipelineId);
-    calculatePosition(event);
-  }
-};
-
-
-// const toggleDropdown = () => {
-//   showDropdown.value = !showDropdown.value;
-// };
-
-const closeDropdown = () => {
-  showDropdown.value = false;
-};
+const emit = defineEmits(['action', 'delete', 'saveSnapshot', 'viewSnapshots', 'toggleDropdown']);
 
 const handleDeleteJob = () => {
   emit('delete', job.value);
-  closeDropdown();
 };
 
 const handleSaveSnapshot = () => {
   emit('saveSnapshot', job.value);
-  closeDropdown();
 };
 
 const handleViewSnapshots = () => {
   emit('viewSnapshots', job.value);
-  closeDropdown();
 };
 
-// emit에 새로운 이벤트들 추가
-const emit = defineEmits(['action', 'more', 'delete', 'saveSnapshot', 'viewSnapshots']);
+const handleToggleDropdown = () => {
+  emit('toggleDropdown', job.value);
+};
 
 const getStatusClass = (state) => {
   switch (state) {
@@ -269,15 +88,189 @@ const getButtonText = (state) => {
 const handleActionClick = () => {
   emit('action', job.value);
 };
-
-const handleMoreClick = () => {
-  emit('more', job.value);
-};
-
-
-
-
 </script>
+
+<template>
+  <div class="job-card" :class="{ 'dropdown-open': isDropdownOpen }" @click.stop>
+    <!-- 카드 헤더 -->
+    <div class="card-header">
+      <div class="job-info">
+        <h3 class="job-title">{{ job.name }}</h3>
+        <div class="job-meta">
+          <span class="meta-item">
+            <svg class="meta-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                 width="14">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            {{ job.createdBy }}
+          </span>
+          <span class="meta-separator">·</span>
+          <span class="meta-item">
+            <svg class="meta-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                 width="14">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            {{ formatDateTime(job.lastExe) }}
+          </span>
+        </div>
+      </div>
+
+      <div class="status-badge" :class="getStatusClass(job.buildState)">
+        <svg v-if="job.buildState === 'SUCCESS'" class="status-icon" fill="none" height="16" stroke="currentColor"
+             stroke-width="2" viewBox="0 0 24 24" width="16">
+          <polyline points="20,6 9,17 4,12"/>
+        </svg>
+        <svg v-else-if="job.buildState === 'FAILED'" class="status-icon" fill="none" height="16" stroke="currentColor"
+             stroke-width="2" viewBox="0 0 24 24" width="16">
+          <line x1="18" x2="6" y1="6" y2="18"/>
+          <line x1="6" x2="18" y1="6" y2="18"/>
+        </svg>
+        <svg v-else-if="job.buildState === 'RUNNING'" class="status-icon animate-spin" fill="none" height="16"
+             stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <path d="M21 12a9 9 0 11-6.219-8.56"/>
+        </svg>
+        <svg v-else class="status-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
+             viewBox="0 0 24 24" width="16">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" x2="12" y1="8" y2="12"/>
+          <line x1="12" x2="12.01" y1="16" y2="16"/>
+        </svg>
+        <span class="status-text">{{ getStatusText(job.buildState) }}</span>
+      </div>
+    </div>
+
+    <!-- 설명 -->
+    <div class="card-content">
+      <p class="job-description">
+        <svg class="description-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+             width="14">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="16" x2="8" y1="13" y2="13"/>
+          <line x1="16" x2="8" y1="17" y2="17"/>
+          <polyline points="10,9 9,9 8,9"/>
+        </svg>
+        {{ job.description || '설명이 없습니다.' }}
+      </p>
+    </div>
+
+    <!-- 스테이지 표시 (있는 경우) -->
+    <div v-if="job.stages && job.stages.length > 0" class="stages-container">
+      <div class="stages-header">
+        <svg class="stages-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+             width="16">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        <span class="stages-title">스테이지</span>
+      </div>
+      <div class="stages-list">
+        <div
+            v-for="(stage, index) in job.stages"
+            :key="index"
+            class="stage-item"
+            :class="getStatusClass(stage.state)"
+        >
+          <div class="stage-indicator">
+            <svg v-if="stage.state === 'SUCCESS'" class="stage-icon" fill="none" height="12" stroke="currentColor"
+                 stroke-width="2" viewBox="0 0 24 24" width="12">
+              <polyline points="20,6 9,17 4,12"/>
+            </svg>
+            <svg v-else-if="stage.state === 'FAILED'" class="stage-icon" fill="none" height="12" stroke="currentColor"
+                 stroke-width="2" viewBox="0 0 24 24" width="12">
+              <line x1="18" x2="6" y1="6" y2="18"/>
+              <line x1="6" x2="18" y1="6" y2="18"/>
+            </svg>
+            <svg v-else-if="stage.state === 'RUNNING'" class="stage-icon animate-spin" fill="none" height="12"
+                 stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+            <div v-else class="stage-dot"></div>
+          </div>
+          <span class="stage-name">{{ stage.type }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="card-footer">
+      <button
+          class="action-btn"
+          :class="getButtonClass(job.buildState)"
+          @click.stop="handleActionClick"
+      >
+        <svg v-if="job.buildState === 'SUCCESS'" class="btn-icon" fill="none" height="16" stroke="currentColor"
+             stroke-width="2" viewBox="0 0 24 24" width="16">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+        </svg>
+        <svg v-else-if="job.buildState === 'FAILED'" class="btn-icon" fill="none" height="16" stroke="currentColor"
+             stroke-width="2" viewBox="0 0 24 24" width="16">
+          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        <svg v-else-if="job.buildState === 'RUNNING'" class="btn-icon" fill="none" height="16" stroke="currentColor"
+             stroke-width="2" viewBox="0 0 24 24" width="16">
+          <rect height="10" rx="1" ry="1" width="4" x="6" y="7"/>
+          <rect height="10" rx="1" ry="1" width="4" x="14" y="7"/>
+        </svg>
+        <svg v-else class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+             width="16">
+          <polygon points="5,3 19,12 5,21"/>
+        </svg>
+        <span>{{ getButtonText(job.buildState) }}</span>
+      </button>
+
+      <div class="more-container">
+        <button class="more-btn" @click.stop="handleToggleDropdown">
+          <svg class="more-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+               width="16">
+            <circle cx="12" cy="12" r="1"/>
+            <circle cx="19" cy="12" r="1"/>
+            <circle cx="5" cy="12" r="1"/>
+          </svg>
+        </button>
+
+        <!-- 드롭다운 메뉴 -->
+        <div v-if="isDropdownOpen" class="dropdown-menu" @click.stop>
+          <button class="dropdown-item" @click="handleSaveSnapshot">
+            <svg class="dropdown-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24" width="16">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17,21 17,13 7,13 7,21"/>
+              <polyline points="7,3 7,8 15,8"/>
+            </svg>
+            스냅샷 저장
+          </button>
+
+          <button class="dropdown-item" @click="handleViewSnapshots">
+            <svg class="dropdown-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24" width="16">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <line x1="16" x2="8" y1="13" y2="13"/>
+              <line x1="16" x2="8" y1="17" y2="17"/>
+              <polyline points="10,9 9,9 8,9"/>
+            </svg>
+            스냅샷 목록
+          </button>
+
+          <div class="dropdown-divider"></div>
+
+          <button class="dropdown-item danger" @click="handleDeleteJob">
+            <svg class="dropdown-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24" width="16">
+              <path d="M3 6h18l-1.5 14H4.5L3 6z"/>
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            삭제
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .job-card {
@@ -288,23 +281,15 @@ const handleMoreClick = () => {
   transition: all 0.2s ease;
   cursor: pointer;
   position: relative;
-
-  overflow: visible; /* hidden에서 visible로 변경 */
-  z-index: 1;
+  overflow: visible;
 }
 
-.job-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-color: #2563eb;
-}
-
-/* 드롭다운이 열려있을 때는 호버 효과 유지 */
 .job-card:hover,
-.job-card:has(.dropdown-menu) {
+.job-card.dropdown-open {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border-color: #2563eb;
+  z-index: 10;
 }
 
 /* 카드 헤더 */
@@ -565,12 +550,11 @@ const handleMoreClick = () => {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-   min-width: 160px;
-  z-index: 9999;
+  min-width: 160px;
+  z-index: 1000;
   margin-top: 4px;
   overflow: hidden;
 }
-
 
 .dropdown-item {
   display: flex;
@@ -609,15 +593,6 @@ const handleMoreClick = () => {
   height: 1px;
   background: #e5e7eb;
   margin: 4px 0;
-}
-
-.dropdown-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999;
 }
 
 .more-btn {
