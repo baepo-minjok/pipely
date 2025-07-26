@@ -26,6 +26,7 @@ public class RequestDto {
                 .build();
     }
 
+    @SuperBuilder //Test에서 생성하기 위함
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -258,6 +259,7 @@ public class RequestDto {
         private List<NotificationDto> notificationList;
     }
 
+    @SuperBuilder
     @EqualsAndHashCode(callSuper = true)
     @Data
     @AllArgsConstructor
@@ -275,6 +277,7 @@ public class RequestDto {
     }
 
     @EqualsAndHashCode(callSuper = true)
+    @SuperBuilder
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
