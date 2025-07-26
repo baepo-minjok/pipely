@@ -113,7 +113,7 @@ class JobControllerTest {
         // http 호출 x
         doNothing().when(pipelineService).updateJob(any());
 
-        // 현재 expression= "userEntity"를 쓰고 있으므로 수동으로  Authentication, CustomUserDetails 생성
+        // 현재 expression = "userEntity"를 쓰고 있으므로 수동으로  Authentication, CustomUserDetails 생성
         Authentication auth = mock(Authentication.class);
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
 

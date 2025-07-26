@@ -23,6 +23,7 @@ public class RequestDto {
                 .name(requestDto.getName())
                 .jenkinsInfo(info)
                 .createdAt(LocalDateTime.now())
+                .isBuildSuccess(false)
                 .isDeleted(false)
                 .build();
     }
