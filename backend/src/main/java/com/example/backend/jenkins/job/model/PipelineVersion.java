@@ -1,5 +1,6 @@
 package com.example.backend.jenkins.job.model;
 
+import com.example.backend.jenkins.notification.model.JobNotification;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -108,6 +109,11 @@ public class PipelineVersion {
             hidden = true
     )
     private Pipeline pipeline;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "pipelineVersion", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Schema(hidden = true)
+    private List<JobNotification> jobNotificationList = new ArrayList<>();
 
     public static PipelineVersion replicateEntity(PipelineVersion entity, String newName) {
         return PipelineVersion.builder()

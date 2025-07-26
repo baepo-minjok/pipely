@@ -3,10 +3,10 @@ package com.example.backend.jenkins.job.controller;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.auth.user.service.CustomUserDetails;
 import com.example.backend.config.jwt.JwtTokenProvider;
+import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.service.PipelineService;
-import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,9 +27,9 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest(JobController.class)
@@ -125,7 +125,7 @@ class JobControllerTest {
         when(userDetails.getUserEntity()).thenReturn(mockUser);
 
 
-        mockMvc.perform(put("/api/jenkins/job/update")
+        mockMvc.perform(put("/api/jenkins/job")
                         .with(request -> {
                             SecurityContext context = SecurityContextHolder.createEmptyContext();
                             context.setAuthentication(auth);  // 위에서 만든 auth 사용
