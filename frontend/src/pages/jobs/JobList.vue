@@ -1,8 +1,9 @@
 <script setup>
 import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
-import {useRoute, useRouter} from 'vue-router';
-import {useJobStore} from '../../stores/useJobStore.js';
+import { useRouter } from 'vue-router';
+import { useJobStore } from '../../stores/useJobStore.js';
+import { jobApi} from "@/api/JobApi.js";
 
 const jobStore = useJobStore();
 const router = useRouter();
@@ -35,12 +36,35 @@ const handleJobAction = (job) => {
   // Job 실행 로직
 };
 
-const handleDeleteJob = (job) => {
-  if (confirm(`정말로 "${job.name}" Job을 삭제하시겠습니까?`)) {
-    console.log('Delete job:', job);
-    // 삭제 로직
+const handleDeleteJob = async (job) => {
+  if (!confirm(`정말로 "${job.name}" Job을 삭제하시겠습니까?`)) {
+    openDropdownJob.value = null;
+    return;
   }
-  openDropdownJob.value = null; // 드롭다운 닫기
+
+  try {
+
+    await jobApi.deletedJobs(job.pipelineId);
+
+    const originalLength = jobStore.jobList.length;
+
+    jobStore.jobList = jobStore.jobList.filter(j => j.name !== job.name);
+
+    if (jobStore.jobList.length === originalLength) {
+      jobStore.jobList = jobStore.jobList.filter(j =>
+          j.id !== job.id &&
+          j.pipelineId !== job.pipelineId
+      );
+    }
+    openDropdownJob.value = null;
+
+    alert('삭제가 완료되었습니다.');
+
+  } catch (err) {
+    console.error('삭제 실패:', err);
+    alert('삭제에 실패했습니다.');
+    openDropdownJob.value = null;
+  }
 };
 
 const handleSaveSnapshot = (job) => {
@@ -65,7 +89,7 @@ const handleToggleDropdown = (job) => {
 };
 
 // 외부 클릭 시 드롭다운 닫기
-const handleOutsideClick = () => {
+const handleOutsideClick = (event) => {
   if (event.target.closest('.more-container') || event.target.closest('.dropdown-menu')) {
     return;
   }
@@ -73,7 +97,7 @@ const handleOutsideClick = () => {
 };
 
 onMounted(() => {
-  jobStore.getJenkinsInfo();
+  jobApi.getJenkinsInfo();
   // 전역 클릭 이벤트 리스너 추가
   document.addEventListener('click', handleOutsideClick);
 });
@@ -83,9 +107,12 @@ onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick);
 });
 
-watch(selectedJenkins, (id) => {
-  if (id) jobStore.fetchJobList(id);
-  openDropdownJob.value = null; // Jenkins 변경 시 드롭다운 닫기
+watch(selectedJenkins, async (id) => {
+  if (id) {
+    await jobApi.fetchJobList(id);
+  }
+  // Jenkins 변경 시 드롭다운 닫기
+  openDropdownJob.value = null;
 });
 </script>
 
