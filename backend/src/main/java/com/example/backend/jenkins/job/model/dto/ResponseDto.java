@@ -33,7 +33,8 @@ public class ResponseDto {
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
                 .description(latestVersion.getDescription())
-                .buildStatus(pipeline.getBuildStatus().toString())
+                .buildState(pipeline.getBuildState().toString())
+                .lastExe(pipeline.getLatestBuildTime())
                 .build();
     }
 
@@ -60,10 +61,11 @@ public class ResponseDto {
                 .deletedAt(pipeline.getDeletedAt())
                 .lightScriptDto(entityToLightScriptDto(script))
                 .stageList(toListOfStageDtos(latestVersion.getStageList()))
-                .buildStatus(pipeline.getBuildStatus().toString())
+                .buildState(pipeline.getBuildState().toString())
                 .schedule(latestVersion.getSchedule())
                 .pipelineVersionList(toListOfPipelineVersionDtos(pipeline.getVersionList()))
                 .notificationList(notificationDtos)
+                .lastExe(pipeline.getLatestBuildTime())
                 .build();
     }
 
@@ -132,7 +134,9 @@ public class ResponseDto {
         @Schema(description = "Job 설명", example = "테스트 Job")
         private String description;
 
-        private String buildStatus;
+        private String buildState;
+
+        private LocalDateTime lastExe;
     }
 
     @Data
@@ -166,7 +170,7 @@ public class ResponseDto {
         @Schema(description = "삭제 시간 (ISO 8601)", example = "2024-07-16T16:00:00")
         private LocalDateTime deletedAt;
 
-        private String buildStatus;
+        private String buildState;
 
         @Schema(description = "빌드/테스트/배포 등 스케줄(cron)", example = "매일 오후 12시 30분")
         private String schedule;
@@ -179,6 +183,8 @@ public class ResponseDto {
 
         @Schema(description = "현재 Job의 알림 설정 목록")
         private Map<String, NotificationDto> notificationList;
+
+        private LocalDateTime lastExe;
     }
 
     @Data

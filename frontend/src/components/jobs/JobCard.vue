@@ -62,7 +62,7 @@ const getStatusText = (state) => {
 const getButtonClass = (state) => {
   switch (state) {
     case 'BUILD_SUCCESS':
-      return 'btn-restart';
+      return 'btn-start';
     case 'BUILD_FAILURE':
       return 'btn-retry';
     case 'BUILD_RUNNING':
@@ -118,24 +118,25 @@ const handleActionClick = () => {
       </div>
 
       <div :class="getStatusClass(job.buildState)" class="status-badge">
-        <svg v-if="job.buildState === 'SUCCESS'" class="status-icon" fill="none" height="16" stroke="currentColor"
+        <svg v-if="job.buildState === 'BUILD_SUCCESS'" class="status-icon" fill="none" height="16" stroke="currentColor"
              stroke-width="2" viewBox="0 0 24 24" width="16">
           <polyline points="20,6 9,17 4,12"/>
         </svg>
-        <svg v-else-if="job.buildState === 'FAILED'" class="status-icon" fill="none" height="16" stroke="currentColor"
+        <svg v-else-if="job.buildState === 'BUILD_FAILURE'" class="status-icon" fill="none" height="16"
+             stroke="currentColor"
              stroke-width="2" viewBox="0 0 24 24" width="16">
           <line x1="18" x2="6" y1="6" y2="18"/>
           <line x1="6" x2="18" y1="6" y2="18"/>
         </svg>
-        <svg v-else-if="job.buildState === 'RUNNING'" class="status-icon animate-spin" fill="none" height="16"
+        <svg v-else-if="job.buildState === 'BUILD_RUNNING'" class="status-icon animate-spin" fill="none" height="16"
              stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
           <path d="M21 12a9 9 0 11-6.219-8.56"/>
         </svg>
         <svg v-else class="status-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
-             viewBox="0 0 24 24" width="16">
+             viewBox="0 0 24 24"
+             width="16">
           <circle cx="12" cy="12" r="10"/>
-          <line x1="12" x2="12" y1="8" y2="12"/>
-          <line x1="12" x2="12.01" y1="16" y2="16"/>
+          <polyline points="12,6 12,12 16,14"/>
         </svg>
         <span class="status-text">{{ getStatusText(job.buildState) }}</span>
       </div>
@@ -173,16 +174,17 @@ const handleActionClick = () => {
             class="stage-item"
         >
           <div class="stage-indicator">
-            <svg v-if="stage.state === 'SUCCESS'" class="stage-icon" fill="none" height="12" stroke="currentColor"
+            <svg v-if="stage.state === 'BUILD_SUCCESS'" class="stage-icon" fill="none" height="12" stroke="currentColor"
                  stroke-width="2" viewBox="0 0 24 24" width="12">
               <polyline points="20,6 9,17 4,12"/>
             </svg>
-            <svg v-else-if="stage.state === 'FAILED'" class="stage-icon" fill="none" height="12" stroke="currentColor"
+            <svg v-else-if="stage.state === 'BUILD_FAILURE'" class="stage-icon" fill="none" height="12"
+                 stroke="currentColor"
                  stroke-width="2" viewBox="0 0 24 24" width="12">
               <line x1="18" x2="6" y1="6" y2="18"/>
               <line x1="6" x2="18" y1="6" y2="18"/>
             </svg>
-            <svg v-else-if="stage.state === 'RUNNING'" class="stage-icon animate-spin" fill="none" height="12"
+            <svg v-else-if="stage.state === 'BUILD_RUNNING'" class="stage-icon animate-spin" fill="none" height="12"
                  stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
               <path d="M21 12a9 9 0 11-6.219-8.56"/>
             </svg>
@@ -200,17 +202,20 @@ const handleActionClick = () => {
           class="action-btn"
           @click.stop="handleActionClick"
       >
-        <svg v-if="job.buildState === 'SUCCESS'" class="btn-icon" fill="none" height="16" stroke="currentColor"
-             stroke-width="2" viewBox="0 0 24 24" width="16">
-          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-          <path d="M21 3v5h-5"/>
+        <svg v-if="job.buildState === 'BUILD_SUCCESS'" class="btn-icon" fill="currentColor" height="16"
+             stroke="currentColor"
+             stroke-width="1" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><title>replay</title>
+          <path
+              d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
         </svg>
-        <svg v-else-if="job.buildState === 'FAILED'" class="btn-icon" fill="none" height="16" stroke="currentColor"
-             stroke-width="2" viewBox="0 0 24 24" width="16">
-          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-          <path d="M3 3v5h5"/>
+        <svg v-else-if="job.buildState === 'BUILD_FAILURE'" class="btn-icon" fill="currentColor" height="16"
+             stroke="currentColor"
+             stroke-width="1" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><title>replay</title>
+          <path
+              d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
         </svg>
-        <svg v-else-if="job.buildState === 'RUNNING'" class="btn-icon" fill="none" height="16" stroke="currentColor"
+        <svg v-else-if="job.buildState === 'BUILD_RUNNING'" class="btn-icon" fill="none" height="16"
+             stroke="currentColor"
              stroke-width="2" viewBox="0 0 24 24" width="16">
           <rect height="10" rx="1" ry="1" width="4" x="6" y="7"/>
           <rect height="10" rx="1" ry="1" width="4" x="14" y="7"/>

@@ -23,7 +23,7 @@ public class RequestDto {
                 .name(requestDto.getName())
                 .jenkinsInfo(info)
                 .createdAt(LocalDateTime.now())
-                .buildStatus(Pipeline.BuildStatus.BUILD_INIT)
+                .buildState(Pipeline.BuildState.BUILD_INIT)
                 .isDeleted(false)
                 .build();
     }
