@@ -2,10 +2,7 @@ package com.example.backend.jenkins.job.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
@@ -28,6 +25,7 @@ import java.util.UUID;
         name = "PipelineVersion",
         description = "파이프라인의 버전 정보를 저장하는 엔티티. Jenkins Job의 특정 시점 버전 상태와 설정을 기록합니다."
 )
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class PipelineVersion {
 
     @Id
@@ -38,6 +36,7 @@ public class PipelineVersion {
             description = "파이프라인 버전 ID (UUID)",
             example = "3e6c84f7-7fd2-4f57-8015-3b45528d15df"
     )
+    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(name = "version", nullable = false)
