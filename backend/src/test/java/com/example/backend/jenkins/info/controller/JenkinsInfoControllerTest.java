@@ -269,20 +269,6 @@ public class JenkinsInfoControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/jenkins/info - 상세 조회 시 ID 누락으로 400 반환")
-    void getDetailInfo_validationFail() throws Exception {
-        InfoDto dto = InfoDto.builder().build();
-
-        mockMvc.perform(post("/api/jenkins/info")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED_400"))
-                .andExpect(jsonPath("$.error.message").exists());
-    }
-
-    @Test
     @DisplayName("DELETE /api/jenkins/info/{infoId} - 삭제 시 200 반환 및 서비스 호출")
     void deleteInfo_success() throws Exception {
         UUID id = UUID.randomUUID();

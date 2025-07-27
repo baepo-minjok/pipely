@@ -61,6 +61,7 @@ router.beforeEach(async (to, from, next) => {
         return;
     }
     if (to.meta.requiresAuth && !isLoggedIn) {
+        userStore.reset();
         next('/user/login');
     } else {
         next();
