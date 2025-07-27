@@ -302,4 +302,15 @@ public class RequestDto {
         private String script;
     }
 
+    @Data
+    public static class StatusDto {
+        @Schema(
+                description = "job의 ID",
+                example = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        )
+        private UUID jobId;
+
+        private boolean success;
+    }
+
 }

@@ -48,6 +48,7 @@ public class SecurityConfig {
                                 "/login/oauth2/**",
                                 "/api/email/**",
                                 "/api/auth/token",
+                                "/api/jenkins/build/status",
 
                                 //swagger
                                 "/swagger**",
