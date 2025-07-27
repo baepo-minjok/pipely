@@ -108,7 +108,6 @@ class VersionServiceTest {
 
     @Test
     @DisplayName("snapshotVersion - 최신 버전을 기반으로 스냅샷 생성 및 저장")
-
     void snapshotVersion_shouldSaveSnapshotCorrectly() {
         // 1. pipelineService.getLatestVersion() 으로 최신 버전 조회
         // 2. 기존 VersionStage 목록을 복사해서 새 PipelineVersion 생성

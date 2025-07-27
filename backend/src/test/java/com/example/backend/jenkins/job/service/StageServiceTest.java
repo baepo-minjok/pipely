@@ -88,7 +88,6 @@ class StageServiceTest {
         verify(versionStageRepository).save(any());
     }
 
-
     //조건: pipelineVersion에 기존 stageList가 있고 새롭게 stage 수정하는 경우
     @Test
     @DisplayName("updateStages - 기존 연결을 삭제하고 새로운 Stage들로 다시 생성한다")
