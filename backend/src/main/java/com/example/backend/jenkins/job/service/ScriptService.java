@@ -48,13 +48,6 @@ public class ScriptService {
             script = scriptRepository.save(script);
         }
 
-
-        /*List<JobNotification> enabledNotifications = jobNotificationService.getEnabledNotifications(script);
-        String updatedScript = scriptEditUtil.injectNotificationPostBlock(script.getScript(), enabledNotifications);
-        script.setScript(updatedScript);
-
-        script = scriptRepository.save(script);*/
-
         return ResponseDto.entityToLightScriptDto(script);
     }
 

@@ -33,6 +33,7 @@ public class ResponseDto {
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
                 .description(latestVersion.getDescription())
+                .isBuildSuccess(pipeline.getIsBuildSuccess())
                 .build();
     }
 
@@ -130,6 +131,8 @@ public class ResponseDto {
 
         @Schema(description = "Job 설명", example = "테스트 Job")
         private String description;
+
+        private boolean isBuildSuccess;
     }
 
     @Data

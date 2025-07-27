@@ -255,5 +255,12 @@ public class PipelineService {
         pipelineVersionRepository.flush();
     }
 
+    @Transactional
+    public void setStatus(RequestDto.StatusDto dto) {
+        Pipeline pipeline = getPipelineById(dto.getJobId());
+        pipeline.setIsBuildSuccess(dto.isSuccess());
+        pipelineRepository.save(pipeline);
+    }
+
 }
 

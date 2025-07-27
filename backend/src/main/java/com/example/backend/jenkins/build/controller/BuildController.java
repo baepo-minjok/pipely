@@ -5,6 +5,8 @@ import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.build.model.dto.BuildRequestDto;
 import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
 import com.example.backend.jenkins.build.service.BuildService;
+import com.example.backend.jenkins.job.model.dto.RequestDto;
+import com.example.backend.jenkins.job.service.PipelineService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,6 +31,7 @@ import java.util.UUID;
 public class BuildController {
 
     private final BuildService buildService;
+    private final PipelineService pipelineService;
 
     @PreAuthorize("@pipelineService.isOwner(#user, #dto.jobId)")
     @Operation(
@@ -117,5 +120,14 @@ public class BuildController {
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestParam UUID jobId) {
         return ResponseEntity.ok(BaseResponse.success(buildService.getStreamLog(jobId)));
+    }
+
+    @PostMapping("/status")
+    public ResponseEntity<BaseResponse<String>> setStatus(
+            @RequestBody @Valid RequestDto.StatusDto dto
+    ) {
+        pipelineService.setStatus(dto);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("erer"));
     }
 }
