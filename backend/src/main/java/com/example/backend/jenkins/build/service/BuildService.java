@@ -55,6 +55,7 @@ public class BuildService {
             String paramKey = "RUN_" + stage.toUpperCase().replace(" ", "_");
             body.add(paramKey, "false");
         }
+        body.add("ID", dto.getJobId().toString());
         String response = httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
         log.info("Jenkins 응답 상태: {}", response);
     }
