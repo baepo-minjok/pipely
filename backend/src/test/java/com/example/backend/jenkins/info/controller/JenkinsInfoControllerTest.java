@@ -200,7 +200,7 @@ public class JenkinsInfoControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value(s"VALIDATION_FAILED_400"))
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED_400"))
                 .andExpect(jsonPath("$.error.message").exists());
     }
 
