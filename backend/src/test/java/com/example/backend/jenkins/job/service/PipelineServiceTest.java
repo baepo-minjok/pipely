@@ -123,8 +123,6 @@ class PipelineServiceTest {
                 anyString(), anyString(), eq(info), eq(HttpMethod.POST), any(Runnable.class));
     }
 
-
-
     @Test
     @DisplayName("[예외] 중복된 Job 이름이 존재할 경우 CustomException 발생")
     void createJob_duplicateName_shouldThrowCustomException() {
