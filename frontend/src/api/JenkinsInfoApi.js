@@ -44,7 +44,7 @@ export const jenkinsInfoApi = {
 
     // Jenkins 연결 확인
     verify(infoId) {
-        return instance.post("/jenkins/info/verification", {infoId})
+        return instance.post("/jenkins/info/verification", infoId)
             .then((res) => {
                 return true;
             })
