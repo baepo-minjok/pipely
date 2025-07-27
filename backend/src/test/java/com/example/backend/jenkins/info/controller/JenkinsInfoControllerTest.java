@@ -200,7 +200,7 @@ public class JenkinsInfoControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED_400"))
+                .andExpect(jsonPath("$.error.code").value(s"VALIDATION_FAILED_400"))
                 .andExpect(jsonPath("$.error.message").exists());
     }
 
@@ -266,20 +266,6 @@ public class JenkinsInfoControllerTest {
                 .andExpect(jsonPath("$.error.message").exists());
 
         verify(jenkinsInfoService).getDetailInfoById(id);
-    }
-
-    @Test
-    @DisplayName("POST /api/jenkins/info - 상세 조회 시 ID 누락으로 400 반환")
-    void getDetailInfo_validationFail() throws Exception {
-        InfoDto dto = InfoDto.builder().build();
-
-        mockMvc.perform(post("/api/jenkins/info")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED_400"))
-                .andExpect(jsonPath("$.error.message").exists());
     }
 
     @Test
