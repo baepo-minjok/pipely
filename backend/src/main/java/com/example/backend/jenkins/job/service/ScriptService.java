@@ -8,14 +8,12 @@ import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.ScriptRepository;
-import com.example.backend.jenkins.notification.model.JobNotification;
 import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -41,44 +39,23 @@ public class ScriptService {
      * @return
      */
     public ResponseDto.LightScriptDto generateScript(RequestDto.ScriptBaseDto requestDto) {
-        UUID scriptId = requestDto.getScriptId();
-        Script newScript = null;
-        String script = null;
-        if (scriptId != null) {
-            if (!scriptRepository.existsById(scriptId)) {
-                throw new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND);
-            }
-            script = configService.createScript(configService.buildScriptContext(requestDto));
+        Script script;
 
-            String injectedScript = scriptEditUtil.injectBooleanParams(script);
-
-            newScript = Script.toEntity(requestDto, injectedScript);
-            newScript.setId(scriptId);
-
-            //newScript = scriptRepository.save(newScript);
-
-            if (requestDto.getNotificationList() != null) {
-                JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
-                jobNotificationService.syncJobNotifications(requestDto.getNotificationList(), info, newScript);
-            }
+        if (requestDto.getScriptId() != null) {
+            script = updateExistingScript(requestDto);
         } else {
-            script = configService.createScript(configService.buildScriptContext(requestDto));
-
-            String injectedScript = scriptEditUtil.injectBooleanParams(script);
-            newScript = Script.toEntity(requestDto, injectedScript);
-            newScript = scriptRepository.save(newScript);
-
-            if (requestDto.getNotificationList() != null) {
-                JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
-                jobNotificationService.createJobNotifications(requestDto.getNotificationList(), info, newScript.getId());
-            }
+            script = createNewScript(requestDto);
+            script = scriptRepository.save(script);
         }
 
-        List<JobNotification> enabledNotifications = jobNotificationService.getEnabledNotifications(newScript);
 
-        newScript = jobNotificationService.updateScriptWithJobNotifications(newScript, enabledNotifications);
+        /*List<JobNotification> enabledNotifications = jobNotificationService.getEnabledNotifications(script);
+        String updatedScript = scriptEditUtil.injectNotificationPostBlock(script.getScript(), enabledNotifications);
+        script.setScript(updatedScript);
 
-        return ResponseDto.entityToLightScriptDto(newScript);
+        script = scriptRepository.save(script);*/
+
+        return ResponseDto.entityToLightScriptDto(script);
     }
 
     @Transactional
@@ -95,5 +72,38 @@ public class ScriptService {
         }
 
     }
+
+    private Script createNewScript(RequestDto.ScriptBaseDto dto) {
+        String scriptContent = configService.createScript(configService.buildScriptContext(dto));
+        String injectedScript = scriptEditUtil.injectBooleanParams(scriptContent);
+        return Script.toEntity(dto, injectedScript);
+    }
+
+    private Script updateExistingScript(RequestDto.ScriptBaseDto dto) {
+        UUID scriptId = dto.getScriptId();
+        if (!scriptRepository.existsById(scriptId)) {
+            throw new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND);
+        }
+
+        String scriptContent = configService.createScript(configService.buildScriptContext(dto));
+        String injectedScript = scriptEditUtil.injectBooleanParams(scriptContent);
+
+        Script script = Script.toEntity(dto, injectedScript);
+        script.setId(scriptId);
+        return script;
+    }
+
+    /*private void handleNotifications(Script script, RequestDto.ScriptBaseDto dto) {
+        List<RequestDto.NotificationDto> notiList = dto.getNotificationList();
+        if (notiList == null || notiList.isEmpty()) return;
+
+        JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
+
+        if (dto.getScriptId() != null) {
+            jobNotificationService.syncJobNotifications(notiList, info, script);
+        } else {
+            jobNotificationService.createJobNotifications(notiList, info, script.getId());
+        }
+    }*/
 
 }

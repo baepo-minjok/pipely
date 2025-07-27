@@ -134,38 +134,41 @@ public class ConfigService {
         return context;
     }
 
-    // config 템플릿에 사용되는 context Map 만드는 함수
+    /**
+     * Jenkins Config 템플릿에 사용할 context Map을 생성한다.
+     */
     public Map<String, Object> buildConfigContext(RequestDto.BaseDto dto, Script script) {
-
         Map<String, Object> context = new HashMap<>();
 
         context.put("description", dto.getDescription());
         context.put("trigger", dto.getTrigger());
 
+        String originalScript = "";
         if (script != null) {
+            originalScript = script.getScript() != null ? script.getScript() : "";
+            context.put("githubUrl", script.getGithubUrl() != null ? script.getGithubUrl() : "");
 
-            String githubUrl = script.getGithubUrl() == null ? "" : script.getGithubUrl();
-            String sc = script.getScript() == null ? "" : script.getScript();
-
-            List<String> stageList = scriptEditUtil.extractStageNames(script.getScript()).stream()
-                    .map(name -> name.toUpperCase().replaceAll("\\W+", "_")).toList();
-            String injectedScript = scriptEditUtil.injectBooleanParams(sc);
-
+            List<String> stageList = scriptEditUtil.extractStageNames(originalScript).stream()
+                    .map(name -> name.toUpperCase().replaceAll("\\W+", "_"))
+                    .toList();
             context.put("params", stageList);
-            context.put("githubUrl", githubUrl);
-            context.put("script", injectedScript);
         }
 
-        if (dto.getSchedule() != null) {
+        String injectedScript = originalScript.isBlank() ? "" : scriptEditUtil.injectBooleanParams(originalScript);
 
-            // 받은 스케줄로 cron식 생성
-            String cronExpression = CronExpressionUtil.toCron(dto.getSchedule());
+        String notificationScript = (dto.getNotificationMap() != null && !dto.getNotificationMap().isEmpty())
+                ? createNotificationScript(dto)
+                : "";
+        injectedScript = scriptEditUtil.replacePostBlock(injectedScript, notificationScript);
 
-            context.put("cronExpression", cronExpression);
+        if (dto.getSchedule() != null && !dto.getSchedule().isBlank()) {
+            context.put("cronExpression", CronExpressionUtil.toCron(dto.getSchedule()));
         }
 
+        context.put("script", injectedScript);
         return context;
     }
+
 
     public Map<String, String> findBuildTool(String repoUrl) {
         String[] parts = parseOwnerAndRepo(repoUrl);
@@ -254,6 +257,18 @@ public class ConfigService {
         result.put("buildTool", buildTool);
         result.put("directory", scriptDir.replace('\\', '/'));
         return result;
+    }
+
+    public String createNotificationScript(RequestDto.BaseDto dto) {
+        Mustache mustache = mf.compile("template/notificationScript.mustache");
+
+
+        Map<String, Object> context = new HashMap<>();
+        context.put("notificationMap", dto.getNotificationMap());
+
+        StringWriter writer = new StringWriter();
+        mustache.execute(writer, context);
+        return writer.toString();
     }
 
     /**

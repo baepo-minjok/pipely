@@ -49,5 +49,29 @@ public class UserDormancyScheduler {
         } while (true);
     }
 
+    @Scheduled(cron = "0 0 1 * * *") // 매일 새벽 1시에 실행
+    @Transactional
+    public void processDeletedUsers() {
+        LocalDateTime threshold = LocalDateTime.now().minusDays(10);
+
+        int pageSize = 100;
+        Pageable pageable = PageRequest.of(0, pageSize);
+        Page<Users> page;
+
+        do {
+            page = userRepository.findByStatusAndDeletedAtBefore(
+                    Users.UserStatus.WITHDRAWN, threshold, pageable
+            );
+
+            userRepository.deleteAll(page.getContent());
+
+            if (page.hasNext()) {
+                pageable = page.nextPageable();
+            } else {
+                break;
+            }
+        } while (true);
+    }
+
 }
 

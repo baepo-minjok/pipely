@@ -201,4 +201,12 @@ public class UserController {
     public ResponseEntity<BaseResponse<String>> isLogged() {
         return ResponseEntity.ok(BaseResponse.success("ok"));
     }
+
+    @PostMapping("/reactivation")
+    public ResponseEntity<BaseResponse<String>> reactivation(
+            @RequestBody @Valid LoginRequest req
+    ) {
+        userService.reactivation(req.getEmail());
+        return ResponseEntity.ok().body(BaseResponse.success("reactivation success"));
+    }
 }

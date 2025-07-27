@@ -49,5 +49,34 @@ export const emailApi = {
             .catch((error) => {
                 return false;
             })
+    },
+
+    // 휴면 유저 재활성화 이메일 요청
+    sendDormantEmail(data) {
+        return instance
+            .get("/auth/reactive", {
+                params: {
+                    email: data,
+                }
+            })
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                    return false;
+                }
+            )
+    },
+
+    // 휴면 유저 재활성화 요청
+    reactiveDormantUser(data) {
+        return instance
+            .post("/auth/reactive", data)
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
     }
 }

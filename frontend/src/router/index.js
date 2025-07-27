@@ -1,6 +1,6 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import { useUserStore } from '@/stores/useUserStore.js';
-import { userApi } from '@/api/UserApi.js';
+import {createRouter, createWebHistory} from 'vue-router';
+import {useUserStore} from '@/stores/useUserStore.js';
+import {userApi} from '@/api/UserApi.js';
 import Login from '../pages/users/Login.vue';
 import Signup from '../pages/users/Signup.vue';
 import FindPassword from '../pages/users/FindPassword.vue';
@@ -15,6 +15,7 @@ import VerifyEmail from '../pages/users/VerifyEmail.vue';
 import Chat from '../pages/chat/Chat.vue';
 import ResetPassword from '../pages/users/ResetPassword.vue';
 import Withdraw from '../pages/users/Withdraw.vue';
+import ReactivateUser from '../pages/users/ReactivateUser.vue';
 
 const routes = [
     {path: '/', component: Main, name: 'Main'},
@@ -25,18 +26,19 @@ const routes = [
     {path: '/user/find/password', component: FindPassword},
     {path: '/user/reset/password', component: ResetPassword, name: 'ResetPassword'},
     {path: '/user/withdraw', component: Withdraw, name: 'Withdraw'},
+    {path: '/user/reactivate', component: ReactivateUser, name: 'ReactivateUser'},
     {path: '/mypage', component: Mypage, name: 'Mypage', meta: {requiresAuth: true}},
     {path: '/mypage/cicd/create', component: CreateCicdInfo, meta: {requiresAuth: true}},
     {path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: {requiresAuth: true}},
-    {path: '/job', component: JobList, meta: {requiresAuth: true}},
-    {path: '/job/create', component: CreateJob, meta: {requiresAuth: true}},
+    {path: '/job', component: JobList, name: 'JobList', meta: {requiresAuth: true}},
+    {path: '/job/create', component: CreateJob, name: 'CreateJob', meta: {requiresAuth: true}},
     {path: '/ai/chat', component: Chat},
     {path: '/:catchAll(.*)', redirect: '/'},
 ];
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes,
+    history: createWebHistory(),
+    routes,
 });
 
 router.beforeEach(async (to, from, next) => {
@@ -59,6 +61,7 @@ router.beforeEach(async (to, from, next) => {
         return;
     }
     if (to.meta.requiresAuth && !isLoggedIn) {
+        userStore.reset();
         next('/user/login');
     } else {
         next();
