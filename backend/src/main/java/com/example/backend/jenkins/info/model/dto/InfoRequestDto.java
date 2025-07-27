@@ -57,6 +57,8 @@ public class InfoRequestDto {
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
         private String apiToken;
+
+        private boolean connected;
     }
 
     @Builder
@@ -120,12 +122,32 @@ public class InfoRequestDto {
     @Schema(name = "InfoDto", description = "Jenkins 상세 조회 또는 검증 요청 DTO")
     public static class InfoDto {
 
-        @NotNull
         @Schema(
                 description = "Jenkins 정보의 고유 ID",
                 example = "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
         private UUID infoId;
+
+        @Schema(
+                description = "Jenkins 사용자 ID",
+                example = "jenkins_admin",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        private String jenkinsId;
+
+        @Schema(
+                description = "Jenkins 서버 URI",
+                example = "https://jenkins.example.com",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        private String uri;
+
+        @Schema(
+                description = "Jenkins API 토큰",
+                example = "n2swfhn23sdf234513aff34",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
+        private String apiToken;
     }
 }

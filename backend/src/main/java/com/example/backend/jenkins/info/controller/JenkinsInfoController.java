@@ -162,13 +162,16 @@ public class JenkinsInfoController {
             @ApiResponse(responseCode = "404", description = "잘못된 Jenkins 정보로 인한 연결 실패"),
             @ApiResponse(responseCode = "500", description = "Jenkins 서버 오류")
     })
-    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #dto.infoId)")
     @PostMapping("/verification")
     public ResponseEntity<BaseResponse<String>> getVerification(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid InfoDto dto
     ) {
-        jenkinsInfoService.verificationJenkinsInfo(dto.getInfoId());
+        if (dto.getInfoId() != null) {
+            jenkinsInfoService.verificationJenkinsInfo(dto.getInfoId());
+        } else {
+            jenkinsInfoService.verificationJenkinsInfo(dto);
+        }
         return ResponseEntity.ok()
                 .body(BaseResponse.success("verify success"));
     }
