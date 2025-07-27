@@ -4,6 +4,7 @@ import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
+import com.example.backend.jenkins.info.model.dto.InfoRequestDto;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.CreateDto;
 import com.example.backend.jenkins.info.model.dto.InfoRequestDto.UpdateDto;
 import com.example.backend.jenkins.info.model.dto.InfoResponseDto.DetailInfoDto;
@@ -44,7 +45,7 @@ public class JenkinsInfoService {
                 .jenkinsId(createDto.getJenkinsId())
                 .apiToken(createDto.getApiToken())
                 .uri(createDto.getUri())
-                .connected(false)
+                .connected(createDto.isConnected())
                 .user(user)
                 .build();
 
@@ -151,6 +152,42 @@ public class JenkinsInfoService {
             jenkinsInfoRepository.save(jenkinsInfo);
             throw e;
         }
+
+    }
+
+    /**
+     * jenkins 정보가 정확한 지 검증
+     *
+     * @param dto uri, id, apiToken이 담긴 dto
+     */
+    @Transactional
+    public void verificationJenkinsInfo(InfoRequestDto.InfoDto dto) {
+
+        String baseUri = dto.getUri();
+        String username = dto.getJenkinsId();
+        String apiToken = dto.getApiToken();
+
+        String auth = username + ":" + apiToken;
+        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(new MediaType("application", "xml", StandardCharsets.UTF_8));
+        headers.set("Authorization", "Basic " + encodedAuth);
+
+        HttpEntity<String> requestEntity = new HttpEntity<>(headers);
+
+        String endpoint = baseUri;
+
+        if (baseUri.endsWith("/")) {
+            endpoint = baseUri + "api/json";
+        } else {
+            endpoint = baseUri + "/api/json";
+        }
+        httpClientService.exchange(
+                endpoint,
+                HttpMethod.GET,
+                requestEntity,
+                String.class
+        );
 
     }
 
