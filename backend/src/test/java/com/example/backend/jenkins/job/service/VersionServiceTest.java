@@ -50,10 +50,11 @@ class VersionServiceTest {
         versionId = UUID.randomUUID();
     }
 
+    //버전 삭제
+    //조건: 최신 버전 삭제 -> 예외
     @DisplayName("deletePipelineVersion - 최신 버전 삭제 시 예외 발생")
     @Test
     void deletePipelineVersion_shouldThrowException_whenDeletingLatestVersion() {
-        // given
         UUID versionId = UUID.randomUUID();
         Pipeline pipeline = new Pipeline();
         pipeline.setLatestVersionId(versionId); // 이 버전이 최신
@@ -65,6 +66,7 @@ class VersionServiceTest {
 
         when(pipelineVersionRepository.findWithPipelineById(versionId)).thenReturn(Optional.of(version));
 
+        // 예외 발생 검증
         assertThatThrownBy(() -> versionService.deletePipelineVersion(versionId))
                 .isInstanceOf(CustomException.class)
                 .satisfies(ex -> {
@@ -74,21 +76,21 @@ class VersionServiceTest {
     }
 
 
+    // 버전 삭제 성공
     @Test
+    @DisplayName("deletePipelineVersion - 최신 버전이 아닌 경우 정상 삭제")
     void deletePipelineVersion_shouldRemoveVersion_whenNotLatestVersion() {
-        // given
         UUID latestVersionId = UUID.randomUUID();
         UUID deletingId = UUID.randomUUID();
 
         Pipeline pipeline = new Pipeline();
-        pipeline.setLatestVersionId(latestVersionId); // 최신 버전 ID 설정
+        pipeline.setLatestVersionId(latestVersionId);
 
         PipelineVersion versionToDelete = PipelineVersion.builder()
                 .id(deletingId)
                 .pipeline(pipeline)
                 .build();
 
-        // 기존 버전 리스트 구성: 삭제할 버전 포함
         List<PipelineVersion> versionList = new ArrayList<>();
         versionList.add(versionToDelete);
 
@@ -97,18 +99,21 @@ class VersionServiceTest {
         when(pipelineVersionRepository.findWithPipelineById(deletingId))
                 .thenReturn(Optional.of(versionToDelete));
 
-        // when
         versionService.deletePipelineVersion(deletingId);
 
-        // then
         assertThat(pipeline.getVersionList()).doesNotContain(versionToDelete);
     }
 
 
 
     @Test
+    @DisplayName("snapshotVersion - 최신 버전을 기반으로 스냅샷 생성 및 저장")
+
     void snapshotVersion_shouldSaveSnapshotCorrectly() {
-        // given
+        // 1. pipelineService.getLatestVersion() 으로 최신 버전 조회
+        // 2. 기존 VersionStage 목록을 복사해서 새 PipelineVersion 생성
+        // 3. pipeline.getVersionList()에 추가 및 저장
+
         UUID pipelineId = UUID.randomUUID();
         UUID versionId = UUID.randomUUID();
 
@@ -140,10 +145,9 @@ class VersionServiceTest {
         when(pipelineService.getLatestVersion(pipeline)).thenReturn(latestVersion);
         when(pipelineVersionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // when
+        // 스냅샷 저장 시 save()가 호출되고, pipeline 버전 리스트에 추가되었는지 확인
         versionService.snapshotVersion(pipelineId, "snapshot-v1");
 
-        // then
         verify(pipelineVersionRepository).save(any());
         verify(pipelineRepository).save(pipeline);
         assertThat(pipeline.getVersionList()).hasSize(1);
@@ -151,8 +155,13 @@ class VersionServiceTest {
 
 
     @Test
+    @DisplayName("rollbackToSnapshot - 스냅샷 기준으로 최신 버전 되돌리기 + Jenkins 반영")
     void rollbackToSnapshot_shouldUpdateConfigAndCallJenkins() {
-        // given
+        // 1. 대상 snapshotVersion을 조회
+        // 2. 최신 버전의 config 등 필드들을 snapshot 기준으로 덮어씀
+        // 3. stageService.updateStages 호출
+        // 4. jenkins 서버에 config.xml 재전송
+
         JenkinsInfo info = new JenkinsInfo();
         Pipeline pipeline = Pipeline.builder()
                 .id(pipelineId)
@@ -160,6 +169,7 @@ class VersionServiceTest {
                 .name("test-job")
                 .build();
 
+        // 되돌릴 snapshot
         PipelineVersion targetSnapshot = PipelineVersion.builder()
                 .id(versionId)
                 .pipeline(pipeline)
@@ -169,6 +179,7 @@ class VersionServiceTest {
                 .isTriggered(true)
                 .build();
 
+        // 최신 버전
         PipelineVersion latestVersion = PipelineVersion.builder()
                 .id(UUID.randomUUID())
                 .pipeline(pipeline)
@@ -181,10 +192,9 @@ class VersionServiceTest {
         when(pipelineService.getLatestVersion(pipeline)).thenReturn(latestVersion);
         when(pipelineVersionRepository.save(any())).thenReturn(latestVersion);
 
-        // when
+        // rollback 시 stage 업데이트와 Jenkins config가 정상적으로 호출이 되는지 확인
         versionService.rollbackToSnapshot(versionId);
 
-        // then
         verify(stageService).updateStages(latestVersion, script);
         verify(httpClientService).callJenkins(
                 contains("/job/test-job/config.xml"),
