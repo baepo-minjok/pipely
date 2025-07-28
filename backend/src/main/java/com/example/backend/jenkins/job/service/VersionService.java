@@ -42,7 +42,7 @@ public class VersionService {
         Pipeline pipeline = pipelineVersion.getPipeline();
 
         // 최신 버전은 삭제 불가
-        if (!pipeline.getLatestVersionId().equals(pipelineVersionId)) {
+        if (pipeline.getLatestVersionId().equals(pipelineVersionId)) {
             throw new CustomException(ErrorCode.CANNOT_DELETE_LATEST_VERSION);
         }
 
