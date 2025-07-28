@@ -33,7 +33,7 @@ public class ResponseDto {
                 .pipelineId(pipeline.getId())
                 .name(pipeline.getName())
                 .description(latestVersion.getDescription())
-                .isBuildSuccess(pipeline.getIsBuildSuccess())
+                .buildStatus(pipeline.getBuildStatus().toString())
                 .build();
     }
 
@@ -60,7 +60,7 @@ public class ResponseDto {
                 .deletedAt(pipeline.getDeletedAt())
                 .lightScriptDto(entityToLightScriptDto(script))
                 .stageList(toListOfStageDtos(latestVersion.getStageList()))
-                .isBuildSuccess(pipeline.getIsBuildSuccess())
+                .buildStatus(pipeline.getBuildStatus().toString())
                 .schedule(latestVersion.getSchedule())
                 .pipelineVersionList(toListOfPipelineVersionDtos(pipeline.getVersionList()))
                 .notificationList(notificationDtos)
@@ -132,7 +132,7 @@ public class ResponseDto {
         @Schema(description = "Job 설명", example = "테스트 Job")
         private String description;
 
-        private Boolean isBuildSuccess;
+        private String buildStatus;
     }
 
     @Data
@@ -166,8 +166,7 @@ public class ResponseDto {
         @Schema(description = "삭제 시간 (ISO 8601)", example = "2024-07-16T16:00:00")
         private LocalDateTime deletedAt;
 
-        @Schema(description = "최근 빌드 성공 여부 (true: 성공, false: 실패, null: 빌드 전)", example = "true")
-        private Boolean isBuildSuccess;
+        private String buildStatus;
 
         @Schema(description = "빌드/테스트/배포 등 스케줄(cron)", example = "매일 오후 12시 30분")
         private String schedule;
