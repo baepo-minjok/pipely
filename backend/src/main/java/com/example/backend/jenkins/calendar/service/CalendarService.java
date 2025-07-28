@@ -5,6 +5,7 @@ import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventGroupRes;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.repository.JenkinsInfoRepository;
 import com.example.backend.service.HttpClientService;
@@ -15,6 +16,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -76,6 +79,30 @@ public class CalendarService {
                 .errorCount(error)
                 .build();
     }
+
+    public List<CalendarEventGroupRes> getEventsByMonth(Users user, UUID infoId, int year, int month) {
+        List<CalendarEventGroupRes> result = new ArrayList<>();
+
+        int daysInMonth = YearMonth.of(year, month).lengthOfMonth();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        for (int day = 1; day <= daysInMonth; day++) {
+            String date = LocalDate.of(year, month, day).format(formatter);
+            List<CalendarEventRes> events = getEventsByDate(user, infoId, date);
+
+            if (!events.isEmpty()) {
+                result.add(
+                        CalendarEventGroupRes.builder()
+                                .date(date)
+                                .events(events)
+                                .build()
+                );
+            }
+        }
+
+        return result;
+    }
+
 
     /**
      * 사용자 권한 검증 포함한 JenkinsInfo 조회

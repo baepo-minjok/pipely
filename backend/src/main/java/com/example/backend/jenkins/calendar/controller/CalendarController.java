@@ -4,6 +4,7 @@ import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventGroupRes;
 import com.example.backend.jenkins.calendar.service.CalendarService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -57,4 +58,21 @@ public class CalendarController {
                 calendarService.getCalendarSummaryByDate(user, infoId, date)
         ));
     }
+
+    @Operation(
+            summary = "월 단위 이벤트 조회",
+            description = "infoId로 연결된 Jenkins 계정의 모든 Job 중, 지정된 연/월에 수행된 모든 이벤트를 날짜별로 묶어 반환합니다."
+    )
+    @GetMapping("/events/by-month")
+    public ResponseEntity<BaseResponse<List<CalendarEventGroupRes>>> getEventsByMonth(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestParam UUID infoId,
+            @RequestParam int year,
+            @RequestParam int month
+    ) {
+        return ResponseEntity.ok(BaseResponse.success(
+                calendarService.getEventsByMonth(user, infoId, year, month)
+        ));
+    }
+
 }
