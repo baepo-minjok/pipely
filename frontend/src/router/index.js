@@ -16,6 +16,7 @@ import Chat from '../pages/chat/Chat.vue';
 import ResetPassword from '../pages/users/ResetPassword.vue';
 import Withdraw from '../pages/users/Withdraw.vue';
 import ReactivateUser from '../pages/users/ReactivateUser.vue';
+import VersionList from '../pages/jobs/VersionList.vue';
 
 const routes = [
     {path: '/', component: Main, name: 'Main'},
@@ -32,6 +33,7 @@ const routes = [
     {path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: {requiresAuth: true}},
     {path: '/job', component: JobList, name: 'JobList', meta: {requiresAuth: true}},
     {path: '/job/create', component: CreateJob, name: 'CreateJob', meta: {requiresAuth: true}},
+    {path: '/job/snapshots/:jobId', component: VersionList, name: 'Snapshots', meta: {requiresAuth: true}, props: true},
     {path: '/ai/chat', component: Chat},
     {path: '/:catchAll(.*)', redirect: '/'},
 ];

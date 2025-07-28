@@ -8,16 +8,12 @@ const instance = axios.create({
     withCredentials: true,
 });
 
-export const VersionApi = {
-
-
-
-
+export const versionApi = {
 
     createSnapshot(jobId, snapshotName) {
 
         return instance
-            .post(`/jenkins/job/version/${jobId}/snapshot`,  null,{params: {snapshotName:snapshotName}})
+            .post(`/jenkins/job/version/${jobId}/snapshot`, null, {params: {snapshotName: snapshotName}})
             .then((res) => {
                 return true;
             })
@@ -25,6 +21,20 @@ export const VersionApi = {
                 console.error('API Error(createSnapshot):', error.response?.status, error.response?.data);
                 return error.response.data.error;
             });
+    },
+
+    getSnapshotList(jobId) {
+
+        return instance
+            .get("/jenkins/job/version", {
+                params: {jobId: jobId}
+            })
+            .then((res) => {
+                return res.data?.data;
+            })
+            .catch((error) => {
+                return error.response?.data.error;
+            })
     }
 }
 

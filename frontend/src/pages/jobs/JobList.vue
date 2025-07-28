@@ -1,17 +1,25 @@
 <script setup>
-import {ref, onMounted, watch, computed, onUnmounted, version} from 'vue';
-import JobCard from '../../components/jobs/JobCard.vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useJobStore } from '../../stores/useJobStore.js';
-import { jobApi} from "@/api/JobApi.js";
-import {VersionApi as versionApi} from "@/api/VersionApi.js";
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
+import JobCard from '@/pages/jobs/JobCard.vue';
+import {useRoute, useRouter} from 'vue-router';
+import {useJobStore} from '@/stores/useJobStore.js';
+import {jobApi} from "@/api/JobApi.js";
+import {versionApi} from "@/api/VersionApi.js";
+import VersionList from "@/pages/jobs/VersionList.vue";
 
 const jobStore = useJobStore();
 const router = useRouter();
 const route = useRoute();
 const selectedJenkins = ref(route.query.id || '');
 const openDropdownJob = ref(null); // 현재 열린 드롭다운 Job ID
+const showSnapshotListModal = ref(false);
+const snapshotListTargetJobId = ref(null);
 
+
+const closeSnapshotListModal = () => {
+  showSnapshotListModal.value = false;
+  snapshotListTargetJobId.value = null;
+};
 
 const selected = computed(() =>
     jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value)
@@ -68,10 +76,6 @@ const handleDeleteJob = async (job) => {
   }
 };
 
-
-
-
-
 const showSnapshotModal = ref(false);   // 모달 표시 여부
 const snapshotTargetJob = ref(null);    // 현재 스냅샷 저장할 Job
 const snapshotName = ref("");           // 입력할 스냅샷 이름
@@ -83,6 +87,9 @@ const handleSaveSnapshot = (job) => {
   openDropdownJob.value = null;
 };
 const confirmSaveSnapshot = async () => {
+
+  isSaving.value = true;
+
   if (!snapshotName.value.trim()) {
     alert("스냅샷 이름을 입력하세요.");
     return;
@@ -97,26 +104,22 @@ const confirmSaveSnapshot = async () => {
     if (success) {
       alert(`스냅샷 "${snapshotName.value}" 생성 성공!`);
       showSnapshotModal.value = false;
+      snapshotName.value = '';
+      showError.value = false;
     }
   } catch (err) {
-    console.error("스냅샷 생성 실패", err);
     alert("스냅샷 생성 실패");
+  } finally {
+    isSaving.value = false;
   }
 };
 
-
-
-
-
-
-
-
-
-
 const handleViewSnapshots = (job) => {
-  console.log('View snapshots for job:', job);
+  console.log('View snapshots for job:', job.pipelineId);
   // 스냅샷 목록 보기 로직
-  openDropdownJob.value = null; // 드롭다운 닫기
+  openDropdownJob.value = null;
+  snapshotListTargetJobId.value = job.pipelineId; // job id를 저장
+  showSnapshotListModal.value = true;
 };
 
 const handleToggleDropdown = (job) => {
@@ -136,16 +139,27 @@ const handleOutsideClick = (event) => {
   openDropdownJob.value = null;
 };
 
-onMounted(() => {
-  jobApi.getJenkinsInfo();
-  // 전역 클릭 이벤트 리스너 추가
-  document.addEventListener('click', handleOutsideClick);
-});
 
-// 컴포넌트 언마운트 시 이벤트 리스너 제거
-onUnmounted(() => {
-  document.removeEventListener('click', handleOutsideClick);
-});
+// 반응형 데이터
+const isSaving = ref(false);
+const showError = ref(false);
+
+// 메서드
+const closeModal = () => {
+  if (!isSaving.value) {
+    snapshotName.value = '';
+    showError.value = false;
+    showSnapshotModal.value = false
+  }
+};
+
+
+// ESC 키로 모달 닫기
+const handleKeydown = (event) => {
+  if (event.key === 'Escape' && !isSaving.value) {
+    closeModal();
+  }
+};
 
 watch(selectedJenkins, async (id) => {
   if (id) {
@@ -153,6 +167,27 @@ watch(selectedJenkins, async (id) => {
   }
   // Jenkins 변경 시 드롭다운 닫기
   openDropdownJob.value = null;
+});
+
+const onRollback = (version) => {
+  console.log('onRollback:', version);
+}
+
+onMounted(async () => {
+  await jobApi.getJenkinsInfo();
+  if (route.query.id !== undefined) {
+    selectedJenkins.value = route.query.id;
+    await jobApi.fetchJobList(selectedJenkins.value);
+  }
+  // 전역 클릭 이벤트 리스너 추가
+  document.addEventListener('click', handleOutsideClick);
+  document.addEventListener('keydown', handleKeydown);
+});
+
+// 컴포넌트 언마운트 시 이벤트 리스너 제거
+onUnmounted(() => {
+  document.removeEventListener('click', handleOutsideClick);
+  document.removeEventListener('keydown', handleKeydown);
 });
 </script>
 
@@ -181,17 +216,86 @@ watch(selectedJenkins, async (id) => {
       </button>
     </div>
 
+    <div v-if="showSnapshotModal" class="modal-overlay" @click="closeModal">
+      <div class="modal" @click.stop>
+        <!-- 헤더 -->
+        <div class="modal-header">
+          <div class="modal-title-section">
+            <div class="modal-icon">
+              <svg fill="none" height="24" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="24">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="10,6 10,10 14,14"/>
+              </svg>
+            </div>
+            <h3 class="modal-title">스냅샷 저장</h3>
+          </div>
+          <button class="modal-close-btn" @click="closeModal">
+            <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+              <line x1="18" x2="6" y1="6" y2="18"/>
+              <line x1="6" x2="18" y1="6" y2="18"/>
+            </svg>
+          </button>
+        </div>
 
-    <div v-if="showSnapshotModal" class="modal-overlay">
-      <div class="modal">
-        <h3>스냅샷 저장</h3>
-        <p>{{ snapshotTargetJob?.name }} Job의 스냅샷 이름을 입력하세요.</p>
+        <!-- 컨텐츠 -->
+        <div class="modal-content">
+          <div class="modal-description">
+            <div class="description-icon">
+              <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <div class="description-text">
+              <p class="description-main">현재 작업 중인 버전이 새로운 스냅샷으로 저장됩니다.</p>
+              <p class="description-sub">이후 언제든 해당 시점으로 복원할 수 있습니다.</p>
+            </div>
+          </div>
 
-        <input v-model="snapshotName" class="modal-input" placeholder="스냅샷 이름 입력" />
+          <div class="form-group">
+            <label class="form-label" for="snapshotName">
+              <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              스냅샷 이름
+            </label>
+            <input
+                id="snapshotName"
+                v-model="snapshotName"
+                :class="['form-input', { error: !snapshotName.trim() && showError }]"
+                placeholder="예: 기능 개발 완료, 버그 수정 전 등..."
+                type="text"
+                @input="showError = false"
+                @keyup.enter="confirmSaveSnapshot"
+            />
+            <span v-if="!snapshotName.trim() && showError" class="error-message">
+            스냅샷 이름을 입력해주세요.
+          </span>
+            <span class="help-text">
+            나중에 쉽게 찾을 수 있도록 의미있는 이름을 입력하세요.
+          </span>
+          </div>
+        </div>
 
+        <!-- 액션 -->
         <div class="modal-actions">
-          <button class="btn btn-primary" @click="confirmSaveSnapshot">저장</button>
-          <button class="btn" @click="showSnapshotModal = false">취소</button>
+          <button
+              :disabled="isSaving"
+              class="btn btn-primary"
+              @click="confirmSaveSnapshot"
+          >
+            <svg v-if="isSaving" class="animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24" width="16">
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+            <svg v-else fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17,21 17,13 7,13 7,21"/>
+              <polyline points="7,3 7,8 15,8"/>
+            </svg>
+            {{ isSaving ? '저장 중...' : '스냅샷 저장' }}
+          </button>
         </div>
       </div>
     </div>
@@ -299,6 +403,8 @@ watch(selectedJenkins, async (id) => {
                 @toggleDropdown="handleToggleDropdown"
                 @viewSnapshots="handleViewSnapshots"
             />
+
+
           </div>
         </template>
 
@@ -315,6 +421,15 @@ watch(selectedJenkins, async (id) => {
           </div>
         </template>
       </div>
+    </div>
+  </div>
+  <div v-if="showSnapshotListModal" class="modal-overlay" @click="closeSnapshotListModal">
+
+    <div class="modal" @click.stop>
+      <VersionList
+          :jobId="snapshotListTargetJobId"
+          @onRollback="onRollback"
+      />
     </div>
   </div>
 </template>
@@ -609,40 +724,386 @@ watch(selectedJenkins, async (id) => {
 
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.4);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 모달 */
 .modal {
-  background: #fff;
-  padding: 20px 30px;
-  border-radius: 10px;
-  width: 400px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.modal h3 {
-  margin-bottom: 10px;
-}
-
-.modal-input {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 500px;
   width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
 }
 
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 모달 헤더 */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 24px 0 24px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+}
+
+.modal-title-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #dbeafe;
+  border-radius: 10px;
+  color: #2563eb;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.modal-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background: #e2e8f0;
+  color: #374151;
+  transform: scale(1.05);
+}
+
+/* 모달 컨텐츠 */
+.modal-content {
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.modal-description {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.description-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #dbeafe;
+  border-radius: 8px;
+  color: #2563eb;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.description-text {
+  flex: 1;
+}
+
+.description-main {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.description-sub {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 폼 그룹 */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-label svg {
+  color: #6b7280;
+}
+
+.form-input {
+  padding: 12px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #1f2937;
+  background: white;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-input.error {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+.error-message {
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.help-text {
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* 모달 액션 */
 .modal-actions {
+  padding: 24px;
+  border-top: 1px solid #e2e8f0;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
 }
 
+/* 버튼 */
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: var(--main-color);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--main-color-hover);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* 애니메이션 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* 반응형 */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 16px;
+  }
+
+  .modal {
+    border-radius: 12px;
+  }
+
+  .modal-header {
+    padding: 20px 20px 0 20px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+  }
+
+  .modal-title-section {
+    gap: 10px;
+  }
+
+  .modal-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .modal-title {
+    font-size: 18px;
+  }
+
+  .modal-content {
+    padding: 0 20px;
+    gap: 20px;
+  }
+
+  .modal-description {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .description-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .description-main {
+    font-size: 15px;
+  }
+
+  .description-sub {
+    font-size: 13px;
+  }
+
+  .modal-actions {
+    padding: 20px;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px 24px;
+  }
+}
+
+/* 다크 모드 지원 (선택사항) */
+@media (prefers-color-scheme: dark) {
+  .modal {
+    background: #1e293b;
+    color: #f1f5f9;
+  }
+
+  .modal-header {
+    border-bottom-color: #334155;
+  }
+
+  .modal-title {
+    color: #f1f5f9;
+  }
+
+  .modal-close-btn {
+    background: #334155;
+    color: #94a3b8;
+  }
+
+  .modal-close-btn:hover {
+    background: #475569;
+    color: #e2e8f0;
+  }
+
+  .modal-description {
+    background: #0f172a;
+    border-color: #334155;
+  }
+
+  .description-main {
+    color: #f1f5f9;
+  }
+
+  .description-sub {
+    color: #94a3b8;
+  }
+
+  .form-input {
+    background: #0f172a;
+    border-color: #334155;
+    color: #f1f5f9;
+  }
+
+  .form-input:focus {
+    border-color: #3b82f6;
+  }
+
+  .modal-actions {
+    border-top-color: #334155;
+  }
+}
 
 </style>

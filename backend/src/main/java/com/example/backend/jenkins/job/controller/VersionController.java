@@ -2,6 +2,7 @@ package com.example.backend.jenkins.job.controller;
 
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
+import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.service.PipelineService;
 import com.example.backend.jenkins.job.service.VersionService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -92,6 +94,14 @@ public class VersionController {
     ) {
         versionService.rollbackToSnapshot(versionId);
         return ResponseEntity.ok().body(BaseResponse.success("snapshot update success"));
+    }
+
+    @GetMapping
+    public ResponseEntity<BaseResponse<List<ResponseDto.PipelineVersionDto>>> getAllVersions(
+            @RequestParam @NotNull UUID jobId
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(pipelineService.getLightVersionDtoList(jobId)));
     }
 
 }

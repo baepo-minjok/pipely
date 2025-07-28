@@ -29,10 +29,10 @@ const onLogoutClick = async () => {
   <div class="dropdown_container">
     <ul class="list">
       <li>
-        <router-link class="list_item" to="/job" @click="onItemClick">Job 목록</router-link>
+        <a class="list_item" href="/job">Job 목록</a>
       </li>
       <li>
-        <router-link class="list_item" to="/mypage" @click="onItemClick">마이페이지</router-link>
+        <a class="list_item" href="/mypage">마이페이지</a>
       </li>
       <li>
         <router-link v-if="userStore.isFetched" class="list_item" to="/" @click="onLogoutClick">로그아웃</router-link>

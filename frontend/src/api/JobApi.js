@@ -54,17 +54,18 @@ export const jobApi = {
                 return error.response.data.error;
             });
     },
+
     fetchJobList(jenkinsInfoId) {
         const store = useJobStore();
         return instance
-            .get('/jenkins/job', { params: { jenkinsInfoId:jenkinsInfoId } })
+            .get('/jenkins/job', {params: {jenkinsInfoId: jenkinsInfoId}})
             .then((res) => {
                 const data = res.data?.data;
                 if (!data) {
                     throw new Error('서버 응답에 jobList 데이터가 없습니다.');
                 }
-
                 store.jobList = data;
+                console.log(store.jobList);
             })
             .catch((error) => {
                 console.error('API Error(getJobList):', error.response?.status, error.response?.data || error.message);
@@ -87,12 +88,11 @@ export const jobApi = {
 
             })
             .catch((error) => {
-                console.error('API Error(getJenkinsInfo):', error.response?.status, error.response?.data|| error.message);
+                console.error('API Error(getJenkinsInfo):', error.response?.status, error.response?.data || error.message);
                 throw (error.response?.data?.error || error);
 
-             });
+            });
     },
-
 
 
 };

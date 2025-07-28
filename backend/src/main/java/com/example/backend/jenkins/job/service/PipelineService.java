@@ -273,5 +273,9 @@ public class PipelineService {
         pipelineRepository.save(pipeline);
     }
 
+    public List<ResponseDto.PipelineVersionDto> getLightVersionDtoList(UUID pipelineId) {
+        Pipeline pipeline = getPipelineById(pipelineId);
+        return ResponseDto.toListOfPipelineVersionDtos(pipeline.getVersionList());
+    }
 }
 

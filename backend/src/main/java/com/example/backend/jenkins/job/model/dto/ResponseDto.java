@@ -14,6 +14,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -97,8 +98,13 @@ public class ResponseDto {
     }
 
     public static List<PipelineVersionDto> toListOfPipelineVersionDtos(List<PipelineVersion> pipelines) {
-        return pipelines.stream().map(ResponseDto::entityToPipelineVersionDto).toList();
+        return pipelines.stream()
+                .filter(pv -> !"Initial Version".equals(pv.getName()))
+                .sorted(Comparator.comparing(PipelineVersion::getCreatedAt).reversed())
+                .map(ResponseDto::entityToPipelineVersionDto)
+                .toList();
     }
+
 
     public static PipelineVersionDto entityToPipelineVersionDto(PipelineVersion version) {
         return PipelineVersionDto.builder()
@@ -263,7 +269,7 @@ public class ResponseDto {
         @Schema(description = "Pipeline Version ID", example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e")
         private UUID versionId;
 
-        @Schema(description = "파이프라인 버전 번호", example = "버전1")
+        @Schema(description = "파이프라인 버전 이름", example = "버전1")
         private String name;
 
         @Schema(description = "버전 생성 일시 (ISO 8601)", example = "2024-07-16T15:32:10")

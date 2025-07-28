@@ -1,6 +1,6 @@
 <script setup>
 import {computed, toRefs} from 'vue';
-import {formatDateTime} from '../../utils/formatDateTime';
+import {formatDateTime} from '@/utils/formatDateTime.js';
 
 const props = defineProps({
   job: {
@@ -86,6 +86,7 @@ const getButtonText = (state) => {
 };
 
 const handleActionClick = () => {
+  console.log(job.value.lastExe)
   emit('action', job.value);
 };
 </script>
@@ -97,15 +98,6 @@ const handleActionClick = () => {
       <div class="job-info">
         <h3 class="job-title">{{ job.name }}</h3>
         <div class="job-meta">
-          <span class="meta-item">
-            <svg class="meta-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-                 width="14">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-            {{ job.createdBy }}
-          </span>
-          <span class="meta-separator">·</span>
           <span class="meta-item">
             <svg class="meta-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
                  width="14">
