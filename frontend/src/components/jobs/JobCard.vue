@@ -1,144 +1,696 @@
-<script setup>
-import {  toRefs } from 'vue';
-import { formatDateTime } from '../../utils/formatDateTime';
+``<template>
+  <div class="job-card">
+    <!-- 카드 헤더 -->
+    <div class="card-header">
+      <div class="job-info">
+        <h3 class="job-title">{{ job.name }}</h3>
+        <div class="job-meta">
+          <span class="meta-item">
+            <svg class="meta-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            {{ job.createdBy }}
+          </span>
+          <span class="meta-separator">·</span>
+          <span class="meta-item">
+            <svg class="meta-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            {{ formatDateTime(job.lastExe) }}
+          </span>
+        </div>
+      </div>
 
+      <div class="status-badge" :class="getStatusClass(job.buildState)">
+        <svg v-if="job.buildState === 'SUCCESS'" class="status-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <polyline points="20,6 9,17 4,12"/>
+        </svg>
+        <svg v-else-if="job.buildState === 'FAILED'" class="status-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <line x1="18" x2="6" y1="6" y2="18"/>
+          <line x1="6" x2="18" y1="6" y2="18"/>
+        </svg>
+        <svg v-else-if="job.buildState === 'RUNNING'" class="status-icon animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <path d="M21 12a9 9 0 11-6.219-8.56"/>
+        </svg>
+        <svg v-else class="status-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" x2="12" y1="8" y2="12"/>
+          <line x1="12" x2="12.01" y1="16" y2="16"/>
+        </svg>
+        <span class="status-text">{{ getStatusText(job.buildState) }}</span>
+      </div>
+    </div>
+
+    <!-- 설명 -->
+    <div class="card-content">
+      <p class="job-description">
+        <svg class="description-icon" fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="16" x2="8" y1="13" y2="13"/>
+          <line x1="16" x2="8" y1="17" y2="17"/>
+          <polyline points="10,9 9,9 8,9"/>
+        </svg>
+        {{ job.description || '설명이 없습니다.' }}
+      </p>
+    </div>
+
+    <!-- 스테이지 표시 (있는 경우) -->
+    <div v-if="job.stages && job.stages.length > 0" class="stages-container">
+      <div class="stages-header">
+        <svg class="stages-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+        <span class="stages-title">스테이지</span>
+      </div>
+      <div class="stages-list">
+        <div
+            v-for="(stage, index) in job.stages"
+            :key="index"
+            class="stage-item"
+            :class="getStatusClass(stage.state)"
+        >
+          <div class="stage-indicator">
+            <svg v-if="stage.state === 'SUCCESS'" class="stage-icon" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
+              <polyline points="20,6 9,17 4,12"/>
+            </svg>
+            <svg v-else-if="stage.state === 'FAILED'" class="stage-icon" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
+              <line x1="18" x2="6" y1="6" y2="18"/>
+              <line x1="6" x2="18" y1="6" y2="18"/>
+            </svg>
+            <svg v-else-if="stage.state === 'RUNNING'" class="stage-icon animate-spin" fill="none" height="12" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+            <div v-else class="stage-dot"></div>
+          </div>
+          <span class="stage-name">{{ stage.type }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="card-footer">
+      <button
+          class="action-btn"
+          :class="getButtonClass(job.buildState)"
+          @click.stop="handleActionClick"
+      >
+        <svg v-if="job.buildState === 'SUCCESS'" class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+        </svg>
+        <svg v-else-if="job.buildState === 'FAILED'" class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        <svg v-else-if="job.buildState === 'RUNNING'" class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <rect height="10" rx="1" ry="1" width="4" x="6" y="7"/>
+          <rect height="10" rx="1" ry="1" width="4" x="14" y="7"/>
+        </svg>
+        <svg v-else class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <polygon points="5,3 19,12 5,21"/>
+        </svg>
+        <span>{{ getButtonText(job.buildState) }}</span>
+      </button>
+
+      <div class="more-container">
+        <button class="more-btn" @click.stop="toggleDropdown">
+          <svg class="more-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+            <circle cx="12" cy="12" r="1"/>
+            <circle cx="19" cy="12" r="1"/>
+            <circle cx="5" cy="12" r="1"/>
+          </svg>
+        </button>
+
+        <!-- 드롭다운 메뉴 -->
+        <Teleport to="body">
+          <div
+              v-if="openedDropdownId === job.pipelineId"
+              class="dropdown-menu"
+              :style="dropdownPosition"
+              @click.stop
+          >
+            <button class="dropdown-item" @click="handleSaveSnapshot">
+              <!-- ... -->
+              스냅샷 저장
+            </button>
+            <button class="dropdown-item" @click="handleViewSnapshots">
+              <!-- ... -->
+              스냅샷 목록
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item danger" @click="handleDeleteJob">
+              <!-- ... -->
+              삭제
+            </button>
+          </div>
+        </Teleport>
+
+
+        <!-- 오버레이 (드롭다운 외부 클릭 시 닫기) -->
+        <div v-if="showDropdown" class="dropdown-overlay" @click="closeDropdown"></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { toRefs, ref  ,nextTick} from 'vue';
+import { formatDateTime } from '../../utils/formatDateTime';
 
 const props = defineProps({
   job: {
     type: Object,
     required: true
   }
+  ,openedDropdownId: String,
 
-})
-const { job } = toRefs(props)
+});
 
-// const job = ({
-//   idx: 1,
-//   name: 'CI/CD Demo 01',
-//   createdBy: '이우진',
-//   lastExe: '2025-06-11T14:33:00',
-//   stages: [
-//     {
-//       type: 'Build',
-//       state: 'SUCCESS',
-//     },
-//     {
-//       type: 'Test',
-//       state: 'SUCCESS',
-//     },
-//     {
-//       type: 'Deploy',
-//       state: 'SUCCESS',
-//     },
-//   ],
-//   buildState: 'SUCCESS',
-// });
+const { job } = toRefs(props);
+
+const showDropdown = ref(false);
+
+const dropdownRef = ref(null);
+const dropdownPosition = ref({});
+
+
+
+const toggleDropdown = (event) => {
+  if (props.openedDropdownId === props.job.pipelineId) {
+    emit('closeDropdown');
+  } else {
+    emit('toggleDropdown', props.job.pipelineId);
+    calculatePosition(event);
+  }
+};
+
+
+// const toggleDropdown = () => {
+//   showDropdown.value = !showDropdown.value;
+// };
+
+const closeDropdown = () => {
+  showDropdown.value = false;
+};
+
+const handleDeleteJob = () => {
+  emit('delete', job.value);
+  closeDropdown();
+};
+
+const handleSaveSnapshot = () => {
+  emit('saveSnapshot', job.value);
+  closeDropdown();
+};
+
+const handleViewSnapshots = () => {
+  emit('viewSnapshots', job.value);
+  closeDropdown();
+};
+
+// emit에 새로운 이벤트들 추가
+const emit = defineEmits(['action', 'more', 'delete', 'saveSnapshot', 'viewSnapshots']);
+
+const getStatusClass = (state) => {
+  switch (state) {
+    case 'SUCCESS':
+      return 'status-success';
+    case 'FAILED':
+      return 'status-failed';
+    case 'RUNNING':
+      return 'status-running';
+    default:
+      return 'status-pending';
+  }
+};
+
+const getStatusText = (state) => {
+  switch (state) {
+    case 'SUCCESS':
+      return '성공';
+    case 'FAILED':
+      return '실패';
+    case 'RUNNING':
+      return '실행 중';
+    default:
+      return '대기';
+  }
+};
+
+const getButtonClass = (state) => {
+  switch (state) {
+    case 'SUCCESS':
+      return 'btn-restart';
+    case 'FAILED':
+      return 'btn-retry';
+    case 'RUNNING':
+      return 'btn-stop';
+    default:
+      return 'btn-start';
+  }
+};
+
+const getButtonText = (state) => {
+  switch (state) {
+    case 'SUCCESS':
+      return '재실행';
+    case 'FAILED':
+      return '재시도';
+    case 'RUNNING':
+      return '중지';
+    default:
+      return '실행';
+  }
+};
+
+const handleActionClick = () => {
+  emit('action', job.value);
+};
+
+const handleMoreClick = () => {
+  emit('more', job.value);
+};
+
 
 
 
 </script>
 
-<template>
-  <div class="card_container">
-    <div class="header">
-      <h3>{{ job.name }}</h3>
-      <div class="state_box" :class="{ success: job.buildState === 'SUCCESS' }">
-        <img v-if="job.buildState === 'SUCCESS'" src="/src/assets/icons/check.svg" alt="success" />
-        성공
-      </div>
-    </div>
-
-    <div class="text_box">
-      <p>실행자 : {{ job.createdBy }}</p>
-      <p>·</p>
-      <p>마지막 실행 : {{ formatDateTime(job.lastExe) }}</p>
-    </div>
-
-    <div class="description_box">
-      <p>설명 : {{ job.description || '설명이 없습니다.' }}</p>
-    </div>
-    <button class="start_btn" :class="{ restart: job.buildState === 'SUCCESS' }">
-      {{ job.buildState === 'SUCCESS' ? '재실행' : job.buildState === 'FAILED' ? '재시도' : '지금 실행' }}
-    </button>
-  </div>
-</template>
-
 <style scoped>
-.card_container {
-  width: 100%;
-  min-width: 360px;
-  background-color: white;
-  padding: 27px;
-  border-radius: 10px;
-  border: 1px solid var(--gray200);
-  box-sizing: border-box;
-  transition: scale 0.3s;
+.job-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
   cursor: pointer;
+  position: relative;
 
-  &:hover {
-    scale: 1.03;
-  }
+  overflow: visible; /* hidden에서 visible로 변경 */
+  z-index: 1;
 }
 
-.header {
+.job-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #2563eb;
+}
+
+/* 드롭다운이 열려있을 때는 호버 효과 유지 */
+.job-card:hover,
+.job-card:has(.dropdown-menu) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #2563eb;
+}
+
+/* 카드 헤더 */
+.card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 16px;
 }
 
-.header>h3 {
-  font-size: 20px;
+.job-info {
+  flex: 1;
+  min-width: 0;
 }
 
-.state_box {
+.job-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.job-meta {
   display: flex;
   align-items: center;
-  border-radius: 6px;
-  padding: 5px 9px;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+  flex-wrap: wrap;
 }
 
-.state_box.success {
-  background-color: var(--green-bg);
-  color: var(--green-text);
-}
-
-.text_box {
+.meta-item {
   display: flex;
-  gap: 10px;
-  color: var(--gray600);
-  margin-top: 5px;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-icon {
+  color: #9ca3af;
+}
+
+.meta-separator {
+  color: #cbd5e1;
+}
+
+/* 상태 배지 */
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-success {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.status-failed {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.status-running {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-pending {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.status-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* 카드 내용 */
+.card-content {
+  margin-bottom: 16px;
+}
+
+.job-description {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
 }
 
-.stage_box {
+.description-icon {
+  color: #9ca3af;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* 스테이지 */
+.stages-container {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+}
+
+.stages-header {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin: 12px 0;
-  font-size: 14px;
-
-  &>div {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
-.start_btn {
-  border-radius: 6px;
+.stages-icon {
+  color: #64748b;
+}
+
+.stages-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stages-list {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stage-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.stage-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.stage-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.stage-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+
+.stage-name {
+  font-size: 11px;
+}
+
+/* 카드 푸터 */
+.card-footer {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
   border: none;
-  padding: 9px 18px;
-  font-size: 16px;
-  transition: all 0.3s;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-  &.restart {
-    background-color: var(--gray200);
-    color: var(--gray700);
+.btn-start {
+  background: var(--main-color, #2563eb);
+  color: white;
+}
+
+.btn-start:hover {
+  background: var(--main-color-hover, #1d4ed8);
+  transform: translateY(-1px);
+}
+
+.btn-restart {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.btn-restart:hover {
+  background: #e2e8f0;
+  color: #475569;
+  transform: translateY(-1px);
+}
+
+.btn-retry {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.btn-retry:hover {
+  background: #fecaca;
+  transform: translateY(-1px);
+}
+
+.btn-stop {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fed7aa;
+}
+
+.btn-stop:hover {
+  background: #fed7aa;
+  transform: translateY(-1px);
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* 더보기 컨테이너 */
+.more-container {
+  position: relative;
+}
+
+/* 드롭다운 메뉴 */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+   min-width: 160px;
+  z-index: 9999;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: #f9fafb;
+}
+
+.dropdown-item.danger {
+  color: #dc2626;
+}
+
+.dropdown-item.danger:hover {
+  background: #fef2f2;
+}
+
+.dropdown-icon {
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 4px 0;
+}
+
+.dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+}
+
+.more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.more-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.more-icon {
+  color: #64748b;
+}
+
+/* 애니메이션 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .job-card {
+    padding: 16px;
   }
 
-  &.restart:hover {
-    background-color: var(--gray300);
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .job-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .stages-list {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .card-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+
+  .more-btn {
+    align-self: flex-end;
   }
 }
 </style>
