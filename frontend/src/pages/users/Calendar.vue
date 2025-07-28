@@ -1,3 +1,194 @@
+<script setup>
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useCalendarStore } from '@/stores/useCalendarStore.js'
+import { useUserStore } from '@/stores/useUserStore.js'
+
+// Stores
+const calendarStore = useCalendarStore()
+const userStore = useUserStore()
+
+// Reactive data
+const selectedInfoId = ref('')
+const selectedEvent = ref(null)
+const dropdownVisible = ref(false)
+const dropdownEvents = ref([])
+const dropdownPosition = ref({ x: 0, y: 0 })
+const dropdownType = ref('')
+
+const currentDate = reactive({
+  year: new Date().getFullYear(),
+  month: new Date().getMonth()
+})
+
+const weekdays = ['일', '월', '화', '수', '목', '금', '토']
+
+// Computed
+const isLoading = computed(() => calendarStore.isLoading)
+
+const currentMonthYear = computed(() => {
+  const date = new Date(currentDate.year, currentDate.month)
+  return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })
+})
+
+const calendarDates = computed(() => {
+  const firstDay = new Date(currentDate.year, currentDate.month, 1)
+  const lastDay = new Date(currentDate.year, currentDate.month + 1, 0)
+  const startDate = new Date(firstDay)
+  startDate.setDate(startDate.getDate() - firstDay.getDay())
+
+  const dates = []
+  const today = new Date()
+
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate)
+    date.setDate(startDate.getDate() + i)
+
+    // 해당 날짜의 이벤트 찾기
+    const dateStr = formatDateString(date)
+    const dayEvents = getEventsForDate(dateStr)
+
+    dates.push({
+      key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+      day: date.getDate(),
+      date: new Date(date),
+      isCurrentMonth: date.getMonth() === currentDate.month,
+      isToday: date.toDateString() === today.toDateString(),
+      events: dayEvents
+    })
+  }
+
+  return dates
+})
+
+// Methods
+const formatDateString = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getEventsForDate = (dateStr) => {
+  const calendarData = calendarStore.getCalendarData()
+  const dayData = calendarData.events.find(item => item.date === dateStr)
+  return dayData ? dayData.events : []
+}
+
+const formatTime = (timeString) => {
+  // "2025-07-24 13:20:00" -> "13:20"
+  return timeString.split(' ')[1]?.substring(0, 5) || timeString
+}
+
+const previousMonth = async () => {
+  if (currentDate.month === 0) {
+    currentDate.month = 11
+    currentDate.year--
+  } else {
+    currentDate.month--
+  }
+
+  if (selectedInfoId.value) {
+    await loadMonthData()
+  }
+}
+
+const nextMonth = async () => {
+  if (currentDate.month === 11) {
+    currentDate.month = 0
+    currentDate.year++
+  } else {
+    currentDate.month++
+  }
+
+  if (selectedInfoId.value) {
+    await loadMonthData()
+  }
+}
+
+const getBadgesForDate = (dayEvents) => {
+  const badges = []
+  const buildEvents = dayEvents.filter(e => e.type === 'BUILD')
+  const errorEvents = dayEvents.filter(e => e.type === 'ERROR')
+
+  if (buildEvents.length > 0) {
+    badges.push({
+      type: 'BUILD',
+      count: buildEvents.length,
+      events: buildEvents.sort((a, b) => a.start.localeCompare(b.start))
+    })
+  }
+
+  if (errorEvents.length > 0) {
+    badges.push({
+      type: 'ERROR',
+      count: errorEvents.length,
+      events: errorEvents.sort((a, b) => a.start.localeCompare(b.start))
+    })
+  }
+
+  return badges
+}
+
+const openEventDropdown = (event, type, events) => {
+  event.stopPropagation()
+
+  const rect = event.target.getBoundingClientRect()
+  dropdownPosition.value = {
+    x: rect.left,
+    y: rect.bottom + 8
+  }
+
+  dropdownEvents.value = events
+  dropdownType.value = type
+  dropdownVisible.value = true
+}
+
+const selectEventFromDropdown = (event) => {
+  dropdownVisible.value = false
+  selectedEvent.value = event
+}
+
+const closeDropdown = () => {
+  dropdownVisible.value = false
+}
+
+const closeEventDetail = () => {
+  selectedEvent.value = null
+}
+
+const onInfoChange = async () => {
+  if (selectedInfoId.value) {
+    await loadMonthData()
+  }
+}
+
+const loadMonthData = async () => {
+  if (!selectedInfoId.value) return
+
+  await calendarStore.fetchMonthData(
+      selectedInfoId.value,
+      currentDate.year,
+      currentDate.month
+  )
+}
+
+// Lifecycle
+onMounted(async () => {
+  // 사용자 정보가 없으면 가져오기
+  if (!userStore.isFetched) {
+    await userStore.fetchUserInfo()
+  }
+
+  // 첫 번째 Jenkins Info가 있으면 자동 선택
+  if (userStore.userInfo.infoList.length > 0) {
+    selectedInfoId.value = userStore.userInfo.infoList[0].id
+    await loadMonthData()
+  }
+})
+</script>
+
+
+
 <template>
   <div class="container">
     <!-- 스켈레톤 UI -->
@@ -15,6 +206,20 @@
     <div v-else>
       <div class="header">
         <h1>빌드 캘린더</h1>
+      </div>
+
+      <!-- Jenkins Info 선택 -->
+      <div class="info-selector" v-if="userStore.userInfo.infoList.length > 0">
+        <select v-model="selectedInfoId" @change="onInfoChange" class="info-select">
+          <option value="">Jenkins 정보를 선택하세요</option>
+          <option
+              v-for="info in userStore.userInfo.infoList"
+              :key="info.id"
+              :value="info.id"
+          >
+            {{ info.name || info.uri }}
+          </option>
+        </select>
       </div>
 
       <!-- 캘린더 컨트롤 -->
@@ -41,7 +246,6 @@
           <div v-for="day in weekdays" :key="day" class="weekday-header">
             {{ day }}
           </div>
-
           <!-- 날짜 셀 -->
           <div
               v-for="date in calendarDates"
@@ -53,13 +257,12 @@
             }]"
           >
             <div class="date-number">{{ date.day }}</div>
-
             <!-- 배지 컨테이너 -->
             <div class="badges-container">
               <div
                   v-for="badge in getBadgesForDate(date.events)"
                   :key="badge.type"
-                  :class="['event-badge-with-count', `badge-${badge.type}`]"
+                  :class="['event-badge-with-count', `badge-${badge.type.toLowerCase()}`]"
                   @click="openEventDropdown($event, badge.type, badge.events)"
                   :title="`${badge.type} ${badge.count}개`"
               >
@@ -82,22 +285,22 @@
         }"
       >
         <div class="dropdown-header">
-          <h4>{{ dropdownType === 'build' ? 'Build 목록' : 'Error 목록' }}</h4>
+          <h4>{{ dropdownType === 'BUILD' ? 'Build 목록' : 'Error 목록' }}</h4>
         </div>
         <div class="dropdown-list">
           <div
               v-for="(event, index) in dropdownEvents"
-              :key="event.id"
+              :key="event.id || index"
               class="dropdown-item"
               @click="selectEventFromDropdown(event)"
           >
             <div class="item-number">{{ index + 1 }}.</div>
             <div class="item-content">
-              <div class="item-title">{{ event.project }} #{{ event.buildNumber }}</div>
-              <div class="item-time">({{ event.time }})</div>
+              <div class="item-title">{{ event.jobName }} #{{ event.buildNumber }}</div>
+              <div class="item-time">({{ formatTime(event.start) }})</div>
             </div>
-            <div :class="['item-status', `status-${event.status}`]">
-              {{ event.status === 'success' ? '성공' : '실패' }}
+            <div :class="['item-status', `status-${event.type === 'ERROR' ? 'failed' : 'success'}`]">
+              {{ event.type === 'ERROR' ? '실패' : '성공' }}
             </div>
           </div>
         </div>
@@ -109,10 +312,10 @@
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">
-            <div :class="['title-badge', `badge-${selectedEvent.type}`]">
+            <div :class="['title-badge', `badge-${selectedEvent.type.toLowerCase()}`]">
               <div class="badge-dot"></div>
             </div>
-            {{ selectedEvent.type === 'build' ? 'Build 정보' : 'Error 정보' }}
+            {{ selectedEvent.type === 'BUILD' ? 'Build 정보' : 'Error 정보' }}
           </h3>
           <button class="close-btn" @click="closeEventDetail">
             <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
@@ -121,297 +324,66 @@
             </svg>
           </button>
         </div>
-
         <div class="modal-body">
           <div class="detail-section">
             <div class="detail-item">
-              <span class="detail-label">제목</span>
-              <span class="detail-value">{{ selectedEvent.title }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">프로젝트</span>
-              <span class="detail-value">{{ selectedEvent.project }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">시간</span>
-              <span class="detail-value">{{ selectedEvent.time }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">상태</span>
-              <span :class="['status-badge', `status-${selectedEvent.status}`]">
-                {{ selectedEvent.status === 'success' ? '성공' : selectedEvent.status === 'failed' ? '실패' : '진행중' }}
-              </span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">브랜치</span>
-              <span class="detail-value">{{ selectedEvent.branch }}</span>
+              <span class="detail-label">Job 이름</span>
+              <span class="detail-value">{{ selectedEvent.jobName }}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">빌드 번호</span>
               <span class="detail-value">#{{ selectedEvent.buildNumber }}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">커밋</span>
-              <span class="detail-value commit-hash">{{ selectedEvent.commit }}</span>
+              <span class="detail-label">시작 시간</span>
+              <span class="detail-value">{{ selectedEvent.start }}</span>
             </div>
-            <div v-if="selectedEvent.type === 'build'" class="detail-item">
-              <span class="detail-label">빌드 시간</span>
-              <span class="detail-value">{{ selectedEvent.buildTime }}</span>
+            <div class="detail-item">
+              <span class="detail-label">상태</span>
+              <span :class="['status-badge', `status-${selectedEvent.type === 'ERROR' ? 'failed' : 'success'}`]">
+                {{ selectedEvent.type === 'ERROR' ? '실패' : '성공' }}
+              </span>
             </div>
-            <div v-if="selectedEvent.type === 'error'" class="detail-item">
-              <span class="detail-label">에러 타입</span>
-              <span class="detail-value">{{ selectedEvent.errorType }}</span>
-            </div>
-          </div>
-
-          <div v-if="selectedEvent.logs" class="logs-section">
-            <h4 class="logs-title">
-              {{ selectedEvent.type === 'build' ? '빌드 로그' : '에러 로그' }}
-            </h4>
-            <div class="logs-container">
-              <pre class="logs-content">{{ selectedEvent.logs }}</pre>
+            <div class="detail-item">
+              <span class="detail-label">타입</span>
+              <span class="detail-value">{{ selectedEvent.type }}</span>
             </div>
           </div>
         </div>
-
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="closeEventDetail">닫기</button>
-          <button v-if="selectedEvent.type === 'build'" class="btn btn-primary" @click="rebuildProject">
-            <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-              <path d="M21 12a9 9 0 11-6.219-8.56"/>
-            </svg>
-            다시 빌드
-          </button>
-          <button v-if="selectedEvent.type === 'error'" class="btn btn-primary" @click="viewErrorDetails">
-            <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" x2="12" y1="8" y2="12"/>
-              <line x1="12" x2="12.01" y1="16" y2="16"/>
-            </svg>
-            상세 분석
-          </button>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
 
-const isLoading = ref(true)
-const selectedEvent = ref(null)
-const dropdownVisible = ref(false)
-const dropdownEvents = ref([])
-const dropdownPosition = ref({ x: 0, y: 0 })
-const dropdownType = ref('')
-
-const currentDate = reactive({
-  year: new Date().getFullYear(),
-  month: new Date().getMonth()
-})
-
-const weekdays = ['일', '월', '화', '수', '목', '금', '토']
-
-// 현재 날짜 기준으로 샘플 이벤트 데이터 생성
-const events = ref([
-  {
-    id: 1,
-    type: 'build',
-    title: 'Frontend Build',
-    project: 'MyApp Frontend',
-    date: new Date(2025, 0, 26),
-    time: '14:30',
-    status: 'success',
-    branch: 'main',
-    commit: 'a1b2c3d',
-    buildNumber: 1,
-    buildTime: '2분 30초',
-    logs: 'Build started at 14:30:00\n✓ Installing dependencies...\n✓ Running tests... (45 tests passed)\n✓ Building for production...\n✓ Build completed successfully!\n\nBuild time: 2m 30s\nBundle size: 1.2MB'
-  },
-  {
-    id: 2,
-    type: 'error',
-    title: 'API Connection Error',
-    project: 'MyApp Backend',
-    date: new Date(2025, 0, 26),
-    time: '15:45',
-    status: 'failed',
-    branch: 'develop',
-    commit: 'e4f5g6h',
-    buildNumber: 2,
-    errorType: 'Connection Timeout',
-    logs: 'Error occurred at 15:45:23\n\n✗ Connection timeout to database\n✗ Failed to establish connection after 30s\n\nStack trace:\n  at Connection.connect() line 45\n  at Database.init() line 12\n  at Server.start() line 8\n\nSuggestion: Check database server status'
-  },
-  {
-    id: 3,
-    type: 'build',
-    title: 'Backend Build',
-    project: 'MyApp Backend',
-    date: new Date(2025, 0, 28),
-    time: '09:15',
-    status: 'success',
-    branch: 'main',
-    commit: 'i7j8k9l',
-    buildNumber: 3,
-    buildTime: '1분 45초',
-    logs: 'Build started at 09:15:00\n✓ Compiling TypeScript sources...\n✓ Running unit tests... (128 tests passed)\n✓ Creating Docker image...\n✓ Deployment successful!\n\nBuild time: 1m 45s'
-  },
-  {
-    id: 4,
-    type: 'error',
-    title: 'Deploy Error',
-    project: 'MyApp Frontend',
-    date: new Date(2025, 0, 30),
-    time: '16:20',
-    status: 'failed',
-    branch: 'feature/new-ui',
-    commit: 'm1n2o3p',
-    buildNumber: 4,
-    errorType: 'Configuration Error',
-    logs: 'Deployment failed at 16:20:15\n\n✗ Invalid configuration in deploy.yml\n✗ Missing required environment variable: API_URL\n✗ Port 3000 already in use\n\nPlease check your deployment configuration'
-  },
-  {
-    id: 5,
-    type: 'build',
-    title: 'Mobile App Build',
-    project: 'MyApp Mobile',
-    date: new Date(2025, 1, 1),
-    time: '11:00',
-    status: 'success',
-    branch: 'main',
-    commit: 'q4r5s6t',
-    buildNumber: 5,
-    buildTime: '5분 12초',
-    logs: 'Build started at 11:00:00\n✓ Installing React Native dependencies...\n✓ Running Metro bundler...\n✓ Building Android APK...\n✓ Building iOS IPA...\n✓ Build completed successfully!\n\nBuild time: 5m 12s\nAPK size: 25.4MB\nIPA size: 28.1MB'
-  }
-])
-
-const currentMonthYear = computed(() => {
-  const date = new Date(currentDate.year, currentDate.month)
-  return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })
-})
-
-const calendarDates = computed(() => {
-  const firstDay = new Date(currentDate.year, currentDate.month, 1)
-  const lastDay = new Date(currentDate.year, currentDate.month + 1, 0)
-  const startDate = new Date(firstDay)
-  startDate.setDate(startDate.getDate() - firstDay.getDay())
-
-  const dates = []
-  const today = new Date()
-
-  for (let i = 0; i < 42; i++) {
-    const date = new Date(startDate)
-    date.setDate(startDate.getDate() + i)
-
-    const dayEvents = events.value.filter(event =>
-        event.date.toDateString() === date.toDateString()
-    )
-
-    dates.push({
-      key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
-      day: date.getDate(),
-      date: new Date(date),
-      isCurrentMonth: date.getMonth() === currentDate.month,
-      isToday: date.toDateString() === today.toDateString(),
-      events: dayEvents
-    })
-  }
-
-  return dates
-})
-
-const previousMonth = () => {
-  if (currentDate.month === 0) {
-    currentDate.month = 11
-    currentDate.year--
-  } else {
-    currentDate.month--
-  }
-}
-
-const nextMonth = () => {
-  if (currentDate.month === 11) {
-    currentDate.month = 0
-    currentDate.year++
-  } else {
-    currentDate.month++
-  }
-}
-
-const getBadgesForDate = (dayEvents) => {
-  const badges = []
-
-  const buildEvents = dayEvents.filter(e => e.type === 'build')
-  const errorEvents = dayEvents.filter(e => e.type === 'error')
-
-  if (buildEvents.length > 0) {
-    badges.push({
-      type: 'build',
-      count: buildEvents.length,
-      events: buildEvents.sort((a, b) => a.time.localeCompare(b.time))
-    })
-  }
-
-  if (errorEvents.length > 0) {
-    badges.push({
-      type: 'error',
-      count: errorEvents.length,
-      events: errorEvents.sort((a, b) => a.time.localeCompare(b.time))
-    })
-  }
-
-  return badges
-}
-
-const openEventDropdown = (event, type, events) => {
-  event.stopPropagation()
-
-  // 드롭다운 위치 계산
-  const rect = event.target.getBoundingClientRect()
-  dropdownPosition.value = {
-    x: rect.left,
-    y: rect.bottom + 8
-  }
-
-  dropdownEvents.value = events
-  dropdownType.value = type
-  dropdownVisible.value = true
-}
-
-const selectEventFromDropdown = (event) => {
-  dropdownVisible.value = false
-  selectedEvent.value = event
-}
-
-const closeDropdown = () => {
-  dropdownVisible.value = false
-}
-
-const closeEventDetail = () => {
-  selectedEvent.value = null
-}
-
-const rebuildProject = () => {
-  alert(`${selectedEvent.value.project} 프로젝트를 다시 빌드합니다.`)
-  closeEventDetail()
-}
-
-const viewErrorDetails = () => {
-  alert(`${selectedEvent.value.project} 에러를 상세 분석합니다.`)
-  closeEventDetail()
-}
-
-onMounted(() => {
-  // 로딩 시뮬레이션
-  setTimeout(() => {
-    isLoading.value = false
-  }, 1000)
-})
-</script>
 
 <style scoped>
+/* 기존 스타일 유지 + 추가 스타일 */
+.info-selector {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.info-select {
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  min-width: 300px;
+  outline: none;
+}
+
+.info-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* 기존 스타일들 그대로 유지 */
 .container {
   width: 100%;
   margin: 20px auto 0;
@@ -478,6 +450,7 @@ onMounted(() => {
   color: #1e293b;
   margin: 0 0 8px 0;
 }
+
 /* 캘린더 컨트롤 */
 .calendar-controls {
   display: flex;
@@ -558,7 +531,7 @@ onMounted(() => {
   transition: background-color 0.2s ease;
   display: flex;
   flex-direction: column;
-  border: 1px solid #e2e8f0; /* 추가: 칸마다 테두리 줌 */
+  border: 1px solid #e2e8f0;
   box-sizing: border-box;
 }
 
@@ -746,14 +719,6 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.commit-hash {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  background: #f1f5f9;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
 .status-badge {
   padding: 4px 12px;
   border-radius: 12px;
@@ -769,39 +734,6 @@ onMounted(() => {
 .status-failed {
   background: #fef2f2;
   color: #dc2626;
-}
-
-.status-running {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.logs-section {
-  margin-top: 24px;
-}
-
-.logs-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 12px 0;
-}
-
-.logs-container {
-  background: #1e293b;
-  border-radius: 8px;
-  padding: 16px;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.logs-content {
-  color: #e2e8f0;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  margin: 0;
-  white-space: pre-wrap;
 }
 
 .modal-footer {
@@ -833,65 +765,6 @@ onMounted(() => {
 
 .btn-secondary:hover {
   background: #e2e8f0;
-}
-
-.btn-primary {
-  background: var(--main-color, #2563eb);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--main-color-hover, #1d4ed8);
-}
-
-/* 반응형 */
-@media (max-width: 768px) {
-  .container {
-    padding: 16px;
-  }
-
-  .calendar-controls {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-
-  .calendar-cell {
-    min-height: 80px;
-    padding: 8px 4px 4px 4px;
-  }
-
-  .date-number {
-    font-size: 14px;
-  }
-
-  .event-time {
-    font-size: 10px;
-  }
-
-  .event-badge-small {
-    width: 16px;
-    height: 16px;
-  }
-
-  .badge-dot {
-    width: 6px;
-    height: 6px;
-  }
-
-  .modal-content {
-    margin: 20px;
-    max-height: calc(100vh - 40px);
-  }
-
-  .modal-footer {
-    flex-direction: column-reverse;
-  }
-
-  .btn {
-    width: 100%;
-    justify-content: center;
-  }
 }
 
 /* 드롭다운 */
@@ -992,5 +865,45 @@ onMounted(() => {
 .item-status.status-failed {
   background: #fef2f2;
   color: #dc2626;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .calendar-controls {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .calendar-cell {
+    min-height: 80px;
+    padding: 8px 4px 4px 4px;
+  }
+
+  .date-number {
+    font-size: 14px;
+  }
+
+  .modal-content {
+    margin: 20px;
+    max-height: calc(100vh - 40px);
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .info-select {
+    min-width: 250px;
+  }
 }
 </style>
