@@ -128,10 +128,10 @@ watch(selectedJenkins, (id) => {
           <select
               id="jenkins-select"
               v-model="selectedJenkins"
-              class="form-select"
               :class="{ 'placeholder-selected': selectedJenkins === '' }"
+              class="form-select"
           >
-            <option value="" disabled>Jenkins 인스턴스를 선택해주세요</option>
+            <option disabled value="">Jenkins 인스턴스를 선택해주세요</option>
             <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
               {{ info.name }}
             </option>
