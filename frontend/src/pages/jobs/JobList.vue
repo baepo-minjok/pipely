@@ -1,8 +1,10 @@
 <script setup>
-import { ref, onMounted, watch, computed, onUnmounted } from 'vue';
+import {ref, onMounted, watch, computed, onUnmounted, version} from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
 import { useRouter } from 'vue-router';
 import { useJobStore } from '../../stores/useJobStore.js';
+import { jobApi} from "@/api/JobApi.js";
+import {VersionApi as versionApi} from "@/api/VersionApi.js";
 
 const jobStore = useJobStore();
 const router = useRouter();
@@ -33,19 +35,81 @@ const handleJobAction = (job) => {
   // Job 실행 로직
 };
 
-const handleDeleteJob = (job) => {
-  if (confirm(`정말로 "${job.name}" Job을 삭제하시겠습니까?`)) {
-    console.log('Delete job:', job);
-    // 삭제 로직
+const handleDeleteJob = async (job) => {
+  if (!confirm(`정말로 "${job.name}" Job을 삭제하시겠습니까?`)) {
+    openDropdownJob.value = null;
+    return;
   }
-  openDropdownJob.value = null; // 드롭다운 닫기
+
+  try {
+
+    await jobApi.deletedJobs(job.pipelineId);
+
+    const originalLength = jobStore.jobList.length;
+
+    jobStore.jobList = jobStore.jobList.filter(j => j.name !== job.name);
+
+    if (jobStore.jobList.length === originalLength) {
+      jobStore.jobList = jobStore.jobList.filter(j =>
+          j.id !== job.id &&
+          j.pipelineId !== job.pipelineId
+      );
+    }
+    openDropdownJob.value = null;
+
+    alert('삭제가 완료되었습니다.');
+
+  } catch (err) {
+    console.error('삭제 실패:', err);
+    alert('삭제에 실패했습니다.');
+    openDropdownJob.value = null;
+  }
 };
 
+
+
+
+
+const showSnapshotModal = ref(false);   // 모달 표시 여부
+const snapshotTargetJob = ref(null);    // 현재 스냅샷 저장할 Job
+const snapshotName = ref("");           // 입력할 스냅샷 이름
+
 const handleSaveSnapshot = (job) => {
-  console.log('Save snapshot for job:', job);
-  // 스냅샷 저장 로직
-  openDropdownJob.value = null; // 드롭다운 닫기
+  snapshotTargetJob.value = job;
+  snapshotName.value = "";
+  showSnapshotModal.value = true;
+  openDropdownJob.value = null;
 };
+const confirmSaveSnapshot = async () => {
+  if (!snapshotName.value.trim()) {
+    alert("스냅샷 이름을 입력하세요.");
+    return;
+  }
+
+  try {
+    const success = await versionApi.createSnapshot(
+        snapshotTargetJob.value.pipelineId,
+        snapshotName.value
+    );
+
+    if (success) {
+      alert(`스냅샷 "${snapshotName.value}" 생성 성공!`);
+      showSnapshotModal.value = false;
+    }
+  } catch (err) {
+    console.error("스냅샷 생성 실패", err);
+    alert("스냅샷 생성 실패");
+  }
+};
+
+
+
+
+
+
+
+
+
 
 const handleViewSnapshots = (job) => {
   console.log('View snapshots for job:', job);
@@ -63,14 +127,15 @@ const handleToggleDropdown = (job) => {
 };
 
 // 외부 클릭 시 드롭다운 닫기
-const handleOutsideClick = () => {
+const handleOutsideClick = (event) => {
   if (event.target.closest('.more-container') || event.target.closest('.dropdown-menu')) {
     return;
   }
-  openDropdownJob.value = null;};
+  openDropdownJob.value = null;
+};
 
 onMounted(() => {
-  jobStore.getJenkinsInfo();
+  jobApi.getJenkinsInfo();
   // 전역 클릭 이벤트 리스너 추가
   document.addEventListener('click', handleOutsideClick);
 });
@@ -80,14 +145,14 @@ onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick);
 });
 
-
 watch(selectedJenkins, async (id) => {
-  if (id) await jobStore.fetchJobList(id);
-  console.log(selected)
-  console.log(jobStore.jobList);
+  if (id) {
+    await jobApi.fetchJobList(id);
+  }
+  // Jenkins 변경 시 드롭다운 닫기
+  openDropdownJob.value = null;
 });
 </script>
-
 
 <template>
   <div class="container">
@@ -112,6 +177,21 @@ watch(selectedJenkins, async (id) => {
         </svg>
         새 Job 생성
       </button>
+    </div>
+
+
+    <div v-if="showSnapshotModal" class="modal-overlay">
+      <div class="modal">
+        <h3>스냅샷 저장</h3>
+        <p>{{ snapshotTargetJob?.name }} Job의 스냅샷 이름을 입력하세요.</p>
+
+        <input v-model="snapshotName" class="modal-input" placeholder="스냅샷 이름 입력" />
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" @click="confirmSaveSnapshot">저장</button>
+          <button class="btn" @click="showSnapshotModal = false">취소</button>
+        </div>
+      </div>
     </div>
 
     <!-- Jenkins 선택 섹션 -->
@@ -524,4 +604,43 @@ watch(selectedJenkins, async (id) => {
     justify-content: center;
   }
 }
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  padding: 20px 30px;
+  border-radius: 10px;
+  width: 400px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.modal h3 {
+  margin-bottom: 10px;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+
 </style>
