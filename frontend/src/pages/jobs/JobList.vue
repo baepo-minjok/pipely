@@ -1,14 +1,13 @@
 <script setup>
-import {computed, onMounted, ref, watch} from 'vue';
+import { ref, onMounted, watch, computed, onUnmounted } from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
-import {useRouter} from 'vue-router';
-import {useJobStore} from '../../stores/useJobStore.js';
+import { useRouter } from 'vue-router';
+import { useJobStore } from '../../stores/useJobStore.js';
 
 const jobStore = useJobStore();
 const router = useRouter();
-
 const selectedJenkins = ref('');
-const openedDropdownId = ref(null); // 드롭다운 열려있는 job.id
+const openDropdownJob = ref(null); // 현재 열린 드롭다운 Job ID
 
 const selected = computed(() =>
     jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value)
@@ -28,10 +27,59 @@ const handleCreateClick = () => {
   }
 };
 
+// 드롭다운 관련 핸들러들
+const handleJobAction = (job) => {
+  console.log('Job action:', job);
+  // Job 실행 로직
+};
+
+const handleDeleteJob = (job) => {
+  if (confirm(`정말로 "${job.name}" Job을 삭제하시겠습니까?`)) {
+    console.log('Delete job:', job);
+    // 삭제 로직
+  }
+  openDropdownJob.value = null; // 드롭다운 닫기
+};
+
+const handleSaveSnapshot = (job) => {
+  console.log('Save snapshot for job:', job);
+  // 스냅샷 저장 로직
+  openDropdownJob.value = null; // 드롭다운 닫기
+};
+
+const handleViewSnapshots = (job) => {
+  console.log('View snapshots for job:', job);
+  // 스냅샷 목록 보기 로직
+  openDropdownJob.value = null; // 드롭다운 닫기
+};
+
+const handleToggleDropdown = (job) => {
+  // 같은 Job이면 토글, 다른 Job이면 해당 Job으로 변경
+  if (openDropdownJob.value === job.name) {
+    openDropdownJob.value = null;
+  } else {
+    openDropdownJob.value = job.name;
+  }
+};
+
+// 외부 클릭 시 드롭다운 닫기
+const handleOutsideClick = () => {
+  if (event.target.closest('.more-container') || event.target.closest('.dropdown-menu')) {
+    return;
+  }
+  openDropdownJob.value = null;};
 
 onMounted(() => {
   jobStore.getJenkinsInfo();
+  // 전역 클릭 이벤트 리스너 추가
+  document.addEventListener('click', handleOutsideClick);
 });
+
+// 컴포넌트 언마운트 시 이벤트 리스너 제거
+onUnmounted(() => {
+  document.removeEventListener('click', handleOutsideClick);
+});
+
 
 watch(selectedJenkins, async (id) => {
   if (id) await jobStore.fetchJobList(id);
@@ -83,10 +131,10 @@ watch(selectedJenkins, async (id) => {
           <select
               id="jenkins-select"
               v-model="selectedJenkins"
-              :class="{ 'placeholder-selected': selectedJenkins === '' }"
               class="form-select"
+              :class="{ 'placeholder-selected': selectedJenkins === '' }"
           >
-            <option disabled value="">Jenkins 인스턴스를 선택해주세요</option>
+            <option value="" disabled>Jenkins 인스턴스를 선택해주세요</option>
             <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
               {{ info.name }}
             </option>
@@ -156,20 +204,18 @@ watch(selectedJenkins, async (id) => {
           </div>
 
           <div v-else class="job-grid">
-            <!--            <JobCard-->
-            <!--                v-for="job in jobStore.jobList"-->
-            <!--                :key="job.name"-->
-            <!--                :job="job"-->
-            <!--                @click="router.push(`/job/${job.name}`)"-->
-            <!--                class="job-card-item"-->
-            <!--            />-->
             <JobCard
                 v-for="job in jobStore.jobList"
-                :key="job.pipelineId"
+                :key="job.name"
                 :job="job"
-                :openedDropdownId="openedDropdownId"
-                @closeDropdown="() => openedDropdownId = null"
-                @toggleDropdown="id => openedDropdownId = id"
+                :open-dropdown-job="openDropdownJob"
+                @click="() => router.push(`/job/${job.name}`)"
+                @action="handleJobAction"
+                @delete="handleDeleteJob"
+                @saveSnapshot="handleSaveSnapshot"
+                @viewSnapshots="handleViewSnapshots"
+                @toggleDropdown="handleToggleDropdown"
+                class="job-card-item"
             />
           </div>
         </template>
@@ -188,28 +234,10 @@ watch(selectedJenkins, async (id) => {
         </template>
       </div>
     </div>
-    <div
-        v-if="openedDropdownId"
-        class="dropdown-overlay"
-        @click="openedDropdownId = null"
-    />
   </div>
 </template>
 
-
 <style scoped>
-
-.dropdown-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 999; /* 드롭다운보다 낮고 카드보다 높게 */
-  background: transparent;
-}
-
-
 .container {
   max-width: 1000px;
   margin: 20px auto 0;
@@ -407,11 +435,6 @@ watch(selectedJenkins, async (id) => {
 .job-card-item {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
-}
-
-.job-card-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* 빈 상태 */
