@@ -1,7 +1,6 @@
 package com.example.backend.util;
 
 import com.example.backend.jenkins.info.model.JenkinsInfo;
-import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
@@ -25,7 +24,67 @@ public class ScriptEditUtil {
             "stage\\s*\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*\\)\\s*\\{"
     );
     private final HttpClientService httpClientService;
-    private final JobNotificationService jobNotificationService;
+
+    private static String insertScriptAfterBlockBrace(String input, String blockName, String scriptToInsert) {
+        int idx = input.indexOf(blockName + " {");
+        if (idx == -1) return input; // 블록 없으면 그대로
+
+        int openBrace = input.indexOf("{", idx);
+        if (openBrace == -1) return input; // 예외
+
+        // 중괄호 바로 뒤(한 줄 내려감)에 insert
+        String before = input.substring(0, openBrace + 1);
+        String after = input.substring(openBrace + 1);
+
+        String toInsert = "\n" + indent(scriptToInsert, 8) + "\n";
+        return before + toInsert + after;
+    }
+
+    private static String indent(String s, int n) {
+        String pad = " ".repeat(n);
+        return s.lines().map(line -> pad + line).reduce((a, b) -> a + "\n" + b).orElse("");
+    }
+
+    /**
+     * Jenkins pipeline 스크립트에 post 블록(notificationScript)을 삽입한다.
+     * - 기존 script가 없으면 기본 pipeline { agent any stages {} post {} } 구조를 생성
+     * - pipeline {} 블록의 마지막 } 앞에 post 블록 추가
+     * - }를 찾지 못하면 그냥 끝에 추가
+     */
+    public String injectToSuccessFailureBlocks(
+            String script,
+            String successScript,
+            String failureScript
+    ) {
+        final String defaultPipeline =
+                "pipeline {\n" +
+                        "    agent any\n" +
+                        "    stages {\n" +
+                        "        stage('Example') {\n" +
+                        "            steps {\n" +
+                        "            }\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "    post {\n" +
+                        "        success {\n" +
+                        "        }\n" +
+                        "        failure {\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n";
+
+
+        String result = (script == null || script.isBlank()) ? defaultPipeline : script;
+
+        if (successScript != null && !successScript.isBlank()) {
+            result = insertScriptAfterBlockBrace(result, "success", successScript);
+        }
+        if (failureScript != null && !failureScript.isBlank()) {
+            result = insertScriptAfterBlockBrace(result, "failure", failureScript);
+        }
+
+        return result;
+    }
 
     /**
      * 주어진 Jenkins pipeline script에서 모든 stage 이름을 추출합니다.
@@ -139,7 +198,6 @@ public class ScriptEditUtil {
         return result;
     }
 
-
     /**
      * Jenkins Declarative Pipeline 스크립트 문법 검증.
      *
@@ -163,52 +221,6 @@ public class ScriptEditUtil {
         String response = httpClientService.exchange(url, HttpMethod.POST, request, String.class);
 
         return response.contains("Jenkinsfile successfully validated.");
-    }
-
-    /**
-     * Jenkins pipeline 스크립트에 post 블록(notificationScript)을 삽입한다.
-     * - 기존 script가 없으면 기본 pipeline { agent any stages {} post {} } 구조를 생성
-     * - pipeline {} 블록의 마지막 } 앞에 post 블록 추가
-     * - }를 찾지 못하면 그냥 끝에 추가
-     */
-    public String replacePostBlock(String currentScript, String notificationScript) {
-        String defaultStage = """
-                stages {
-                  stage('Init') {
-                    steps {
-                      echo 'Initializing pipeline...'
-                    }
-                  }
-                }
-                """;
-
-        if (notificationScript == null || notificationScript.isBlank()) {
-            return currentScript.isBlank() ? """
-                    pipeline {
-                      agent any
-                      %s
-                    }
-                    """.formatted(defaultStage) : currentScript;
-        }
-
-        if (currentScript.isBlank()) {
-            return """
-                    pipeline {
-                      agent any
-                      %s
-                      %s
-                    }
-                    """.formatted(defaultStage, notificationScript);
-        }
-
-        int lastBraceIndex = currentScript.lastIndexOf("}");
-        if (lastBraceIndex != -1) {
-            String before = currentScript.substring(0, lastBraceIndex).trim();
-            String after = currentScript.substring(lastBraceIndex);
-            return before + "\n\n  " + notificationScript + "\n" + after;
-        }
-
-        return currentScript.trim() + "\n" + notificationScript;
     }
 
 

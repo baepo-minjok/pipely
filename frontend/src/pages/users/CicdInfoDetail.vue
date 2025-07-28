@@ -196,9 +196,7 @@ const goToJobList = () => {
   router.push({
     name: 'JobList',
     query: {
-      id: data.id,
-      jenkinsName: data.name,
-      jenkinsUri: data.uri
+      id: data.id
     }
   });
 };

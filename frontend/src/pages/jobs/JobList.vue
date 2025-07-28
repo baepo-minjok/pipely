@@ -1,13 +1,15 @@
 <script setup>
-import { ref, onMounted, watch, computed, onUnmounted } from 'vue';
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
-import { useRouter } from 'vue-router';
-import { useJobStore } from '../../stores/useJobStore.js';
+import {useRoute, useRouter} from 'vue-router';
+import {useJobStore} from '../../stores/useJobStore.js';
 
 const jobStore = useJobStore();
 const router = useRouter();
-const selectedJenkins = ref('');
+const route = useRoute();
+const selectedJenkins = ref(route.query.id || '');
 const openDropdownJob = ref(null); // 현재 열린 드롭다운 Job ID
+
 
 const selected = computed(() =>
     jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value)
@@ -67,7 +69,8 @@ const handleOutsideClick = () => {
   if (event.target.closest('.more-container') || event.target.closest('.dropdown-menu')) {
     return;
   }
-  openDropdownJob.value = null;};
+  openDropdownJob.value = null;
+};
 
 onMounted(() => {
   jobStore.getJenkinsInfo();
@@ -131,10 +134,10 @@ watch(selectedJenkins, async (id) => {
           <select
               id="jenkins-select"
               v-model="selectedJenkins"
-              class="form-select"
               :class="{ 'placeholder-selected': selectedJenkins === '' }"
+              class="form-select"
           >
-            <option value="" disabled>Jenkins 인스턴스를 선택해주세요</option>
+            <option :value="''" disabled>Jenkins 인스턴스를 선택해주세요</option>
             <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
               {{ info.name }}
             </option>
@@ -209,13 +212,13 @@ watch(selectedJenkins, async (id) => {
                 :key="job.name"
                 :job="job"
                 :open-dropdown-job="openDropdownJob"
-                @click="() => router.push(`/job/${job.name}`)"
+                class="job-card-item"
                 @action="handleJobAction"
+                @click="() => router.push(`/job/${job.name}`)"
                 @delete="handleDeleteJob"
                 @saveSnapshot="handleSaveSnapshot"
-                @viewSnapshots="handleViewSnapshots"
                 @toggleDropdown="handleToggleDropdown"
-                class="job-card-item"
+                @viewSnapshots="handleViewSnapshots"
             />
           </div>
         </template>
