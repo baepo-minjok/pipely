@@ -121,7 +121,7 @@ spec:
                         "success": true,
                         "jobId": "${params.ID}"
                       }' \\
-                 https://www.pipely.kro.kr/api/jenkins/job/build/status
+                 https://www.pipely.kro.kr/api/jenkins/build/status
             """
         }
         failure {
@@ -132,7 +132,7 @@ spec:
                         "success": false,
                         "jobId": "${params.ID}"
                       }' \\
-                 https://www.pipely.kro.kr/api/jenkins/job/build/status
+                 https://www.pipely.kro.kr/api/jenkins/build/status
             """
         }
     }

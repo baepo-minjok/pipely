@@ -46,6 +46,7 @@ public class BuildService {
      */
     public void StageJenkinsBuild(BuildRequestDto.BuildStageRequestDto dto) {
         Pipeline pipeline = pipelineService.getPipelineById(dto.getJobId());
+        pipelineService.setStatusPending(pipeline);
         JenkinsInfo info = pipeline.getJenkinsInfo();
         String triggerUrl = info.getUri() + "/job/" + pipeline.getName() + "/buildWithParameters";
         log.info("Jenkins Trigger URL = {}", triggerUrl);
