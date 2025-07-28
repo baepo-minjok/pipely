@@ -1,5 +1,5 @@
 <script setup>
-import {toRefs, computed} from 'vue';
+import {computed, toRefs} from 'vue';
 import {formatDateTime} from '../../utils/formatDateTime';
 
 const props = defineProps({
@@ -35,11 +35,11 @@ const handleToggleDropdown = () => {
 
 const getStatusClass = (state) => {
   switch (state) {
-    case 'SUCCESS':
+    case 'BUILD_SUCCESS':
       return 'status-success';
-    case 'FAILED':
+    case 'BUILD_FAILURE':
       return 'status-failed';
-    case 'RUNNING':
+    case 'BUILD_RUNNING':
       return 'status-running';
     default:
       return 'status-pending';
@@ -48,11 +48,11 @@ const getStatusClass = (state) => {
 
 const getStatusText = (state) => {
   switch (state) {
-    case 'SUCCESS':
+    case 'BUILD_SUCCESS':
       return '성공';
-    case 'FAILED':
+    case 'BUILD_FAILURE':
       return '실패';
-    case 'RUNNING':
+    case 'BUILD_RUNNING':
       return '실행 중';
     default:
       return '대기';
@@ -61,11 +61,11 @@ const getStatusText = (state) => {
 
 const getButtonClass = (state) => {
   switch (state) {
-    case 'SUCCESS':
+    case 'BUILD_SUCCESS':
       return 'btn-restart';
-    case 'FAILED':
+    case 'BUILD_FAILURE':
       return 'btn-retry';
-    case 'RUNNING':
+    case 'BUILD_RUNNING':
       return 'btn-stop';
     default:
       return 'btn-start';
@@ -74,11 +74,11 @@ const getButtonClass = (state) => {
 
 const getButtonText = (state) => {
   switch (state) {
-    case 'SUCCESS':
-      return '재실행';
-    case 'FAILED':
+    case 'BUILD_SUCCESS':
+      return '실행';
+    case 'BUILD_FAILURE':
       return '재시도';
-    case 'RUNNING':
+    case 'BUILD_RUNNING':
       return '중지';
     default:
       return '실행';
@@ -91,7 +91,7 @@ const handleActionClick = () => {
 </script>
 
 <template>
-  <div class="job-card" :class="{ 'dropdown-open': isDropdownOpen }" @click.stop>
+  <div :class="{ 'dropdown-open': isDropdownOpen }" class="job-card" @click.stop>
     <!-- 카드 헤더 -->
     <div class="card-header">
       <div class="job-info">
@@ -117,7 +117,7 @@ const handleActionClick = () => {
         </div>
       </div>
 
-      <div class="status-badge" :class="getStatusClass(job.buildState)">
+      <div :class="getStatusClass(job.buildState)" class="status-badge">
         <svg v-if="job.buildState === 'SUCCESS'" class="status-icon" fill="none" height="16" stroke="currentColor"
              stroke-width="2" viewBox="0 0 24 24" width="16">
           <polyline points="20,6 9,17 4,12"/>
@@ -169,8 +169,8 @@ const handleActionClick = () => {
         <div
             v-for="(stage, index) in job.stages"
             :key="index"
-            class="stage-item"
             :class="getStatusClass(stage.state)"
+            class="stage-item"
         >
           <div class="stage-indicator">
             <svg v-if="stage.state === 'SUCCESS'" class="stage-icon" fill="none" height="12" stroke="currentColor"
@@ -196,8 +196,8 @@ const handleActionClick = () => {
     <!-- 액션 버튼 -->
     <div class="card-footer">
       <button
-          class="action-btn"
           :class="getButtonClass(job.buildState)"
+          class="action-btn"
           @click.stop="handleActionClick"
       >
         <svg v-if="job.buildState === 'SUCCESS'" class="btn-icon" fill="none" height="16" stroke="currentColor"

@@ -81,13 +81,12 @@ public class Pipeline {
     )
     private UUID latestVersionId;
 
-    @Column(name = "is_build_success")
+    @Column(name = "build_status")
     @Schema(
             description = "빌드 성공 여부 (true: 성공, false: 실패, null: 빌드 전 또는 미실행)",
-            example = "true",
-            nullable = true
+            example = "true"
     )
-    private Boolean isBuildSuccess;
+    private BuildStatus buildStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "jenkins_info_id", nullable = false)
@@ -107,5 +106,12 @@ public class Pipeline {
             hidden = true
     )
     private List<PipelineVersion> versionList = new ArrayList<>();
+
+    public enum BuildStatus {
+        BUILD_SUCCESS,
+        BUILD_FAILURE,
+        BUILD_RUNNING,
+        BUILD_INIT
+    }
 
 }
