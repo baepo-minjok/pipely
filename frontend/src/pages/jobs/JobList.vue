@@ -1,5 +1,5 @@
 <script setup>
-import {ref, onMounted, watch, computed} from 'vue';
+import {computed, onMounted, ref, watch} from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
 import {useRouter} from 'vue-router';
 import {useJobStore} from '../../stores/useJobStore.js';
@@ -36,6 +36,7 @@ onMounted(() => {
 watch(selectedJenkins, (id) => {
   if (id) jobStore.fetchJobList(id);
   console.log(selected)
+  console.log(jobStore.jobList);
 });
 </script>
 
@@ -82,10 +83,10 @@ watch(selectedJenkins, (id) => {
           <select
               id="jenkins-select"
               v-model="selectedJenkins"
-              class="form-select"
               :class="{ 'placeholder-selected': selectedJenkins === '' }"
+              class="form-select"
           >
-            <option value="" disabled>Jenkins 인스턴스를 선택해주세요</option>
+            <option disabled value="">Jenkins 인스턴스를 선택해주세요</option>
             <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
               {{ info.name }}
             </option>
@@ -155,20 +156,20 @@ watch(selectedJenkins, (id) => {
           </div>
 
           <div v-else class="job-grid">
-<!--            <JobCard-->
-<!--                v-for="job in jobStore.jobList"-->
-<!--                :key="job.name"-->
-<!--                :job="job"-->
-<!--                @click="router.push(`/job/${job.name}`)"-->
-<!--                class="job-card-item"-->
-<!--            />-->
+            <!--            <JobCard-->
+            <!--                v-for="job in jobStore.jobList"-->
+            <!--                :key="job.name"-->
+            <!--                :job="job"-->
+            <!--                @click="router.push(`/job/${job.name}`)"-->
+            <!--                class="job-card-item"-->
+            <!--            />-->
             <JobCard
                 v-for="job in jobStore.jobList"
                 :key="job.pipelineId"
                 :job="job"
                 :openedDropdownId="openedDropdownId"
-                @toggleDropdown="id => openedDropdownId = id"
                 @closeDropdown="() => openedDropdownId = null"
+                @toggleDropdown="id => openedDropdownId = id"
             />
           </div>
         </template>

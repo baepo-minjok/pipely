@@ -132,7 +132,7 @@ public class ResponseDto {
         @Schema(description = "Job 설명", example = "테스트 Job")
         private String description;
 
-        private boolean isBuildSuccess;
+        private Boolean isBuildSuccess;
     }
 
     @Data

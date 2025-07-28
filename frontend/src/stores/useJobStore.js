@@ -1,8 +1,5 @@
-import { defineStore } from 'pinia'
+import {defineStore} from 'pinia'
 import axios from 'axios'
-
-
-
 
 
 export const useJobStore = defineStore('jobstore', {
@@ -17,7 +14,7 @@ export const useJobStore = defineStore('jobstore', {
         async fetchJobList(jenkinsInfoId) {
             try {
                 const response = await axios.get('/api/jenkins/job', {
-                    params: { jenkinsInfoId }
+                    params: {jenkinsInfoId: jenkinsInfoId}
                 });
 
                 this.jobList = response.data.data;
