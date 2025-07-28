@@ -1,19 +1,24 @@
 <script setup>
-import { reactive, ref, onMounted } from 'vue';
+import { reactive, ref, watch } from 'vue';
+import { jobApi } from '@/api/JobApi';
 import KubernetesInput from '@/components/jobs/KubernetesInput.vue';
 import EC2Input from '@/components/jobs/EC2Input.vue';
-import { useRoute } from 'vue-router';
-import { jobApi } from '@/api/JobApi';
 
-const route = useRoute();
-const jobId = route.params.id;
+const props = defineProps({
+  jobId: String,
+});
 
-// 초기값
 const jobDetail = reactive({
+  pipelineId: '',
   name: '',
   description: '',
   schedule: '',
+  lastExe: '',
+  stageList: [],
+  notificationList: {},
+  pipelineVersionList: [],
   lightScriptDto: {
+    scriptId: '',
     githubUrl: '',
     branch: '',
     isBuildSelected: false,
@@ -44,32 +49,45 @@ const cicdItems = [
   { label: 'EC2', value: 'ec2', image: '/src/assets/images/ec2.png' },
 ];
 
-// API 호출
-onMounted(async () => {
-  try {
-    const response = await jobApi.getDetail(jobId);
-    const data = response.data;
+watch(
+  () => props.jobId,
+  async (id) => {
+    if (!id) return;
 
-    if (data.success && data.data) {
-      Object.assign(jobDetail, {
-        name: data.data.name,
-        description: data.data.description,
-        schedule: data.data.schedule,
-        lightScriptDto: { ...jobDetail.lightScriptDto, ...data.data.lightScriptDto },
-      });
+    try {
+      const response = await jobApi.getJobDetail(id);
+      const data = response.data;
 
-      scriptText.value = jobDetail.lightScriptDto.script;
+      if (data.success && data.data) {
+        Object.assign(jobDetail, {
+          pipelineId: data.data.pipelineId,
+          name: data.data.name,
+          description: data.data.description,
+          schedule: data.data.schedule,
+          lastExe: data.data.lastExe,
+          stageList: data.data.stageList || [],
+          notificationList: data.data.notificationList || {},
+          pipelineVersionList: data.data.pipelineVersionList || [],
+          lightScriptDto: {
+            ...jobDetail.lightScriptDto,
+            ...data.data.lightScriptDto,
+          },
+        });
 
-      if (jobDetail.lightScriptDto.isK8sDeploy) {
-        selectedItem.value = cicdItems.find((item) => item.value === 'k8s');
-      } else if (jobDetail.lightScriptDto.isEc2Deploy) {
-        selectedItem.value = cicdItems.find((item) => item.value === 'ec2');
+        scriptText.value = jobDetail.lightScriptDto.script;
+
+        if (jobDetail.lightScriptDto.isK8sDeploy) {
+          selectedItem.value = cicdItems.find((item) => item.value === 'k8s');
+        } else if (jobDetail.lightScriptDto.isEc2Deploy) {
+          selectedItem.value = cicdItems.find((item) => item.value === 'ec2');
+        }
       }
+    } catch (error) {
+      console.error('❌ Job Detail fetch error:', error);
     }
-  } catch (error) {
-    console.error('Job Detail fetch error:', error);
-  }
-});
+  },
+  { immediate: true }
+);
 </script>
 
 <template>

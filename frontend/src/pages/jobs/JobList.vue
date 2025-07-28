@@ -1,10 +1,10 @@
 <script setup>
-import {ref, onMounted, watch, computed, onUnmounted, version} from 'vue';
+import { ref, onMounted, watch, computed, onUnmounted, version } from 'vue';
 import JobCard from '../../components/jobs/JobCard.vue';
 import { useRouter } from 'vue-router';
 import { useJobStore } from '../../stores/useJobStore.js';
-import { jobApi} from "@/api/JobApi.js";
-import {VersionApi as versionApi} from "@/api/VersionApi.js";
+import { jobApi } from '@/api/JobApi.js';
+import { VersionApi as versionApi } from '@/api/VersionApi.js';
 
 const jobStore = useJobStore();
 const router = useRouter();
@@ -12,10 +12,7 @@ const route = useRoute();
 const selectedJenkins = ref(route.query.id || '');
 const openDropdownJob = ref(null); // 현재 열린 드롭다운 Job ID
 
-
-const selected = computed(() =>
-    jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value)
-);
+const selected = computed(() => jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value));
 
 const handleCreateClick = () => {
   if (selected.value) {
@@ -25,7 +22,7 @@ const handleCreateClick = () => {
         id: selected.value.id,
         jenkinsName: selected.value.name,
         jenkinsUri: selected.value.uri,
-        connected: selected.value.connected
+        connected: selected.value.connected,
       },
     });
   }
@@ -44,23 +41,18 @@ const handleDeleteJob = async (job) => {
   }
 
   try {
-
     await jobApi.deletedJobs(job.pipelineId);
 
     const originalLength = jobStore.jobList.length;
 
-    jobStore.jobList = jobStore.jobList.filter(j => j.name !== job.name);
+    jobStore.jobList = jobStore.jobList.filter((j) => j.name !== job.name);
 
     if (jobStore.jobList.length === originalLength) {
-      jobStore.jobList = jobStore.jobList.filter(j =>
-          j.id !== job.id &&
-          j.pipelineId !== job.pipelineId
-      );
+      jobStore.jobList = jobStore.jobList.filter((j) => j.id !== job.id && j.pipelineId !== job.pipelineId);
     }
     openDropdownJob.value = null;
 
     alert('삭제가 완료되었습니다.');
-
   } catch (err) {
     console.error('삭제 실패:', err);
     alert('삭제에 실패했습니다.');
@@ -68,50 +60,34 @@ const handleDeleteJob = async (job) => {
   }
 };
 
-
-
-
-
-const showSnapshotModal = ref(false);   // 모달 표시 여부
-const snapshotTargetJob = ref(null);    // 현재 스냅샷 저장할 Job
-const snapshotName = ref("");           // 입력할 스냅샷 이름
+const showSnapshotModal = ref(false); // 모달 표시 여부
+const snapshotTargetJob = ref(null); // 현재 스냅샷 저장할 Job
+const snapshotName = ref(''); // 입력할 스냅샷 이름
 
 const handleSaveSnapshot = (job) => {
   snapshotTargetJob.value = job;
-  snapshotName.value = "";
+  snapshotName.value = '';
   showSnapshotModal.value = true;
   openDropdownJob.value = null;
 };
 const confirmSaveSnapshot = async () => {
   if (!snapshotName.value.trim()) {
-    alert("스냅샷 이름을 입력하세요.");
+    alert('스냅샷 이름을 입력하세요.');
     return;
   }
 
   try {
-    const success = await versionApi.createSnapshot(
-        snapshotTargetJob.value.pipelineId,
-        snapshotName.value
-    );
+    const success = await versionApi.createSnapshot(snapshotTargetJob.value.pipelineId, snapshotName.value);
 
     if (success) {
       alert(`스냅샷 "${snapshotName.value}" 생성 성공!`);
       showSnapshotModal.value = false;
     }
   } catch (err) {
-    console.error("스냅샷 생성 실패", err);
-    alert("스냅샷 생성 실패");
+    console.error('스냅샷 생성 실패', err);
+    alert('스냅샷 생성 실패');
   }
 };
-
-
-
-
-
-
-
-
-
 
 const handleViewSnapshots = (job) => {
   console.log('View snapshots for job:', job);
@@ -134,6 +110,14 @@ const handleOutsideClick = (event) => {
     return;
   }
   openDropdownJob.value = null;
+};
+
+const handleCardClick = (job) => {
+  if (job?.pipelineId) {
+    router.push({ path: `/job/${job.name}`, query: { id: job.pipelineId } });
+  } else {
+    console.warn('❌ pipelineId가 정의되지 않았습니다:', job);
+  }
 };
 
 onMounted(() => {
@@ -168,19 +152,14 @@ watch(selectedJenkins, async (id) => {
           <span class="breadcrumb-item current">Job 목록</span>
         </div>
       </div>
-      <button
-          v-if="selectedJenkins"
-          class="btn btn-primary create-job-btn"
-          @click="handleCreateClick"
-      >
+      <button v-if="selectedJenkins" class="btn btn-primary create-job-btn" @click="handleCreateClick">
         <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <line x1="12" x2="12" y1="5" y2="19"/>
-          <line x1="5" x2="19" y1="12" y2="12"/>
+          <line x1="12" x2="12" y1="5" y2="19" />
+          <line x1="5" x2="19" y1="12" y2="12" />
         </svg>
         새 Job 생성
       </button>
     </div>
-
 
     <div v-if="showSnapshotModal" class="modal-overlay">
       <div class="modal">
@@ -200,9 +179,9 @@ watch(selectedJenkins, async (id) => {
     <div class="section jenkins-select-section">
       <h3 class="section-title">
         <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-          <rect height="14" rx="2" ry="2" width="20" x="2" y="3"/>
-          <line x1="8" x2="16" y1="21" y2="21"/>
-          <line x1="12" x2="12" y1="17" y2="21"/>
+          <rect height="14" rx="2" ry="2" width="20" x="2" y="3" />
+          <line x1="8" x2="16" y1="21" y2="21" />
+          <line x1="12" x2="12" y1="17" y2="21" />
         </svg>
         Jenkins 인스턴스 선택
       </h3>
@@ -211,19 +190,26 @@ watch(selectedJenkins, async (id) => {
         <label class="form-label" for="jenkins-select">Jenkins 정보</label>
         <div class="custom-select-wrapper">
           <select
-              id="jenkins-select"
-              v-model="selectedJenkins"
-              :class="{ 'placeholder-selected': selectedJenkins === '' }"
-              class="form-select"
+            id="jenkins-select"
+            v-model="selectedJenkins"
+            :class="{ 'placeholder-selected': selectedJenkins === '' }"
+            class="form-select"
           >
             <option :value="''" disabled>Jenkins 인스턴스를 선택해주세요</option>
             <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
               {{ info.name }}
             </option>
           </select>
-          <svg class="select-arrow" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-               width="16">
-            <polyline points="6,9 12,15 18,9"/>
+          <svg
+            class="select-arrow"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+          >
+            <polyline points="6,9 12,15 18,9" />
           </svg>
         </div>
       </div>
@@ -241,7 +227,7 @@ watch(selectedJenkins, async (id) => {
         <div class="connection-status">
           <div :class="['status-dot', { connected: selected.connected }]"></div>
           <span :class="['status-text', { connected: selected.connected }]">
-                {{ selected.connected ? '연결됨' : '연결 실패' }}
+            {{ selected.connected ? '연결됨' : '연결 실패' }}
           </span>
         </div>
       </div>
@@ -251,11 +237,11 @@ watch(selectedJenkins, async (id) => {
     <div class="section job-list-section">
       <h3 class="section-title">
         <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14,2 14,8 20,8"/>
-          <line x1="16" x2="8" y1="13" y2="13"/>
-          <line x1="16" x2="8" y1="17" y2="17"/>
-          <polyline points="10,9 9,9 8,9"/>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14,2 14,8 20,8" />
+          <line x1="16" x2="8" y1="13" y2="13" />
+          <line x1="16" x2="8" y1="17" y2="17" />
+          <polyline points="10,9 9,9 8,9" />
         </svg>
         Job 목록
         <span v-if="selectedJenkins && jobStore.jobList.length > 0" class="job-count">
@@ -266,20 +252,27 @@ watch(selectedJenkins, async (id) => {
       <div class="job-list-content">
         <template v-if="selectedJenkins">
           <div v-if="jobStore.jobList.length === 0" class="empty-state">
-            <svg class="empty-icon" fill="none" height="64" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"
-                 width="64">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <line x1="16" x2="8" y1="13" y2="13"/>
-              <line x1="16" x2="8" y1="17" y2="17"/>
-              <polyline points="10,9 9,9 8,9"/>
+            <svg
+              class="empty-icon"
+              fill="none"
+              height="64"
+              stroke="currentColor"
+              stroke-width="1"
+              viewBox="0 0 24 24"
+              width="64"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14,2 14,8 20,8" />
+              <line x1="16" x2="8" y1="13" y2="13" />
+              <line x1="16" x2="8" y1="17" y2="17" />
+              <polyline points="10,9 9,9 8,9" />
             </svg>
             <h4 class="empty-title">Job이 없습니다</h4>
             <p class="empty-description">새로운 Job을 생성해보세요!</p>
             <button class="btn btn-primary" @click="handleCreateClick">
               <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                <line x1="12" x2="12" y1="5" y2="19"/>
-                <line x1="5" x2="19" y1="12" y2="12"/>
+                <line x1="12" x2="12" y1="5" y2="19" />
+                <line x1="5" x2="19" y1="12" y2="12" />
               </svg>
               첫 번째 Job 생성하기
             </button>
@@ -287,28 +280,35 @@ watch(selectedJenkins, async (id) => {
 
           <div v-else class="job-grid">
             <JobCard
-                v-for="job in jobStore.jobList"
-                :key="job.name"
-                :job="job"
-                :open-dropdown-job="openDropdownJob"
-                class="job-card-item"
-                @action="handleJobAction"
-                @click="() => router.push(`/job/${job.name}`)"
-                @delete="handleDeleteJob"
-                @saveSnapshot="handleSaveSnapshot"
-                @toggleDropdown="handleToggleDropdown"
-                @viewSnapshots="handleViewSnapshots"
+              v-for="job in jobStore.jobList"
+              :key="job.name"
+              :job="job"
+              :open-dropdown-job="openDropdownJob"
+              class="job-card-item"
+              @action="handleJobAction"
+              @click="() => handleCardClick(job)"
+              @delete="handleDeleteJob"
+              @saveSnapshot="handleSaveSnapshot"
+              @toggleDropdown="handleToggleDropdown"
+              @viewSnapshots="handleViewSnapshots"
             />
           </div>
         </template>
 
         <template v-else>
           <div class="select-prompt">
-            <svg class="prompt-icon" fill="none" height="48" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"
-                 width="48">
-              <rect height="14" rx="2" ry="2" width="20" x="2" y="3"/>
-              <line x1="8" x2="16" y1="21" y2="11"/>
-              <line x1="12" x2="12" y1="17" y2="17"/>
+            <svg
+              class="prompt-icon"
+              fill="none"
+              height="48"
+              stroke="currentColor"
+              stroke-width="1"
+              viewBox="0 0 24 24"
+              width="48"
+            >
+              <rect height="14" rx="2" ry="2" width="20" x="2" y="3" />
+              <line x1="8" x2="16" y1="21" y2="11" />
+              <line x1="12" x2="12" y1="17" y2="17" />
             </svg>
             <h4 class="prompt-title">Jenkins 인스턴스를 선택하세요</h4>
             <p class="prompt-description">Job 목록을 확인하려면 먼저 Jenkins 인스턴스를 선택해주세요.</p>
@@ -520,7 +520,8 @@ watch(selectedJenkins, async (id) => {
 }
 
 /* 빈 상태 */
-.empty-state, .select-prompt {
+.empty-state,
+.select-prompt {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -529,19 +530,22 @@ watch(selectedJenkins, async (id) => {
   text-align: center;
 }
 
-.empty-icon, .prompt-icon {
+.empty-icon,
+.prompt-icon {
   color: #9ca3af;
   margin-bottom: 16px;
 }
 
-.empty-title, .prompt-title {
+.empty-title,
+.prompt-title {
   font-size: 20px;
   font-weight: 600;
   color: #374151;
   margin: 0 0 8px 0;
 }
 
-.empty-description, .prompt-description {
+.empty-description,
+.prompt-description {
   font-size: 16px;
   color: #6b7280;
   margin: 0 0 24px 0;
@@ -609,8 +613,10 @@ watch(selectedJenkins, async (id) => {
 
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
@@ -643,6 +649,4 @@ watch(selectedJenkins, async (id) => {
   justify-content: flex-end;
   gap: 10px;
 }
-
-
 </style>

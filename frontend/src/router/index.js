@@ -32,8 +32,9 @@ const routes = [
   { path: '/mypage/cicd/create', component: CreateCicdInfo, meta: { requiresAuth: true } },
   { path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: { requiresAuth: true } },
   { path: '/job', component: JobList, name: 'JobList', meta: { requiresAuth: true } },
-  { path: '/job/:id', component: JobDetail, meta: { requiresAuth: true } },
   { path: '/job/create', component: CreateJob, name: 'CreateJob', meta: { requiresAuth: true } },
+  { path: '/job/:name', component: JobDetail, meta: { requiresAuth: true } },
+
   { path: '/ai/chat', component: Chat },
   { path: '/:catchAll(.*)', redirect: '/' },
 ];
@@ -54,20 +55,17 @@ router.beforeEach(async (to, from, next) => {
     await userStore.fetchUserInfo();
   }
 
-    // 로그인된 사용자가 로그인/회원가입 페이지로 가면 메인으로
-    if (
-        ['/user/login', '/user/signup', '/user/oAuth'].includes(to.path) &&
-        isLoggedIn
-    ) {
-        next('/');
-        return;
-    }
-    if (to.meta.requiresAuth && !isLoggedIn) {
-        userStore.reset();
-        next('/user/login');
-    } else {
-        next();
-    }
+  // 로그인된 사용자가 로그인/회원가입 페이지로 가면 메인으로
+  if (['/user/login', '/user/signup', '/user/oAuth'].includes(to.path) && isLoggedIn) {
+    next('/');
+    return;
+  }
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    userStore.reset();
+    next('/user/login');
+  } else {
+    next();
+  }
 });
 
 export default router;
