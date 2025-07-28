@@ -258,6 +258,7 @@ public class PipelineService {
     @Transactional
     public void setStatus(RequestDto.StatusDto dto) {
         Pipeline pipeline = getPipelineById(dto.getJobId());
+        pipeline.setLatestBuildTime(LocalDateTime.now());
         if (dto.isSuccess()) {
             pipeline.setBuildState(Pipeline.BuildState.BUILD_SUCCESS);
         } else {
@@ -269,7 +270,6 @@ public class PipelineService {
     @Transactional
     public void setStatusPending(Pipeline pipeline) {
         pipeline.setBuildState(Pipeline.BuildState.BUILD_RUNNING);
-        pipeline.setLatestBuildTime(LocalDateTime.now());
         pipelineRepository.save(pipeline);
     }
 

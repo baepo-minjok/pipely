@@ -10,6 +10,16 @@ post {
             env.TIME_STRING = "${minutes} min ${seconds} sec"
         }}
 
+                    sh """
+                    curl -X POST \\
+                         -H "Content-Type: application/json" \\
+                         -d '{
+                                "success": true,
+                                "jobId": "${params.ID}"
+                              }' \\
+                         https://www.pipely.kro.kr/api/jenkins/build/status
+                    """
+
         {{#notificationMap.discord}}
         {{#checkSuccess}}
         script {

@@ -1,0 +1,35 @@
+        wrap([$class: 'BuildUser']) {
+        script {
+            def user = env.BUILD_USER ?: "자동 트리거"
+            def seconds = (int)(currentBuild.duration / 1000) % 60
+            def minutes = (int)(currentBuild.duration / 1000 / 60)
+            env.TIME_STRING = "${minutes} min ${seconds} sec"
+        }}
+
+        {{#notificationMap.discord}}
+        {{#checkFailure}}
+        script {
+            sh """
+            curl -X POST -H 'Content-Type: application/json' \
+                -d '{
+                "content": "❌ 빌드 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER}\\n👤 실행자: ${env.BUILD_USER ?: "자동 트리거"}\\n⏱️ 소요시간: ${TIME_STRING}\\n🔗 URL: ${env.BUILD_URL}"
+                }' \
+                '{{webhookUrl}}'
+            """
+        }
+        {{/checkFailure}}
+        {{/notificationMap.discord}}
+
+        {{#notificationMap.slack}}
+        {{#checkFailure}}
+        script {
+            sh """
+            curl -X POST -H 'Content-Type: application/json' \
+                -d '{
+                "text": "❌ [Slack] 빌드 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER}\\n👤 실행자: ${env.BUILD_USER ?: "자동 트리거"}\\n⏱️ 소요시간: ${TIME_STRING}\\n🔗 URL: ${env.BUILD_URL}"
+                }' \
+                '{{webhookUrl}}'
+            """
+        }
+        {{/checkFailure}}
+        {{/notificationMap.slack}}

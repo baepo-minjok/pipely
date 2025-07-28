@@ -69,6 +69,15 @@ onMounted(async () => {
     isLoading.value = false;
   }
 });
+
+const goToJobList = (id) => {
+  router.push({
+    name: 'JobList',
+    query: {
+      id: id
+    }
+  });
+};
 </script>
 
 <template>
@@ -284,7 +293,7 @@ onMounted(async () => {
                 <span>{{ info.uri }}</span>
               </div>
 
-              <button class="card-action-btn" @click.stop="router.push(`/mypage/cicd/${info.id}`)">
+              <button class="card-action-btn" @click.stop="goToJobList(info.id)">
                 <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
                   <path d="M9 18l6-6-6-6"/>
                 </svg>

@@ -156,10 +156,13 @@ public class ConfigService {
 
         String injectedScript = originalScript.isBlank() ? "" : scriptEditUtil.injectBooleanParams(originalScript);
 
-        String notificationScript = (dto.getNotificationMap() != null && !dto.getNotificationMap().isEmpty())
-                ? createNotificationScript(dto)
+        String notificationSuccessScript = (dto.getNotificationMap() != null && !dto.getNotificationMap().isEmpty())
+                ? createNotificationSuccessScript(dto)
                 : "";
-        injectedScript = scriptEditUtil.replacePostBlock(injectedScript, notificationScript);
+        String notificationFailureScript = (dto.getNotificationMap() != null && !dto.getNotificationMap().isEmpty())
+                ? createNotificationFailureScript(dto)
+                : "";
+        injectedScript = scriptEditUtil.injectToSuccessFailureBlocks(injectedScript, notificationSuccessScript, notificationFailureScript);
 
         if (dto.getSchedule() != null && !dto.getSchedule().isBlank()) {
             context.put("cronExpression", CronExpressionUtil.toCron(dto.getSchedule()));
@@ -259,8 +262,20 @@ public class ConfigService {
         return result;
     }
 
-    public String createNotificationScript(RequestDto.BaseDto dto) {
-        Mustache mustache = mf.compile("template/notificationScript.mustache");
+    public String createNotificationSuccessScript(RequestDto.BaseDto dto) {
+        Mustache mustache = mf.compile("template/notificationSuccess.mustache");
+
+
+        Map<String, Object> context = new HashMap<>();
+        context.put("notificationMap", dto.getNotificationMap());
+
+        StringWriter writer = new StringWriter();
+        mustache.execute(writer, context);
+        return writer.toString();
+    }
+
+    public String createNotificationFailureScript(RequestDto.BaseDto dto) {
+        Mustache mustache = mf.compile("template/notificationFailure.mustache");
 
 
         Map<String, Object> context = new HashMap<>();
