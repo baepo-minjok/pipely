@@ -33,8 +33,8 @@ onMounted(() => {
   jobStore.getJenkinsInfo();
 });
 
-watch(selectedJenkins, (id) => {
-  if (id) jobStore.fetchJobList(id);
+watch(selectedJenkins, async (id) => {
+  if (id) await jobStore.fetchJobList(id);
   console.log(selected)
   console.log(jobStore.jobList);
 });
