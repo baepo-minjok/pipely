@@ -86,7 +86,9 @@ public class Pipeline {
             description = "빌드 성공 여부 (true: 성공, false: 실패, null: 빌드 전 또는 미실행)",
             example = "true"
     )
-    private BuildStatus buildStatus;
+    private BuildState buildState;
+
+    private LocalDateTime latestBuildTime;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "jenkins_info_id", nullable = false)
@@ -107,7 +109,7 @@ public class Pipeline {
     )
     private List<PipelineVersion> versionList = new ArrayList<>();
 
-    public enum BuildStatus {
+    public enum BuildState {
         BUILD_SUCCESS,
         BUILD_FAILURE,
         BUILD_RUNNING,
