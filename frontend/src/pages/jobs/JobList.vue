@@ -80,9 +80,11 @@ onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick);
 });
 
-watch(selectedJenkins, (id) => {
-  if (id) jobStore.fetchJobList(id);
-  openDropdownJob.value = null; // Jenkins 변경 시 드롭다운 닫기
+
+watch(selectedJenkins, async (id) => {
+  if (id) await jobStore.fetchJobList(id);
+  console.log(selected)
+  console.log(jobStore.jobList);
 });
 </script>
 
