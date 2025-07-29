@@ -52,7 +52,7 @@ export const useCalendarStore = defineStore(
             }
         }
 
-        // 월별 데이터 로드 (캘린더 전체 로드용)
+        // 월별 데이터 로드 (최적화)
         async function fetchMonthData(infoId, year, month) {
             try {
                 isLoading.value = true
@@ -60,26 +60,19 @@ export const useCalendarStore = defineStore(
                 calendarData.currentYear = year
                 calendarData.currentMonth = month
 
-                // 해당 월의 모든 날짜에 대해 이벤트 조회
-                const monthEvents = []
-                const daysInMonth = new Date(year, month + 1, 0).getDate()
+                const response = await calendarApi.getEventsByMonth(infoId, year, month)
 
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const date = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
-                    const events = await fetchEventsByDate(infoId, date)
-
-                    if (events.length > 0) {
-                        monthEvents.push({
-                            date: date,
-                            events: events,
-                        })
-                    }
+                if (response.status === 200) {
+                    calendarData.events = response.data.data // [{date, events:[...]}, ...]
+                    isFetched.value = true
+                } else {
+                    console.error("Failed to fetch month events:", response)
+                    calendarData.events = []
+                    isFetched.value = false
                 }
-
-                calendarData.events = monthEvents
-                isFetched.value = true
             } catch (error) {
                 console.error("Error fetching month data:", error)
+                calendarData.events = []
                 isFetched.value = false
             } finally {
                 isLoading.value = false

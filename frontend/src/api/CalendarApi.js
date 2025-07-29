@@ -43,14 +43,14 @@ export const calendarApi = {
             })
     },
 
-    // 월별 이벤트 조회 (여러 날짜를 한번에)
+    // 월별 이벤트 조회
     getEventsByMonth(infoId, year, month) {
         return instance
             .get("/calendar/events/by-month", {
                 params: {
                     infoId: infoId,
                     year: year,
-                    month: month,
+                    month: month + 1,
                 },
             })
             .then((res) => {

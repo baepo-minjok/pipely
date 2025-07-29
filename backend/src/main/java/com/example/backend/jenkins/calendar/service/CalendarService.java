@@ -81,27 +81,38 @@ public class CalendarService {
     }
 
     public List<CalendarEventGroupRes> getEventsByMonth(Users user, UUID infoId, int year, int month) {
-        List<CalendarEventGroupRes> result = new ArrayList<>();
+        JenkinsInfo info = getValidJenkinsInfo(user, infoId);
+        Map<String, List<CalendarEventRes>> grouped = new HashMap<>();
 
-        int daysInMonth = YearMonth.of(year, month).lengthOfMonth();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        for (String jobName : getAllJobNames(info)) {
+            for (Map<String, Object> build : getBuildsForJob(info, jobName)) {
+                long ts = ((Number) build.get("timestamp")).longValue();
+                LocalDate buildDate = Instant.ofEpochMilli(ts)
+                        .atZone(ZoneId.of("Asia/Seoul"))
+                        .toLocalDate();
 
-        for (int day = 1; day <= daysInMonth; day++) {
-            String date = LocalDate.of(year, month, day).format(formatter);
-            List<CalendarEventRes> events = getEventsByDate(user, infoId, date);
-
-            if (!events.isEmpty()) {
-                result.add(
-                        CalendarEventGroupRes.builder()
-                                .date(date)
-                                .events(events)
-                                .build()
-                );
+                if (buildDate.getYear() == year && buildDate.getMonthValue() == month) {
+                    String dateKey = buildDate.toString();
+                    grouped.computeIfAbsent(dateKey, k -> new ArrayList<>())
+                            .add(CalendarEventRes.builder()
+                                    .type("FAILURE".equals(build.get("result")) ? "ERROR" : "BUILD")
+                                    .jobName(jobName)
+                                    .buildNumber((Integer) build.get("number"))
+                                    .start(formatTimestamp(ts))
+                                    .build());
+                }
             }
         }
 
-        return result;
+        return grouped.entrySet().stream()
+                .map(e -> CalendarEventGroupRes.builder()
+                        .date(e.getKey())
+                        .events(e.getValue())
+                        .build())
+                .sorted(Comparator.comparing(CalendarEventGroupRes::getDate))
+                .toList();
     }
+
 
 
     /**
