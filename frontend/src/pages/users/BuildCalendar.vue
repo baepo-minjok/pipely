@@ -16,17 +16,14 @@ const dropdownPosition = ref({ x: 0, y: 0 })
 const dropdownType = ref('')
 const dropdownListRef = ref(null)
 const displayedEventsCount = ref(4) // 초기 표시 개수를 4로 변경
-
 const currentDate = reactive({
   year: new Date().getFullYear(),
   month: new Date().getMonth()
 })
-
 const weekdays = ['일', '월', '화', '수', '목', '금', '토']
 
 // Computed
 const isLoading = computed(() => calendarStore.isLoading)
-
 const selectedServerInfo = computed(() => {
   if (!selectedInfoId.value) return null
   return userStore.userInfo.infoList.find(info => info.id === selectedInfoId.value)
@@ -68,6 +65,7 @@ const calendarDates = computed(() => {
       date: new Date(date),
       isCurrentMonth: date.getMonth() === currentDate.month,
       isToday: date.toDateString() === today.toDateString(),
+      isSunday: date.getDay() === 0 && date.getMonth() === currentDate.month, // 일요일 체크
       events: dayEvents
     })
   }
@@ -112,7 +110,6 @@ const previousMonth = async () => {
   } else {
     currentDate.month--
   }
-
   if (selectedInfoId.value) {
     await calendarStore.fetchSummaryByMonth(
         selectedInfoId.value,
@@ -129,7 +126,20 @@ const nextMonth = async () => {
   } else {
     currentDate.month++
   }
+  if (selectedInfoId.value) {
+    await calendarStore.fetchSummaryByMonth(
+        selectedInfoId.value,
+        currentDate.year,
+        currentDate.month
+    )
+  }
+}
 
+// 오늘로 돌아가기 함수 추가
+const goToToday = async () => {
+  const today = new Date()
+  currentDate.year = today.getFullYear()
+  currentDate.month = today.getMonth()
   if (selectedInfoId.value) {
     await calendarStore.fetchSummaryByMonth(
         selectedInfoId.value,
@@ -154,12 +164,8 @@ const getBadgesForDate = (dateStr) => {
   return badges
 }
 
-
-
-
 const openEventDropdown = (event, type, events, dateStr) => {
   event.stopPropagation()
-
   const rect = event.target.getBoundingClientRect()
   dropdownPosition.value = { x: rect.left, y: rect.bottom + 8 }
 
@@ -168,7 +174,6 @@ const openEventDropdown = (event, type, events, dateStr) => {
 
   // 선택된 타입에 맞게 필터링
   dropdownEvents.value = allEvents.filter(e => e.type === type)
-
   dropdownType.value = type
   displayedEventsCount.value = 4
   dropdownVisible.value = true
@@ -179,8 +184,6 @@ const openEventDropdown = (event, type, events, dateStr) => {
     }
   })
 }
-
-
 
 const handleDropdownScroll = () => {
   if (!dropdownListRef.value) return
@@ -232,7 +235,6 @@ onMounted(async () => {
 
   if (userStore.userInfo.infoList.length > 0) {
     selectedInfoId.value = userStore.userInfo.infoList[0].id
-
     // summary 대신 monthData 한 번만 호출
     await calendarStore.fetchMonthData(
         selectedInfoId.value,
@@ -241,7 +243,6 @@ onMounted(async () => {
     )
   }
 })
-
 </script>
 
 <template>
@@ -334,6 +335,18 @@ onMounted(async () => {
               </svg>
             </button>
           </div>
+          <!-- 오늘로 돌아가기 버튼 추가 -->
+          <button
+              class="btn btn-primary today-btn"
+              @click="goToToday"
+              title="오늘로 돌아가기"
+          >
+            <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            <span class="today-btn-text">오늘</span>
+          </button>
         </div>
 
         <!-- 캘린더 그리드 -->
@@ -342,6 +355,7 @@ onMounted(async () => {
           <div v-for="day in weekdays" :key="day" class="weekday-header">
             {{ day }}
           </div>
+
           <!-- 날짜 셀 -->
           <div
               v-for="date in calendarDates"
@@ -349,7 +363,8 @@ onMounted(async () => {
               :class="['calendar-cell', {
               'other-month': !date.isCurrentMonth,
               'today': date.isToday,
-              'has-events': date.events.length > 0
+              'has-events': date.events.length > 0,
+              'sunday': date.isSunday // 일요일 클래스 추가
             }]"
           >
             <div class="date-number">{{ date.day }}</div>
@@ -500,7 +515,6 @@ onMounted(async () => {
                 </div>
               </div>
             </div>
-
             <div class="detail-card">
               <div class="detail-card-header">
                 <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
@@ -766,11 +780,12 @@ onMounted(async () => {
 /* 캘린더 컨트롤 */
 .calendar-controls {
   display: flex;
-  justify-content: center;
+  justify-content: center; /* 년월을 중앙에 배치 */
   align-items: center;
   padding: 20px;
   background: white;
   border-bottom: 1px solid #e2e8f0;
+  position: relative; /* today-btn의 absolute 포지셔닝을 위한 기준 */
 }
 
 .month-navigation {
@@ -784,7 +799,7 @@ onMounted(async () => {
   font-weight: 600;
   color: #1e293b;
   margin: 0;
-  min-width: 200px;
+  min-width: 200px; /* 년월 텍스트가 중앙에 오도록 최소 너비 유지 */
   text-align: center;
 }
 
@@ -805,6 +820,68 @@ onMounted(async () => {
 .nav-btn:hover {
   background: #e2e8f0;
   color: #1e293b;
+}
+
+/* 버튼 */
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: var(--main-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--main-color-hover);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--main-color);
+  border: 1px solid var(--main-color);
+}
+
+.btn-outline:hover {
+  background: var(--main-color-hover);
+  color: white;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+.today-btn {
+  position: absolute;
+  right: 20px;
+}
+
+.today-btn-text {
+  white-space: nowrap;
 }
 
 /* 캘린더 그리드 */
@@ -859,6 +936,16 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.calendar-cell.sunday .date-number {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.calendar-cell.today.sunday .date-number {
+  background: #2563eb;
+  color: white;
 }
 
 .date-number {
@@ -932,8 +1019,8 @@ onMounted(async () => {
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   border: 1px solid #e2e8f0;
-  width: 320px; /* min-width 대신 고정 width 사용 */
-  max-height: 300px; /* 높이도 조금 줄임 */
+  width: 320px;
+  max-height: 300px;
   overflow: hidden;
   z-index: 1000;
 }
@@ -989,9 +1076,9 @@ onMounted(async () => {
 }
 
 .dropdown-list {
-  max-height: 220px; /* 높이 조정 */
+  max-height: 220px;
   overflow-y: auto;
-  overflow-x: hidden; /* 가로 스크롤 완전 차단 */
+  overflow-x: hidden;
   padding: 8px 0;
 }
 
@@ -1003,7 +1090,7 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.2s ease;
   border-bottom: 1px solid #f8fafc;
-  min-width: 0; /* flex 아이템이 축소될 수 있도록 */
+  min-width: 0;
 }
 
 .dropdown-item:hover {
@@ -1031,8 +1118,8 @@ onMounted(async () => {
 
 .item-main {
   flex: 1;
-  min-width: 0; /* 텍스트 오버플로우 방지 */
-  overflow: hidden; /* 내용이 넘치면 숨김 */
+  min-width: 0;
+  overflow: hidden;
 }
 
 .item-header {
@@ -1046,9 +1133,9 @@ onMounted(async () => {
   font-size: 14px;
   font-weight: 500;
   color: #1e293b;
-  white-space: nowrap; /* 줄바꿈 방지 */
-  overflow: hidden; /* 넘치는 텍스트 숨김 */
-  text-overflow: ellipsis; /* ... 표시 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .item-build-number {
@@ -1379,6 +1466,25 @@ onMounted(async () => {
 
   .calendar-controls {
     padding: 16px;
+    flex-direction: column; /* 모바일에서는 세로로 정렬 */
+    gap: 16px;
+    position: static; /* 모바일에서는 absolute 해제 */
+  }
+
+  .month-navigation {
+    order: 1;
+  }
+
+  .today-btn {
+    order: 2;
+    position: static; /* 모바일에서는 absolute 해제 */
+    right: auto; /* right 속성 초기화 */
+    align-self: center; /* 중앙 정렬 */
+  }
+
+  .current-month {
+    font-size: 20px;
+    min-width: auto;
   }
 
   .calendar-cell {
@@ -1386,8 +1492,23 @@ onMounted(async () => {
     padding: 6px;
   }
 
-  .date-number {
-    font-size: 12px;
+  /* 배지 반응형 개선 */
+  .badges-container {
+    bottom: 2px;
+    right: 2px;
+    gap: 1px;
+  }
+
+  .event-badge-with-count {
+    min-width: 45px;
+    height: 14px;
+    font-size: 8px;
+    padding: 0 4px;
+    border-radius: 7px;
+  }
+
+  .badge-text {
+    font-size: 7px;
   }
 
   .modal-content {
@@ -1415,7 +1536,7 @@ onMounted(async () => {
   }
 
   .dropdown-menu {
-    width: calc(100vw - 40px); /* 모바일에서는 화면 너비에 맞춤 */
+    width: calc(100vw - 40px);
     max-width: 320px;
   }
 
@@ -1430,6 +1551,77 @@ onMounted(async () => {
   .modal-icon {
     width: 40px;
     height: 40px;
+  }
+
+  /* 오늘 버튼 모바일 최적화 - 텍스트 항상 보이게 */
+  .today-btn-text {
+    display: inline; /* 모바일에서도 텍스트 보이게 */
+  }
+
+  .today-btn {
+    padding: 8px 12px;
+    min-width: auto; /* 너비 자동 조절 */
+  }
+}
+
+/* 더 작은 화면 (480px 이하) */
+@media (max-width: 480px) {
+  .calendar-cell {
+    min-height: 60px;
+    padding: 4px;
+  }
+
+  .date-number {
+    font-size: 11px;
+  }
+
+  /* 배지 더 작게 */
+  .event-badge-with-count {
+    min-width: 35px;
+    height: 12px;
+    font-size: 7px;
+    padding: 0 3px;
+    border-radius: 6px;
+  }
+
+  .badge-text {
+    font-size: 6px;
+  }
+
+  .badges-container {
+    bottom: 1px;
+    right: 1px;
+  }
+
+  .current-month {
+    font-size: 18px;
+  }
+
+  .nav-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .today-btn {
+    padding: 6px 10px;
+    min-width: auto;
+  }
+}
+
+/* 태블릿 세로 모드 (768px ~ 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .calendar-cell {
+    min-height: 100px;
+  }
+
+  .event-badge-with-count {
+    min-width: 55px;
+    height: 16px;
+    font-size: 8px;
+  }
+
+  .badge-text {
+    font-size: 8px;
   }
 }
 </style>
