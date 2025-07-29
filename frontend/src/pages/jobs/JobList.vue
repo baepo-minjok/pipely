@@ -1,12 +1,12 @@
 <script setup>
-import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import JobCard from '@/pages/jobs/JobCard.vue';
-import {useRoute, useRouter} from 'vue-router';
-import {useJobStore} from '@/stores/useJobStore.js';
-import {jobApi} from "@/api/JobApi.js";
-import {versionApi} from "@/api/VersionApi.js";
-import VersionList from "@/pages/jobs/VersionList.vue";
-import DeletedJobList from "@/pages/jobs/DeletedJobList.vue";
+import { useRoute, useRouter } from 'vue-router';
+import { useJobStore } from '@/stores/useJobStore.js';
+import { jobApi } from '@/api/JobApi.js';
+import { versionApi } from '@/api/VersionApi.js';
+import VersionList from '@/pages/jobs/VersionList.vue';
+import DeletedJobList from '@/pages/jobs/DeletedJobList.vue';
 
 const jobStore = useJobStore();
 const router = useRouter();
@@ -24,12 +24,12 @@ const snapshotListTargetJobId = ref(null);
 const showDeletedJobsModal = ref(false);
 const showSnapshotModal = ref(false);
 const snapshotTargetJob = ref(null);
-const snapshotName = ref("");
+const snapshotName = ref('');
 const isSaving = ref(false);
 const showError = ref(false);
 const showRenameModal = ref(false);
 const renameTargetSnapshot = ref(null);
-const newSnapshotName = ref("");
+const newSnapshotName = ref('');
 const isRenaming = ref(false);
 const showRenameError = ref(false);
 
@@ -42,8 +42,7 @@ const closeDeletedJobsModal = () => {
   showDeletedJobsModal.value = false;
 };
 
-const selected = computed(() =>
-    jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value));
+const selected = computed(() => jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value));
 
 const handleCreateClick = () => {
   if (selected.value) {
@@ -53,7 +52,7 @@ const handleCreateClick = () => {
         id: selected.value.id,
         jenkinsName: selected.value.name,
         jenkinsUri: selected.value.uri,
-        connected: selected.value.connected
+        connected: selected.value.connected,
       },
     });
   }
@@ -151,12 +150,9 @@ const handleDeleteJob = async (job) => {
   try {
     await jobApi.deletedJobs(job.pipelineId);
     const originalLength = jobStore.jobList.length;
-    jobStore.jobList = jobStore.jobList.filter(j => j.name !== job.name);
+    jobStore.jobList = jobStore.jobList.filter((j) => j.name !== job.name);
     if (jobStore.jobList.length === originalLength) {
-      jobStore.jobList = jobStore.jobList.filter(j =>
-          j.id !== job.id &&
-          j.pipelineId !== job.pipelineId
-      );
+      jobStore.jobList = jobStore.jobList.filter((j) => j.id !== job.id && j.pipelineId !== job.pipelineId);
     }
     openDropdownJob.value = null;
     alert('삭제가 완료되었습니다.');
@@ -169,7 +165,7 @@ const handleDeleteJob = async (job) => {
 
 const handleSaveSnapshot = (job) => {
   snapshotTargetJob.value = job;
-  snapshotName.value = "";
+  snapshotName.value = '';
   showSnapshotModal.value = true;
   openDropdownJob.value = null;
 };
@@ -181,10 +177,7 @@ const confirmSaveSnapshot = async () => {
   }
   isSaving.value = true;
   try {
-    const success = await versionApi.createSnapshot(
-        snapshotTargetJob.value.pipelineId,
-        snapshotName.value
-    );
+    const success = await versionApi.createSnapshot(snapshotTargetJob.value.pipelineId, snapshotName.value);
     if (success) {
       alert(`스냅샷 "${snapshotName.value}" 생성 성공!`);
       showSnapshotModal.value = false;
@@ -192,7 +185,7 @@ const confirmSaveSnapshot = async () => {
       showError.value = false;
     }
   } catch (err) {
-    alert("스냅샷 생성 실패");
+    alert('스냅샷 생성 실패');
   } finally {
     isSaving.value = false;
   }
@@ -259,24 +252,24 @@ const onRollback = async (snap) => {
   console.log('onRollback:', snap);
   const response = await versionApi.rollbackSnapshot(snap.versionId);
   if (response) {
-    alert("해당 버전으로 복구되었습니다!");
+    alert('해당 버전으로 복구되었습니다!');
     await jobApi.fetchJobList(selectedJenkins.value);
   } else {
-    alert("오류로 인해 복구가 실패했습니다.\n 다시 시도해주세요!");
+    alert('오류로 인해 복구가 실패했습니다.\n 다시 시도해주세요!');
   }
   closeSnapshotListModal();
 };
 
 const onDelete = async (snap) => {
-  const isOk = confirm("해당 버전이 삭제됩니다\n 정말 진행하시겠습니까?");
+  const isOk = confirm('해당 버전이 삭제됩니다\n 정말 진행하시겠습니까?');
   if (!isOk) {
     return;
   }
   const response = await versionApi.deleteSnapshot(snap.versionId);
   if (response) {
-    alert("성공적으로 삭제되었습니다!");
+    alert('성공적으로 삭제되었습니다!');
   } else {
-    alert("오류로 인해 삭제가 실패했습니다.\n 다시 시도해주세요!");
+    alert('오류로 인해 삭제가 실패했습니다.\n 다시 시도해주세요!');
   }
   closeSnapshotListModal();
 };
@@ -298,11 +291,11 @@ const confirmRename = async () => {
   try {
     await versionApi.renameVersion({
       pipelineId: renameTargetSnapshot.value.versionId,
-      newName: newSnapshotName.value
+      newName: newSnapshotName.value,
     });
     alert(`스냅샷 이름이 "${newSnapshotName.value}"로 변경되었습니다!`);
   } catch (err) {
-    alert("이름 변경에 실패했습니다.");
+    alert('이름 변경에 실패했습니다.');
   } finally {
     isRenaming.value = false;
     closeRenameModal();
@@ -353,25 +346,18 @@ onUnmounted(() => {
         </div>
       </div>
       <div class="header-actions">
-        <button
-            class="btn btn-secondary"
-            @click="handleViewDeletedJobs"
-        >
+        <button class="btn btn-secondary" @click="handleViewDeletedJobs">
           <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-            <path d="M3 6h18"/>
-            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            <path d="M3 6h18" />
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
           </svg>
           삭제된 Job 보기
         </button>
-        <button
-            v-if="selectedJenkins"
-            class="btn btn-primary create-job-btn"
-            @click="handleCreateClick"
-        >
+        <button v-if="selectedJenkins" class="btn btn-primary create-job-btn" @click="handleCreateClick">
           <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-            <line x1="12" x2="12" y1="5" y2="19"/>
-            <line x1="5" x2="19" y1="12" y2="12"/>
+            <line x1="12" x2="12" y1="5" y2="19" />
+            <line x1="5" x2="19" y1="12" y2="12" />
           </svg>
           새 Job 생성
         </button>
@@ -385,16 +371,16 @@ onUnmounted(() => {
           <div class="modal-title-section">
             <div class="modal-icon">
               <svg fill="none" height="24" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="24">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="10,6 10,10 14,14"/>
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="10,6 10,10 14,14" />
               </svg>
             </div>
             <h3 class="modal-title">스냅샷 저장</h3>
           </div>
           <button class="modal-close-btn" @click="closeModal">
             <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-              <line x1="18" x2="6" y1="6" y2="18"/>
-              <line x1="6" x2="18" y1="6" y2="18"/>
+              <line x1="18" x2="6" y1="6" y2="18" />
+              <line x1="6" x2="18" y1="6" y2="18" />
             </svg>
           </button>
         </div>
@@ -402,8 +388,8 @@ onUnmounted(() => {
           <div class="modal-description">
             <div class="description-icon">
               <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 6v6l4 2"/>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
               </svg>
             </div>
             <div class="description-text">
@@ -414,42 +400,42 @@ onUnmounted(() => {
           <div class="form-group">
             <label class="form-label" for="snapshotName">
               <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
               </svg>
               스냅샷 이름
             </label>
             <input
-                id="snapshotName"
-                v-model="snapshotName"
-                :class="['form-input', { error: !snapshotName.trim() && showError }]"
-                placeholder="예: 기능 개발 완료, 버그 수정 전 등..."
-                type="text"
-                @input="showError = false"
-                @keyup.enter="confirmSaveSnapshot"
+              id="snapshotName"
+              v-model="snapshotName"
+              :class="['form-input', { error: !snapshotName.trim() && showError }]"
+              placeholder="예: 기능 개발 완료, 버그 수정 전 등..."
+              type="text"
+              @input="showError = false"
+              @keyup.enter="confirmSaveSnapshot"
             />
-            <span v-if="!snapshotName.trim() && showError" class="error-message">
-              스냅샷 이름을 입력해주세요.
-            </span>
-            <span class="help-text">
-              나중에 쉽게 찾을 수 있도록 의미있는 이름을 입력하세요.
-            </span>
+            <span v-if="!snapshotName.trim() && showError" class="error-message"> 스냅샷 이름을 입력해주세요. </span>
+            <span class="help-text"> 나중에 쉽게 찾을 수 있도록 의미있는 이름을 입력하세요. </span>
           </div>
         </div>
         <div class="modal-actions">
-          <button
-              :disabled="isSaving"
-              class="btn btn-primary"
-              @click="confirmSaveSnapshot"
-          >
-            <svg v-if="isSaving" class="animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2"
-                 viewBox="0 0 24 24" width="16">
-              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          <button :disabled="isSaving" class="btn btn-primary" @click="confirmSaveSnapshot">
+            <svg
+              v-if="isSaving"
+              class="animate-spin"
+              fill="none"
+              height="16"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="16"
+            >
+              <path d="M21 12a9 9 0 11-6.219-8.56" />
             </svg>
             <svg v-else fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-              <polyline points="17,21 17,13 7,13 7,21"/>
-              <polyline points="7,3 7,8 15,8"/>
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17,21 17,13 7,13 7,21" />
+              <polyline points="7,3 7,8 15,8" />
             </svg>
             {{ isSaving ? '저장 중...' : '스냅샷 저장' }}
           </button>
@@ -464,16 +450,16 @@ onUnmounted(() => {
           <div class="modal-title-section">
             <div class="modal-icon">
               <svg fill="none" height="24" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="24">
-                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                <path d="m15 5 4 4"/>
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                <path d="m15 5 4 4" />
               </svg>
             </div>
             <h3 class="modal-title">스냅샷 이름 변경</h3>
           </div>
           <button class="modal-close-btn" @click="closeRenameModal">
             <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-              <line x1="18" x2="6" y1="6" y2="18"/>
-              <line x1="6" x2="18" y1="6" y2="18"/>
+              <line x1="18" x2="6" y1="6" y2="18" />
+              <line x1="6" x2="18" y1="6" y2="18" />
             </svg>
           </button>
         </div>
@@ -481,7 +467,7 @@ onUnmounted(() => {
           <div class="modal-description">
             <div class="description-icon">
               <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
               </svg>
             </div>
             <div class="description-text">
@@ -492,19 +478,19 @@ onUnmounted(() => {
           <div class="form-group">
             <label class="form-label" for="newSnapshotName">
               <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
               </svg>
               새로운 이름
             </label>
             <input
-                id="newSnapshotName"
-                v-model="newSnapshotName"
-                :class="['form-input', { error: !newSnapshotName.trim() && showRenameError }]"
-                placeholder="새로운 스냅샷 이름을 입력하세요..."
-                type="text"
-                @input="showRenameError = false"
-                @keyup.enter="confirmRename"
+              id="newSnapshotName"
+              v-model="newSnapshotName"
+              :class="['form-input', { error: !newSnapshotName.trim() && showRenameError }]"
+              placeholder="새로운 스냅샷 이름을 입력하세요..."
+              type="text"
+              @input="showRenameError = false"
+              @keyup.enter="confirmRename"
             />
             <span v-if="!newSnapshotName.trim() && showRenameError" class="error-message">
               새로운 이름을 입력해주세요.
@@ -512,18 +498,22 @@ onUnmounted(() => {
           </div>
         </div>
         <div class="modal-actions">
-          <button
-              :disabled="isRenaming"
-              class="btn btn-primary"
-              @click="confirmRename"
-          >
-            <svg v-if="isRenaming" class="animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2"
-                 viewBox="0 0 24 24" width="16">
-              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          <button :disabled="isRenaming" class="btn btn-primary" @click="confirmRename">
+            <svg
+              v-if="isRenaming"
+              class="animate-spin"
+              fill="none"
+              height="16"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              width="16"
+            >
+              <path d="M21 12a9 9 0 11-6.219-8.56" />
             </svg>
             <svg v-else fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-              <path d="m15 5 4 4"/>
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+              <path d="m15 5 4 4" />
             </svg>
             {{ isRenaming ? '변경 중...' : '이름 변경' }}
           </button>
@@ -535,9 +525,9 @@ onUnmounted(() => {
     <div class="section jenkins-select-section">
       <h3 class="section-title">
         <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-          <rect height="14" rx="2" ry="2" width="20" x="2" y="3"/>
-          <line x1="8" x2="16" y1="21" y2="21"/>
-          <line x1="12" x2="12" y1="17" y2="21"/>
+          <rect height="14" rx="2" ry="2" width="20" x="2" y="3" />
+          <line x1="8" x2="16" y1="21" y2="21" />
+          <line x1="12" x2="12" y1="17" y2="21" />
         </svg>
         Jenkins 인스턴스 선택
       </h3>
@@ -545,19 +535,26 @@ onUnmounted(() => {
         <label class="form-label" for="jenkins-select">Jenkins 정보</label>
         <div class="custom-select-wrapper">
           <select
-              id="jenkins-select"
-              v-model="selectedJenkins"
-              :class="{ 'placeholder-selected': selectedJenkins === '' }"
-              class="form-select"
+            id="jenkins-select"
+            v-model="selectedJenkins"
+            :class="{ 'placeholder-selected': selectedJenkins === '' }"
+            class="form-select"
           >
             <option :value="''" disabled>Jenkins 인스턴스를 선택해주세요</option>
             <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
               {{ info.name }}
             </option>
           </select>
-          <svg class="select-arrow" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-               width="16">
-            <polyline points="6,9 12,15 18,9"/>
+          <svg
+            class="select-arrow"
+            fill="none"
+            height="16"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="16"
+          >
+            <polyline points="6,9 12,15 18,9" />
           </svg>
         </div>
       </div>
@@ -583,11 +580,11 @@ onUnmounted(() => {
     <div class="section job-list-section">
       <h3 class="section-title">
         <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14,2 14,8 20,8"/>
-          <line x1="16" x2="8" y1="13" y2="13"/>
-          <line x1="16" x2="8" y1="17" y2="17"/>
-          <polyline points="10,9 9,9 8,9"/>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14,2 14,8 20,8" />
+          <line x1="16" x2="8" y1="13" y2="13" />
+          <line x1="16" x2="8" y1="17" y2="17" />
+          <polyline points="10,9 9,9 8,9" />
         </svg>
         Job 목록
         <span v-if="selectedJenkins && jobStore.jobList.length > 0" class="job-count">
@@ -597,20 +594,27 @@ onUnmounted(() => {
       <div class="job-list-content">
         <template v-if="selectedJenkins">
           <div v-if="jobStore.jobList.length === 0" class="empty-state">
-            <svg class="empty-icon" fill="none" height="64" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"
-                 width="64">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <line x1="16" x2="8" y1="13" y2="13"/>
-              <line x1="16" x2="8" y1="17" y2="17"/>
-              <polyline points="10,9 9,9 8,9"/>
+            <svg
+              class="empty-icon"
+              fill="none"
+              height="64"
+              stroke="currentColor"
+              stroke-width="1"
+              viewBox="0 0 24 24"
+              width="64"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14,2 14,8 20,8" />
+              <line x1="16" x2="8" y1="13" y2="13" />
+              <line x1="16" x2="8" y1="17" y2="17" />
+              <polyline points="10,9 9,9 8,9" />
             </svg>
             <h4 class="empty-title">Job이 없습니다</h4>
             <p class="empty-description">새로운 Job을 생성해보세요!</p>
             <button class="btn btn-primary" @click="handleCreateClick">
               <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                <line x1="12" x2="12" y1="5" y2="19"/>
-                <line x1="5" x2="19" y1="12" y2="12"/>
+                <line x1="12" x2="12" y1="5" y2="19" />
+                <line x1="5" x2="19" y1="12" y2="12" />
               </svg>
               첫 번째 Job 생성하기
             </button>
@@ -623,7 +627,7 @@ onUnmounted(() => {
                 :open-dropdown-job="openDropdownJob"
                 class="job-card-item"
                 @action="handleJobAction"
-                @click="() => router.push(`/job/${job.name}`)"
+                @click="() => router.push({ path: `/job/${job.name}`, query: { id: job.pipelineId } })"
                 @delete="handleDeleteJob"
                 @saveSnapshot="handleSaveSnapshot"
                 @stop="handleJobStop"
@@ -634,11 +638,18 @@ onUnmounted(() => {
         </template>
         <template v-else>
           <div class="select-prompt">
-            <svg class="prompt-icon" fill="none" height="48" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"
-                 width="48">
-              <rect height="14" rx="2" ry="2" width="20" x="2" y="3"/>
-              <line x1="8" x2="16" y1="21" y2="11"/>
-              <line x1="12" x2="12" y1="17" y2="17"/>
+            <svg
+              class="prompt-icon"
+              fill="none"
+              height="48"
+              stroke="currentColor"
+              stroke-width="1"
+              viewBox="0 0 24 24"
+              width="48"
+            >
+              <rect height="14" rx="2" ry="2" width="20" x="2" y="3" />
+              <line x1="8" x2="16" y1="21" y2="11" />
+              <line x1="12" x2="12" y1="17" y2="17" />
             </svg>
             <h4 class="prompt-title">Jenkins 인스턴스를 선택하세요</h4>
             <p class="prompt-description">Job 목록을 확인하려면 먼저 Jenkins 인스턴스를 선택해주세요.</p>
@@ -651,10 +662,10 @@ onUnmounted(() => {
     <div v-if="showSnapshotListModal" class="modal-overlay" @click="closeSnapshotListModal">
       <div class="modal" @click.stop>
         <VersionList
-            :jobId="snapshotListTargetJobId"
-            @onDelete="onDelete"
-            @onRollback="onRollback"
-            @rename="openRenameModal"
+          :jobId="snapshotListTargetJobId"
+          @onDelete="onDelete"
+          @onRollback="onRollback"
+          @rename="openRenameModal"
         />
       </div>
     </div>
@@ -662,11 +673,7 @@ onUnmounted(() => {
     <!-- 삭제된 Job 목록 모달 -->
     <div v-if="showDeletedJobsModal" class="modal-overlay" @click="closeDeletedJobsModal">
       <div class="modal" @click.stop>
-        <DeletedJobList
-            :infoId="selectedJenkins"
-            @close="closeDeletedJobsModal"
-            @restored="onJobRestored"
-        />
+        <DeletedJobList :infoId="selectedJenkins" @close="closeDeletedJobsModal" @restored="onJobRestored" />
       </div>
     </div>
   </div>
@@ -879,7 +886,8 @@ onUnmounted(() => {
 }
 
 /* 빈 상태 */
-.empty-state, .select-prompt {
+.empty-state,
+.select-prompt {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -888,19 +896,22 @@ onUnmounted(() => {
   text-align: center;
 }
 
-.empty-icon, .prompt-icon {
+.empty-icon,
+.prompt-icon {
   color: #9ca3af;
   margin-bottom: 16px;
 }
 
-.empty-title, .prompt-title {
+.empty-title,
+.prompt-title {
   font-size: 20px;
   font-weight: 600;
   color: #374151;
   margin: 0 0 8px 0;
 }
 
-.empty-description, .prompt-description {
+.empty-description,
+.prompt-description {
   font-size: 16px;
   color: #6b7280;
   margin: 0 0 24px 0;

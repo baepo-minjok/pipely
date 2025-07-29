@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { buildApi } from '@/api/BuildApi';
 import {
   getStatusText,
@@ -20,6 +20,7 @@ const props = defineProps({
 
 const streamLogText = ref('');
 const buildHistory = ref([]);
+const isFetchingHistory = ref(false);
 
 const getBuildStreamLog = async () => {
   const response = await buildApi.getJobBuildStreamLog(props.jobId);
@@ -33,7 +34,7 @@ const getBuildHistoryAll = async () => {
   const response = await buildApi.getBuildHistoryAll(props.jobId);
 
   if (response.status === 200) {
-    buildHistory.value = response.data.data;
+    buildHistory.value = [...response.data.data];
   }
 };
 
@@ -58,13 +59,36 @@ const handleBuildRestartClick = async (excludedStageName) => {
   }
 };
 
-const handleBuildRunClick = () => {
+const handleBuildRunClick = async () => {
   // 수동 실행
+  const requestBody = {
+    jobId: props.jobId,
+    stageBuilds: [],
+  };
+
+  const response = await buildApi.triggerBuildStages(requestBody);
+
+  if (response.status === 200) {
+  } else {
+    console.error('❌ 수동 실행 요청 실패');
+  }
 };
 
 onMounted(async () => {
   await getBuildStreamLog();
   await getBuildHistoryAll();
+
+  // 1초마다 실행 히스토리 fetch
+  intervalId = setInterval(async () => {
+    await getBuildHistoryAll();
+  }, 1000);
+});
+
+onUnmounted(() => {
+  // ✅ 컴포넌트가 파괴될 때 polling 중지
+  if (intervalId) {
+    clearInterval(intervalId);
+  }
 });
 </script>
 
