@@ -47,8 +47,11 @@ public class CalendarResponseDto {
     @AllArgsConstructor
     @Builder
     public static class CalendarEventGroupRes {
-        private String date; // yyyy-MM-dd
+
+        @Schema(description = "날짜 (yyyy-MM-dd)", example = "2025-07-24")
+        private String date;
+
+        @Schema(description = "해당 날짜의 이벤트 목록")
         private List<CalendarEventRes> events;
     }
-
 }

@@ -32,9 +32,16 @@ public class CalendarController {
     )
     @GetMapping("/events/by-month")
     public ResponseEntity<BaseResponse<List<CalendarEventGroupRes>>> getEventsByMonth(
+            @Parameter(description = "로그인한 사용자 정보", hidden = true)
             @AuthenticationPrincipal(expression = "userEntity") Users user,
+
+            @Parameter(description = "Jenkins 서버 정보 ID", required = true, example = "550e8400-e29b-41d4-a716-446655440000")
             @RequestParam UUID infoId,
+
+            @Parameter(description = "조회할 연도", required = true, example = "2025")
             @RequestParam int year,
+
+            @Parameter(description = "조회할 월 (1~12)", required = true, example = "7")
             @RequestParam int month
     ) {
         return ResponseEntity.ok(BaseResponse.success(
