@@ -114,7 +114,11 @@ const previousMonth = async () => {
   }
 
   if (selectedInfoId.value) {
-    await loadMonthData()
+    await calendarStore.fetchSummaryByMonth(
+        selectedInfoId.value,
+        currentDate.year,
+        currentDate.month
+    )
   }
 }
 
@@ -127,46 +131,46 @@ const nextMonth = async () => {
   }
 
   if (selectedInfoId.value) {
-    await loadMonthData()
+    await calendarStore.fetchSummaryByMonth(
+        selectedInfoId.value,
+        currentDate.year,
+        currentDate.month
+    )
   }
 }
 
-const getBadgesForDate = (dayEvents) => {
+const getBadgesForDate = (dateStr) => {
+  const summaries = calendarStore.calendarData.summaries || {}
+  const daySummary = summaries[dateStr]
   const badges = []
-  const buildEvents = dayEvents.filter(e => e.type === 'BUILD')
-  const errorEvents = dayEvents.filter(e => e.type === 'ERROR')
 
-  if (buildEvents.length > 0) {
-    badges.push({
-      type: 'BUILD',
-      count: buildEvents.length,
-      events: buildEvents.sort((a, b) => a.start.localeCompare(b.start))
-    })
+  if (daySummary?.buildCount > 0) {
+    badges.push({ type: 'BUILD', count: daySummary.buildCount })
   }
-
-  if (errorEvents.length > 0) {
-    badges.push({
-      type: 'ERROR',
-      count: errorEvents.length,
-      events: errorEvents.sort((a, b) => a.start.localeCompare(b.start))
-    })
+  if (daySummary?.errorCount > 0) {
+    badges.push({ type: 'ERROR', count: daySummary.errorCount })
   }
 
   return badges
 }
 
-const openEventDropdown = (event, type, events) => {
+
+
+
+const openEventDropdown = (event, type, events, dateStr) => {
   event.stopPropagation()
 
   const rect = event.target.getBoundingClientRect()
-  dropdownPosition.value = {
-    x: rect.left,
-    y: rect.bottom + 8
-  }
+  dropdownPosition.value = { x: rect.left, y: rect.bottom + 8 }
 
-  dropdownEvents.value = events
+  const cachedDay = calendarStore.calendarData.events.find(d => d.date === dateStr)
+  const allEvents = cachedDay ? cachedDay.events : []
+
+  // 선택된 타입에 맞게 필터링
+  dropdownEvents.value = allEvents.filter(e => e.type === type)
+
   dropdownType.value = type
-  displayedEventsCount.value = 4 // 4로 변경
+  displayedEventsCount.value = 4
   dropdownVisible.value = true
 
   nextTick(() => {
@@ -175,6 +179,8 @@ const openEventDropdown = (event, type, events) => {
     }
   })
 }
+
+
 
 const handleDropdownScroll = () => {
   if (!dropdownListRef.value) return
@@ -194,7 +200,8 @@ const selectEventFromDropdown = (event) => {
 
 const closeDropdown = () => {
   dropdownVisible.value = false
-  displayedEventsCount.value = 4 // 4로 변경
+  displayedEventsCount.value = 4
+  dropdownEvents.value = []
 }
 
 const closeEventDetail = () => {
@@ -219,17 +226,22 @@ const loadMonthData = async () => {
 
 // Lifecycle
 onMounted(async () => {
-  // 사용자 정보가 없으면 가져오기
   if (!userStore.isFetched) {
     await userStore.fetchUserInfo()
   }
 
-  // 첫 번째 Jenkins Info가 있으면 자동 선택
   if (userStore.userInfo.infoList.length > 0) {
     selectedInfoId.value = userStore.userInfo.infoList[0].id
-    await loadMonthData()
+
+    // summary 대신 monthData 한 번만 호출
+    await calendarStore.fetchMonthData(
+        selectedInfoId.value,
+        currentDate.year,
+        currentDate.month
+    )
   }
 })
+
 </script>
 
 <template>
@@ -344,10 +356,10 @@ onMounted(async () => {
             <!-- 배지 컨테이너 -->
             <div class="badges-container">
               <div
-                  v-for="badge in getBadgesForDate(date.events)"
+                  v-for="badge in getBadgesForDate(formatDateString(date.date))"
                   :key="badge.type"
                   :class="['event-badge-with-count', `badge-${badge.type.toLowerCase()}`]"
-                  @click="openEventDropdown($event, badge.type, badge.events)"
+                  @click="openEventDropdown($event, badge.type, badge.events, formatDateString(date.date))"
                   :title="`${badge.type} ${badge.count}개`"
               >
                 <span class="badge-text">{{ badge.type.toUpperCase() }} *{{ badge.count }}</span>
