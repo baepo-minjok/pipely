@@ -16,6 +16,7 @@ import Chat from '../pages/chat/Chat.vue';
 import ResetPassword from '../pages/users/ResetPassword.vue';
 import Withdraw from '../pages/users/Withdraw.vue';
 import ReactivateUser from '../pages/users/ReactivateUser.vue';
+import VersionList from '../pages/jobs/VersionList.vue';
 import JobDetail from '../pages/jobs/JobDetail.vue';
 
 const routes = [
@@ -34,9 +35,9 @@ const routes = [
   { path: '/job', component: JobList, name: 'JobList', meta: { requiresAuth: true } },
   { path: '/job/create', component: CreateJob, name: 'CreateJob', meta: { requiresAuth: true } },
   { path: '/job/:name', component: JobDetail, meta: { requiresAuth: true } },
-
-  { path: '/ai/chat', component: Chat },
-  { path: '/:catchAll(.*)', redirect: '/' },
+    {path: '/job/snapshots/:jobId', component: VersionList, name: 'Snapshots', meta: {requiresAuth: true}, props: true},
+    {path: '/ai/chat', component: Chat},
+    {path: '/:catchAll(.*)', redirect: '/'},
 ];
 
 const router = createRouter({
@@ -55,17 +56,20 @@ router.beforeEach(async (to, from, next) => {
     await userStore.fetchUserInfo();
   }
 
-  // 로그인된 사용자가 로그인/회원가입 페이지로 가면 메인으로
-  if (['/user/login', '/user/signup', '/user/oAuth'].includes(to.path) && isLoggedIn) {
-    next('/');
-    return;
-  }
-  if (to.meta.requiresAuth && !isLoggedIn) {
-    userStore.reset();
-    next('/user/login');
-  } else {
-    next();
-  }
+    // 로그인된 사용자가 로그인/회원가입 페이지로 가면 메인으로
+    if (
+        ['/user/login', '/user/signup', '/user/oAuth'].includes(to.path) &&
+        isLoggedIn
+    ) {
+        next('/');
+        return;
+    }
+    if (to.meta.requiresAuth && !isLoggedIn) {
+        userStore.reset();
+        next('/user/login');
+    } else {
+        next();
+    }
 });
 
 export default router;
