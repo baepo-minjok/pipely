@@ -277,5 +277,12 @@ public class PipelineService {
         Pipeline pipeline = getPipelineById(pipelineId);
         return ResponseDto.toListOfPipelineVersionDtos(pipeline.getVersionList());
     }
+
+    @Transactional
+    public void renameVersion(RequestDto.RenameDto dto) {
+        PipelineVersion pipelineVersion = getPipelineVersionById(dto.getPipelineId());
+        pipelineVersion.setName(dto.getNewName());
+        pipelineVersionRepository.save(pipelineVersion);
+    }
 }
 

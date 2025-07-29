@@ -86,7 +86,6 @@ const getButtonText = (state) => {
 };
 
 const handleActionClick = () => {
-  console.log(job.value.lastExe)
   emit('action', job.value);
 };
 </script>

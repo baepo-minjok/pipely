@@ -73,6 +73,49 @@ export const jobApi = {
       });
   },
 
+    getDeletedJobList(infoId) {
+        return instance
+            .get("/jenkins/job/deleted", {params: {jenkinsInfoId: infoId}})
+            .then((res) => {
+                return res.data?.data;
+            })
+            .catch((error) => {
+                return error.response?.data.error;
+            })
+    },
+
+    restoreJob(jobId) {
+        return instance
+            .get("/jenkins/job/restoration", {params: {jobId: jobId}})
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                throw error;
+            })
+    },
+
+    hardDeleteJob(jobId) {
+        return instance
+            .delete("/jenkins/job/hard", {params: {jobId: jobId}})
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                throw error;
+            })
+    },
+
+    buildJob(data) {
+        return instance
+            .post('/jenkins/build/stage/trigger', data)
+            .then((res) => {
+                return res;
+            })
+            .catch((error) => {
+                throw error;
+            })
+    },
   getJenkinsInfo() {
     const store = useJobStore();
     return instance

@@ -45,11 +45,10 @@ public class BuildController {
             @ApiResponse(responseCode = "404", description = "해당 스테이지를 찾을 수 없음")
     })
     @PostMapping("/stage/trigger")
-    public ResponseEntity<BaseResponse<String>> Steps(
+    public ResponseEntity<BaseResponse<Integer>> Steps(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid BuildRequestDto.BuildStageRequestDto dto) {
-        buildService.StageJenkinsBuild(dto);
-        return ResponseEntity.ok(BaseResponse.success("build success"));
+        return ResponseEntity.ok(BaseResponse.success(buildService.StageJenkinsBuild(dto)));
     }
 
     @Operation(
@@ -123,11 +122,19 @@ public class BuildController {
     }
 
     @PostMapping("/status")
-    public ResponseEntity<BaseResponse<String>> setStatus(
+    public ResponseEntity<BaseResponse<Boolean>> setStatus(
             @RequestBody @Valid RequestDto.StatusDto dto
     ) {
         pipelineService.setStatus(dto);
         return ResponseEntity.ok()
-                .body(BaseResponse.success("erer"));
+                .body(BaseResponse.success(true));
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<BaseResponse<Integer>> test(
+            @RequestParam UUID jobId,
+            @RequestParam int buildNumber
+    ) {
+        return ResponseEntity.ok(BaseResponse.success(buildService.getDuration(jobId, buildNumber)));
     }
 }

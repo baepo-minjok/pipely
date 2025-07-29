@@ -121,7 +121,6 @@ public class PipelineVersion {
                 .isTriggered(entity.getIsTriggered())
                 .schedule(entity.getSchedule())
                 .config(entity.getConfig())
-                .script(entity.getScript())
                 .stageList(new ArrayList<>())
                 .pipeline(entity.getPipeline())
                 .createdAt(LocalDateTime.now())

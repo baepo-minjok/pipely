@@ -10,6 +10,7 @@ import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.VersionStage;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
+import com.example.backend.jenkins.job.repository.ScriptRepository;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ public class VersionService {
     private final PipelineRepository pipelineRepository;
     private final CompensationService compensationService;
     private final PipelineVersionRepository pipelineVersionRepository;
+    private final ScriptRepository scriptRepository;
 
     // 특정 파이프라인버전 삭제
     // 조건: 가장 최신 버전은 삭제 할 수 없음
@@ -86,7 +88,12 @@ public class VersionService {
         Pipeline pipeline = pipelineService.getPipelineById(pipelineId);
         PipelineVersion version = pipelineService.getLatestVersion(pipeline);
 
+        Script script = Script.replicateEntity(version.getScript());
+        script = scriptRepository.save(script);
+
         PipelineVersion snapshot = PipelineVersion.replicateEntity(version, snapshotName);
+
+        snapshot.setScript(script);
 
         List<VersionStage> copiedStages = new ArrayList<>();
         for (VersionStage orig : version.getStageList()) {
@@ -98,7 +105,7 @@ public class VersionService {
             copiedStages.add(copied);
         }
         snapshot.setStageList(copiedStages);
-
+    
         pipelineVersionRepository.save(snapshot);
 
         pipeline.getVersionList().add(snapshot);

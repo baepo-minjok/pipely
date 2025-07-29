@@ -44,7 +44,7 @@ public class BuildService {
      *
      * @param dto 실행할 스테이지 맵 및 파이프라인 ID
      */
-    public void StageJenkinsBuild(BuildRequestDto.BuildStageRequestDto dto) {
+    public int StageJenkinsBuild(BuildRequestDto.BuildStageRequestDto dto) {
         Pipeline pipeline = pipelineService.getPipelineById(dto.getJobId());
         pipelineService.setStatusPending(pipeline);
         JenkinsInfo info = pipeline.getJenkinsInfo();
@@ -59,6 +59,7 @@ public class BuildService {
         body.add("ID", dto.getJobId().toString());
         String response = httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
         log.info("Jenkins 응답 상태: {}", response);
+        return getBuildNumber(pipeline, info);
     }
 
     /**
@@ -176,4 +177,53 @@ public class BuildService {
         List<String> stageNames = xmlConfigParser.getPipelineStageNamesFromXml(xml);
         return new BuildResponseDto.Stage(stageNames);
     }
+
+    public int getBuildNumber(Pipeline pipeline, JenkinsInfo info) {
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
+
+        Map<String, Object> json = httpClientService.exchange(
+                info.getUri() + "/job/" + pipeline.getName() + "/api/json",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                Map.class
+        );
+        return (int) json.get("nextBuildNumber");
+        //Map<String, Object> lastBuild = (Map<String, Object>) json.get("lastBuild");
+        //  return (int) lastBuild.get("number");
+    }
+
+    public int getDuration(UUID jobId, int buildNumber) {
+        Pipeline pipeline = pipelineService.getPipelineById(jobId);
+        JenkinsInfo info = pipeline.getJenkinsInfo();
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
+
+        Map<String, Object> json = httpClientService.exchange(
+                info.getUri() + "/job/" + pipeline.getName() + "/" + buildNumber + "/api/json",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                Map.class
+        );
+
+        // 빌드 완료된 경우 -> 100%
+        if (json.get("result") != null) {
+            return 100;
+        }
+
+        // Jenkins API 값 추출
+        Number estimatedNum = (Number) json.get("estimatedDuration");
+        Number timestampNum = (Number) json.get("timestamp");
+
+        if (estimatedNum == null || estimatedNum.longValue() <= 0 || timestampNum == null) {
+            return 0; // 계산 불가 시 0%
+        }
+
+        long estimated = estimatedNum.longValue();
+        long timestamp = timestampNum.longValue();
+        long elapsed = System.currentTimeMillis() - timestamp;
+
+        // 진행률 계산
+        int progress = (int) ((elapsed / (double) estimated) * 100);
+        return Math.min(progress, 99); // 진행 중은 99%까지만
+    }
+
 }

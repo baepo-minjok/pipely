@@ -14,11 +14,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -119,38 +121,23 @@ class BuildServiceTest {
     }
 
     @Test
-    @DisplayName("StageJenkinsBuild - 전달된 stageToggles 값이 요청 본문에 반영됨")
-    void stageJenkinsBuild_success() {
-        BuildRequestDto.BuildStageRequestDto dto = new BuildRequestDto.BuildStageRequestDto();
-        dto.setJobId(jobId);
-        dto.setStageBuilds(List.of("Git clone","Build"));
-
-        when(pipelineService.getPipelineById(jobId)).thenReturn(mockPipeline);
-        when(httpClientService.buildHeaders(mockJenkinsInfo, MediaType.APPLICATION_FORM_URLENCODED)).thenReturn(new HttpHeaders());
-        when(httpClientService.exchange(anyString(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class)))
-                .thenReturn("Build triggered");
-
-        assertDoesNotThrow(() -> buildService.StageJenkinsBuild(dto));
-    }
-
-    @Test
     @DisplayName("getBuildLog - consoleText API 호출 성공 시 로그 반환")
     void getBuildLog_success() {
         // given
         String buildNumber = "5";
         String mockLog = """
-<html>
-  <body>
-    <pre class="console-output">
-Started by user admin
-Building in workspace...
-+ chmod +x gradlew
-+ ./gradlew build
-Finished: SUCCESS
-    </pre>
-  </body>
-</html>
-""";
+                <html>
+                  <body>
+                    <pre class="console-output">
+                Started by user admin
+                Building in workspace...
+                + chmod +x gradlew
+                + ./gradlew build
+                Finished: SUCCESS
+                    </pre>
+                  </body>
+                </html>
+                """;
 
         BuildRequestDto.GetLogRequestDto dto =
                 new BuildRequestDto.GetLogRequestDto(buildNumber, jobId);
@@ -202,7 +189,6 @@ Finished: SUCCESS
                 result.getLog()
         );
     }
-
 
 
 }

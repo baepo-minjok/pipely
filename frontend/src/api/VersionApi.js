@@ -11,7 +11,6 @@ const instance = axios.create({
 export const versionApi = {
 
     createSnapshot(jobId, snapshotName) {
-
         return instance
             .post(`/jenkins/job/version/${jobId}/snapshot`, null, {params: {snapshotName: snapshotName}})
             .then((res) => {
@@ -24,7 +23,6 @@ export const versionApi = {
     },
 
     getSnapshotList(jobId) {
-
         return instance
             .get("/jenkins/job/version", {
                 params: {jobId: jobId}
@@ -34,6 +32,39 @@ export const versionApi = {
             })
             .catch((error) => {
                 return error.response?.data.error;
+            })
+    },
+
+    rollbackSnapshot(versionId) {
+        return instance
+            .post("/jenkins/job/version/rollback", null, {params: {versionId: versionId}})
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
+    },
+
+    deleteSnapshot(versionId) {
+        return instance
+            .delete(`/jenkins/job/version`, {params: {versionId: versionId}})
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
+    },
+
+    renameVersion(data) {
+        return instance
+            .post("/jenkins/job/version/rename", data)
+            .then((res) => {
+                return res;
+            })
+            .catch((error) => {
+                throw error;
             })
     }
 }

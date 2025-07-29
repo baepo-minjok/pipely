@@ -10,8 +10,8 @@ const emit = defineEmits([
   'select-snapshot',
   'onRollback',
   'duplicate-snapshot',
-  'rename-snapshot',
-  'delete-snapshot'
+  'rename',
+  'onDelete'
 ]);
 
 
@@ -151,7 +151,7 @@ onUnmounted(() => {
 
             <!-- 드롭다운 메뉴 -->
             <div v-if="activeMenu === snap.versionId" class="dropdown-menu" @click.stop>
-              <button class="dropdown-item" @click="$emit('rename-snapshot', snap)">
+              <button class="dropdown-item" @click="$emit('rename', snap)">
                 <svg fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                   <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -159,7 +159,7 @@ onUnmounted(() => {
                 이름 변경
               </button>
               <div class="dropdown-divider"></div>
-              <button class="dropdown-item danger" @click="$emit('delete-snapshot', snap)">
+              <button class="dropdown-item danger" @click="$emit('onDelete', snap)">
                 <svg fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14">
                   <polyline points="3,6 5,6 21,6"/>
                   <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
@@ -203,6 +203,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 60vh;
   max-height: 60vh;
   overflow-y: auto;
   padding-right: 6px;
@@ -336,10 +337,6 @@ onUnmounted(() => {
   position: relative;
 }
 
-.snapshot-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
-}
 
 .snapshot-card.latest {
   border-color: #2563eb;

@@ -36,6 +36,7 @@ public class ResponseDto {
                 .description(latestVersion.getDescription())
                 .buildState(pipeline.getBuildState().toString())
                 .lastExe(pipeline.getLatestBuildTime())
+                .deletedAt(pipeline.getDeletedAt())
                 .build();
     }
 
@@ -143,6 +144,8 @@ public class ResponseDto {
         private String buildState;
 
         private LocalDateTime lastExe;
+
+        private LocalDateTime deletedAt;
     }
 
     @Data
