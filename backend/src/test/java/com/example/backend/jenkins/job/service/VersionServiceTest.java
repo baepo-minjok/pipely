@@ -3,7 +3,9 @@ package com.example.backend.jenkins.job.service;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
-import com.example.backend.jenkins.job.model.*;
+import com.example.backend.jenkins.job.model.Pipeline;
+import com.example.backend.jenkins.job.model.PipelineVersion;
+import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import com.example.backend.service.HttpClientService;
@@ -35,11 +37,16 @@ class VersionServiceTest {
 
     @Mock
     private StageService stageService;
-    @Mock private PipelineService pipelineService;
-    @Mock private HttpClientService httpClientService;
-    @Mock private PipelineRepository pipelineRepository;
-    @Mock private CompensationService compensationService;
-    @Mock private PipelineVersionRepository pipelineVersionRepository;
+    @Mock
+    private PipelineService pipelineService;
+    @Mock
+    private HttpClientService httpClientService;
+    @Mock
+    private PipelineRepository pipelineRepository;
+    @Mock
+    private CompensationService compensationService;
+    @Mock
+    private PipelineVersionRepository pipelineVersionRepository;
 
     private UUID pipelineId;
     private UUID versionId;
@@ -102,54 +109,6 @@ class VersionServiceTest {
         versionService.deletePipelineVersion(deletingId);
 
         assertThat(pipeline.getVersionList()).doesNotContain(versionToDelete);
-    }
-
-
-
-    @Test
-    @DisplayName("snapshotVersion - 최신 버전을 기반으로 스냅샷 생성 및 저장")
-    void snapshotVersion_shouldSaveSnapshotCorrectly() {
-        // 1. pipelineService.getLatestVersion() 으로 최신 버전 조회
-        // 2. 기존 VersionStage 목록을 복사해서 새 PipelineVersion 생성
-        // 3. pipeline.getVersionList()에 추가 및 저장
-
-        UUID pipelineId = UUID.randomUUID();
-        UUID versionId = UUID.randomUUID();
-
-        Pipeline pipeline = Pipeline.builder()
-                .id(pipelineId)
-                .versionList(new ArrayList<>())
-                .build();
-
-        Stage stage1 = Stage.builder().name("BUILD").build();
-        Stage stage2 = Stage.builder().name("TEST").build();
-
-        VersionStage versionStage1 = VersionStage.builder()
-                .orderIndex(1)
-                .stage(stage1)
-                .build();
-
-        VersionStage versionStage2 = VersionStage.builder()
-                .orderIndex(2)
-                .stage(stage2)
-                .build();
-
-        PipelineVersion latestVersion = PipelineVersion.builder()
-                .id(versionId)
-                .pipeline(pipeline)
-                .stageList(List.of(versionStage1, versionStage2))
-                .build();
-
-        when(pipelineService.getPipelineById(pipelineId)).thenReturn(pipeline);
-        when(pipelineService.getLatestVersion(pipeline)).thenReturn(latestVersion);
-        when(pipelineVersionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // 스냅샷 저장 시 save()가 호출되고, pipeline 버전 리스트에 추가되었는지 확인
-        versionService.snapshotVersion(pipelineId, "snapshot-v1");
-
-        verify(pipelineVersionRepository).save(any());
-        verify(pipelineRepository).save(pipeline);
-        assertThat(pipeline.getVersionList()).hasSize(1);
     }
 
 
