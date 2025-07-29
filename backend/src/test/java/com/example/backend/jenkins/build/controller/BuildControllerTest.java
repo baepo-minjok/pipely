@@ -69,7 +69,7 @@ class BuildControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data").value("build success"));
+                .andExpect(jsonPath("$.data").value(0));
     }
 
     @WithMockUser
