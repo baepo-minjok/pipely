@@ -3,6 +3,7 @@ package com.example.backend.jenkins.calendar.service;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventGroupRes;
@@ -112,8 +113,6 @@ public class CalendarService {
                 .sorted(Comparator.comparing(CalendarEventGroupRes::getDate))
                 .toList();
     }
-
-
 
     /**
      * 사용자 권한 검증 포함한 JenkinsInfo 조회
