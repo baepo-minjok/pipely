@@ -91,7 +91,6 @@ export const jobApi = {
   },
 
   getJobDetail(jobId) {
-    console.log(jobId);
     return instance
       .get('/jenkins/job/detail', {
         params: { jobId },

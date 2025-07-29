@@ -1,93 +1,18 @@
 <script setup>
-import { reactive, ref, watch } from 'vue';
-import { jobApi } from '@/api/JobApi';
+import { computed } from 'vue';
 import KubernetesInput from '@/components/jobs/KubernetesInput.vue';
 import EC2Input from '@/components/jobs/EC2Input.vue';
 
 const props = defineProps({
-  jobId: String,
+  jobDetail: Object,
+  scriptText: String,
+  selectedItem: Object,
 });
 
-const jobDetail = reactive({
-  pipelineId: '',
-  name: '',
-  description: '',
-  schedule: '',
-  lastExe: '',
-  stageList: [],
-  notificationList: {},
-  pipelineVersionList: [],
-  lightScriptDto: {
-    scriptId: '',
-    githubUrl: '',
-    branch: '',
-    isBuildSelected: false,
-    isTestSelected: false,
-    isK8sDeploy: false,
-    isEc2Deploy: false,
-    tag: '',
-    sshKeyPath: '',
-    sshPort: '',
-    deployTarget: '',
-    k8sPath: '',
-    deploymentName: '',
-    namespace: '',
-    appName: '',
-    containerName: '',
-    imageRepo: '',
-    port: '',
-    replicas: '',
-    script: '',
-  },
+const hasDeploy = computed(() => {
+  const dto = props.jobDetail.lightScriptDto;
+  return dto?.isK8sDeploy || dto?.isEc2Deploy;
 });
-
-const selectedItem = ref(null);
-const scriptText = ref('');
-
-const cicdItems = [
-  { label: 'Kubernetes', value: 'k8s', image: '/src/assets/images/k8s.png' },
-  { label: 'EC2', value: 'ec2', image: '/src/assets/images/ec2.png' },
-];
-
-watch(
-  () => props.jobId,
-  async (id) => {
-    if (!id) return;
-
-    try {
-      const response = await jobApi.getJobDetail(id);
-      const data = response.data;
-
-      if (data.success && data.data) {
-        Object.assign(jobDetail, {
-          pipelineId: data.data.pipelineId,
-          name: data.data.name,
-          description: data.data.description,
-          schedule: data.data.schedule,
-          lastExe: data.data.lastExe,
-          stageList: data.data.stageList || [],
-          notificationList: data.data.notificationList || {},
-          pipelineVersionList: data.data.pipelineVersionList || [],
-          lightScriptDto: {
-            ...jobDetail.lightScriptDto,
-            ...data.data.lightScriptDto,
-          },
-        });
-
-        scriptText.value = jobDetail.lightScriptDto.script;
-
-        if (jobDetail.lightScriptDto.isK8sDeploy) {
-          selectedItem.value = cicdItems.find((item) => item.value === 'k8s');
-        } else if (jobDetail.lightScriptDto.isEc2Deploy) {
-          selectedItem.value = cicdItems.find((item) => item.value === 'ec2');
-        }
-      }
-    } catch (error) {
-      console.error('❌ Job Detail fetch error:', error);
-    }
-  },
-  { immediate: true }
-);
 </script>
 
 <template>
@@ -121,20 +46,16 @@ watch(
       <input class="input" disabled v-model="jobDetail.lightScriptDto.branch" />
 
       <div class="stage_group">
-        <label> <input type="checkbox" :checked="jobDetail.lightScriptDto.isBuildSelected" disabled /> Build </label>
-        <label> <input type="checkbox" :checked="jobDetail.lightScriptDto.isTestSelected" disabled /> Test </label>
+        <label><input type="checkbox" :checked="jobDetail.lightScriptDto.isBuildSelected" disabled /> Build</label>
+        <label><input type="checkbox" :checked="jobDetail.lightScriptDto.isTestSelected" disabled /> Test</label>
         <label>
-          <input
-            type="checkbox"
-            :checked="jobDetail.lightScriptDto.isK8sDeploy || jobDetail.lightScriptDto.isEc2Deploy"
-            disabled
-          />
+          <input type="checkbox" :checked="hasDeploy" disabled />
           Deploy
         </label>
       </div>
 
       <!-- Deploy 정보 -->
-      <div v-if="jobDetail.lightScriptDto.isK8sDeploy || jobDetail.lightScriptDto.isEc2Deploy" class="deploy_section">
+      <div v-if="hasDeploy" class="deploy_section">
         <div class="dropdown_container">
           <button class="dropdown">
             <div>
@@ -144,19 +65,17 @@ watch(
           </button>
         </div>
 
-        <!-- Kubernetes 또는 EC2 컴포넌트 -->
         <KubernetesInput v-if="jobDetail.lightScriptDto.isK8sDeploy" :form="jobDetail.lightScriptDto" readonly />
         <EC2Input v-if="jobDetail.lightScriptDto.isEc2Deploy" :form="jobDetail.lightScriptDto" readonly />
       </div>
 
       <!-- 쉘 스크립트 -->
-      <textarea class="script" readonly v-model="scriptText" />
+      <textarea class="script" readonly :value="scriptText" />
     </div>
   </div>
 </template>
 
 <style scoped>
-/* 동일한 스타일 복붙 */
 .body > div {
   display: flex;
   flex-direction: column;
