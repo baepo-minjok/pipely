@@ -1,7 +1,6 @@
 <script setup>
 import { ref, reactive, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
-
 import JobInfo from '@/components/jobs/JobInfo.vue';
 import JobBuild from '@/components/jobs/JobBuild.vue';
 import { jobApi } from '@/api/JobApi';

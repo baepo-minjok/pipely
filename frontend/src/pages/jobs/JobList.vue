@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted, watch, computed, onUnmounted, version } from 'vue';
-import JobCard from '../../components/jobs/JobCard.vue';
+import JobCard from '@/components/jobs/JobCard.vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useJobStore } from '../../stores/useJobStore.js';
+import { useJobStore } from '@/stores/useJobStore.js';
 import { jobApi } from '@/api/JobApi.js';
 import { VersionApi as versionApi } from '@/api/VersionApi.js';
 
