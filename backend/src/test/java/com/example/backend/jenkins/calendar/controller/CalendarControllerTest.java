@@ -4,6 +4,7 @@ import com.example.backend.auth.user.model.Users;
 import com.example.backend.auth.user.service.CustomUserDetails;
 import com.example.backend.config.jwt.JwtAuthenticationFilter;
 import com.example.backend.config.jwt.JwtTokenProvider;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto;
 import com.example.backend.jenkins.calendar.service.CalendarService;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
@@ -51,62 +52,40 @@ class CalendarControllerTest {
     }
 
     @Test
-    @DisplayName("이벤트 조회 API 응답 성공 테스트")
-    void getEventsByDate_정상응답() throws Exception {
-        // 테스트용 이벤트 응답 데이터 생성
-        List<CalendarEventRes> mockEvents = List.of(
-                CalendarEventRes.builder()
-                        .type("BUILD")
-                        .jobName("pipeline-test")
-                        .buildNumber(42)
-                        .start("2025-07-24 13:20:00")
+    @DisplayName("월 단위 이벤트 조회 API 응답 성공 테스트")
+    void getEventsByMonth_정상응답() throws Exception {
+        // given: 테스트용 그룹 응답 데이터 생성
+        List<CalendarResponseDto.CalendarEventGroupRes> mockGroups = List.of(
+                CalendarResponseDto.CalendarEventGroupRes.builder()
+                        .date("2025-07-24")
+                        .events(List.of(
+                                CalendarEventRes.builder()
+                                        .type("BUILD")
+                                        .jobName("pipeline-test")
+                                        .buildNumber(42)
+                                        .start("2025-07-24 13:20:00")
+                                        .build()
+                        ))
                         .build()
         );
 
-        // calendarService의 응답을 mock 처리
-        Mockito.when(calendarService.getEventsByDate(Mockito.any(), Mockito.eq(infoId), Mockito.eq("2025-07-24")))
-                .thenReturn(mockEvents);
+        Mockito.when(calendarService.getEventsByMonth(Mockito.any(), Mockito.eq(infoId), Mockito.eq(2025), Mockito.eq(7)))
+                .thenReturn(mockGroups);
 
-        // CustomUserDetails와 인증 객체 생성
         CustomUserDetails userDetails = new CustomUserDetails(mockUser);
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
-        // 인증 정보를 포함한 GET 요청 실행 및 응답 검증
-        mockMvc.perform(get("/api/calendar/events/by-date")
+        // when & then: GET 요청 및 응답 검증
+        mockMvc.perform(get("/api/calendar/events/by-month")
                         .param("infoId", infoId.toString())
-                        .param("date", "2025-07-24")
+                        .param("year", "2025")
+                        .param("month", "7")
                         .with(SecurityMockMvcRequestPostProcessors.authentication(auth))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].jobName").value("pipeline-test"));
-    }
-
-    @Test
-    @DisplayName("요약 조회 API 응답 성공 테스트")
-    void getSummaryByDate_정상응답() throws Exception {
-        // 테스트용 요약 응답 데이터 생성
-        CalendarSummaryRes summary = CalendarSummaryRes.builder()
-                .buildCount(3)
-                .errorCount(1)
-                .build();
-
-        // calendarService의 응답을 mock 처리
-        Mockito.when(calendarService.getCalendarSummaryByDate(Mockito.any(), Mockito.eq(infoId), Mockito.eq("2025-07-24")))
-                .thenReturn(summary);
-
-        // CustomUserDetails와 인증 객체 생성
-        CustomUserDetails userDetails = new CustomUserDetails(mockUser);
-        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-
-        // 인증 정보를 포함한 GET 요청 실행 및 응답 검증
-        mockMvc.perform(get("/api/calendar/summary/by-date")
-                        .param("infoId", infoId.toString())
-                        .param("date", "2025-07-24")
-                        .with(SecurityMockMvcRequestPostProcessors.authentication(auth))
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.buildCount").value(3))
-                .andExpect(jsonPath("$.data.errorCount").value(1));
+                .andExpect(jsonPath("$.data[0].date").value("2025-07-24"))
+                .andExpect(jsonPath("$.data[0].events[0].jobName").value("pipeline-test"))
+                .andExpect(jsonPath("$.data[0].events[0].type").value("BUILD"));
     }
 
 }
