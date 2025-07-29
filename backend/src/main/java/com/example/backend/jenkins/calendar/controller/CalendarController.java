@@ -2,6 +2,7 @@ package com.example.backend.jenkins.calendar.controller;
 
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
+import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventRes;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarSummaryRes;
 import com.example.backend.jenkins.calendar.model.dto.CalendarResponseDto.CalendarEventGroupRes;
@@ -26,40 +27,6 @@ public class CalendarController {
     private final CalendarService calendarService;
 
     @Operation(
-            summary = "특정 날짜의 이벤트 조회",
-            description = "infoId로 연결된 Jenkins 계정의 모든 Job 중, 해당 날짜(date)에 수행된 빌드/에러 이벤트 리스트를 반환합니다."
-    )
-    @GetMapping("/events/by-date")
-    public ResponseEntity<BaseResponse<List<CalendarEventRes>>> getEventsByDate(
-            @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @Parameter(description = "JenkinsInfo 식별자", required = true)
-            @RequestParam UUID infoId,
-            @Parameter(description = "날짜 (yyyy-MM-dd)", required = true, example = "2025-07-24")
-            @RequestParam String date
-    ) {
-        return ResponseEntity.ok(BaseResponse.success(
-                calendarService.getEventsByDate(user, infoId, date)
-        ));
-    }
-
-    @Operation(
-            summary = "특정 날짜의 빌드 요약",
-            description = "infoId로 연결된 Jenkins 계정의 모든 Job에서, 해당 날짜(date)에 수행된 빌드/에러의 개수를 반환합니다."
-    )
-    @GetMapping("/summary/by-date")
-    public ResponseEntity<BaseResponse<CalendarSummaryRes>> getSummaryByDate(
-            @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @Parameter(description = "JenkinsInfo 식별자", required = true)
-            @RequestParam UUID infoId,
-            @Parameter(description = "날짜 (yyyy-MM-dd)", required = true, example = "2025-07-24")
-            @RequestParam String date
-    ) {
-        return ResponseEntity.ok(BaseResponse.success(
-                calendarService.getCalendarSummaryByDate(user, infoId, date)
-        ));
-    }
-
-    @Operation(
             summary = "월 단위 이벤트 조회",
             description = "infoId로 연결된 Jenkins 계정의 모든 Job 중, 지정된 연/월에 수행된 모든 이벤트를 날짜별로 묶어 반환합니다."
     )
@@ -74,5 +41,4 @@ public class CalendarController {
                 calendarService.getEventsByMonth(user, infoId, year, month)
         ));
     }
-
 }
