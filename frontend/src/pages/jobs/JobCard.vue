@@ -15,7 +15,20 @@ const {job, openDropdownJob} = toRefs(props);
 // 현재 카드의 드롭다운이 열려있는지 확인
 const isDropdownOpen = computed(() => openDropdownJob.value === job.value.name);
 
-const emit = defineEmits(['action', 'delete', 'saveSnapshot', 'viewSnapshots', 'toggleDropdown']);
+// 진행률 계산 (0-100)
+const progressPercentage = computed(() => {
+  if (job.value.buildState === 'BUILD_RUNNING') {
+    return Math.min(Math.max(job.value.progress || 0, 0), 100);
+  }
+  return 0;
+});
+
+// 진행률이 있는지 확인
+const hasProgress = computed(() => {
+  return job.value.buildState === 'BUILD_RUNNING' && typeof job.value.progress === 'number';
+});
+
+const emit = defineEmits(['action', 'stop', 'delete', 'saveSnapshot', 'viewSnapshots', 'toggleDropdown']);
 
 const handleDeleteJob = () => {
   emit('delete', job.value);
@@ -66,7 +79,7 @@ const getButtonClass = (state) => {
     case 'BUILD_FAILURE':
       return 'btn-retry';
     case 'BUILD_RUNNING':
-      return 'btn-stop';
+      return 'btn-running';
     default:
       return 'btn-start';
   }
@@ -79,14 +92,18 @@ const getButtonText = (state) => {
     case 'BUILD_FAILURE':
       return '재시도';
     case 'BUILD_RUNNING':
-      return '중지';
+      return '실행 중';
     default:
       return '실행';
   }
 };
 
 const handleActionClick = () => {
-  emit('action', job.value);
+  if (job.value.buildState === 'BUILD_RUNNING') {
+    emit('stop', job.value);
+  } else {
+    emit('action', job.value);
+  }
 };
 </script>
 
@@ -107,7 +124,6 @@ const handleActionClick = () => {
           </span>
         </div>
       </div>
-
       <div :class="getStatusClass(job.buildState)" class="status-badge">
         <svg v-if="job.buildState === 'BUILD_SUCCESS'" class="status-icon" fill="none" height="16" stroke="currentColor"
              stroke-width="2" viewBox="0 0 24 24" width="16">
@@ -189,33 +205,51 @@ const handleActionClick = () => {
     <!-- 액션 버튼 -->
     <div class="card-footer">
       <button
-          :class="getButtonClass(job.buildState)"
+          :class="[getButtonClass(job.buildState), { 'has-progress': hasProgress }]"
+          :style="hasProgress ? { '--progress': `${progressPercentage}%` } : {}"
           class="action-btn"
           @click.stop="handleActionClick"
       >
-        <svg v-if="job.buildState === 'BUILD_SUCCESS'" class="btn-icon" fill="currentColor" height="16"
-             stroke="currentColor"
-             stroke-width="1" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><title>replay</title>
-          <path
-              d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
-        </svg>
-        <svg v-else-if="job.buildState === 'BUILD_FAILURE'" class="btn-icon" fill="currentColor" height="16"
-             stroke="currentColor"
-             stroke-width="1" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg"><title>replay</title>
-          <path
-              d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
-        </svg>
-        <svg v-else-if="job.buildState === 'BUILD_RUNNING'" class="btn-icon" fill="none" height="16"
-             stroke="currentColor"
-             stroke-width="2" viewBox="0 0 24 24" width="16">
-          <rect height="10" rx="1" ry="1" width="4" x="6" y="7"/>
-          <rect height="10" rx="1" ry="1" width="4" x="14" y="7"/>
-        </svg>
-        <svg v-else class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-             width="16">
-          <polygon points="5,3 19,12 5,21"/>
-        </svg>
-        <span>{{ getButtonText(job.buildState) }}</span>
+        <!-- 진행률 배경 레이어들 -->
+        <div v-if="hasProgress" class="btn-progress-layers">
+          <!-- 기본 진행률 배경 -->
+          <div :style="{ width: `${progressPercentage}%` }" class="btn-progress-fill"></div>
+          <!-- 일렁이는 효과 -->
+          <div class="btn-wave-effect"></div>
+          <!-- 반짝이는 효과 -->
+          <div class="btn-shimmer-effect"></div>
+        </div>
+
+        <!-- 버튼 내용 -->
+        <div class="btn-content">
+          <svg v-if="job.buildState === 'BUILD_SUCCESS'" class="btn-icon" fill="currentColor" height="16"
+               stroke="currentColor"
+               stroke-width="1" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
+            <title>replay</title>
+            <path
+                d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
+          </svg>
+          <svg v-else-if="job.buildState === 'BUILD_FAILURE'" class="btn-icon" fill="currentColor" height="16"
+               stroke="currentColor"
+               stroke-width="1" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
+            <title>replay</title>
+            <path
+                d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
+          </svg>
+          <svg v-else-if="job.buildState === 'BUILD_RUNNING'" class="btn-icon animate-pulse" fill="none" height="16"
+               stroke="currentColor"
+               stroke-width="2" viewBox="0 0 24 24" width="16">
+            <rect height="10" rx="1" ry="1" width="4" x="6" y="7"/>
+            <rect height="10" rx="1" ry="1" width="4" x="14" y="7"/>
+          </svg>
+          <svg v-else class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
+               viewBox="0 0 24 24"
+               width="16">
+            <polygon points="5,3 19,12 5,21"/>
+          </svg>
+          <span class="btn-text">{{ getButtonText(job.buildState) }}</span>
+          <span v-if="hasProgress" class="btn-progress-text">{{ Math.round(progressPercentage) }}%</span>
+        </div>
       </button>
 
       <div class="more-container">
@@ -227,7 +261,6 @@ const handleActionClick = () => {
             <circle cx="5" cy="12" r="1"/>
           </svg>
         </button>
-
         <!-- 드롭다운 메뉴 -->
         <div v-if="isDropdownOpen" class="dropdown-menu" @click.stop>
           <button class="dropdown-item" @click="handleSaveSnapshot">
@@ -239,7 +272,6 @@ const handleActionClick = () => {
             </svg>
             스냅샷 저장
           </button>
-
           <button class="dropdown-item" @click="handleViewSnapshots">
             <svg class="dropdown-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
                  viewBox="0 0 24 24" width="16">
@@ -251,9 +283,7 @@ const handleActionClick = () => {
             </svg>
             스냅샷 목록
           </button>
-
           <div class="dropdown-divider"></div>
-
           <button class="dropdown-item danger" @click="handleDeleteJob">
             <svg class="dropdown-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
                  viewBox="0 0 24 24" width="16">
@@ -329,10 +359,6 @@ const handleActionClick = () => {
 
 .meta-icon {
   color: #9ca3af;
-}
-
-.meta-separator {
-  color: #cbd5e1;
 }
 
 /* 상태 배지 */
@@ -468,68 +494,233 @@ const handleActionClick = () => {
   align-items: center;
 }
 
+/* 액션 버튼 */
 .action-btn {
   flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 16px;
+  padding: 12px 16px;
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  min-height: 44px;
 }
 
+/* 진행률 레이어들 */
+.btn-progress-layers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* 진행률 채우기 */
+.btn-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(135deg,
+  rgba(255, 255, 255, 0.3) 0%,
+  rgba(255, 255, 255, 0.1) 50%,
+  rgba(255, 255, 255, 0.2) 100%
+  );
+  transition: width 0.5s ease;
+  border-radius: 8px;
+}
+
+/* 일렁이는 파도 효과 */
+.btn-wave-effect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 25%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.1) 75%,
+      transparent 100%
+  );
+  animation: wave 2s ease-in-out infinite;
+  transform: translateX(-100%);
+}
+
+/* 반짝이는 효과 */
+.btn-shimmer-effect {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.4),
+      transparent
+  );
+  animation: shimmer 3s infinite;
+}
+
+/* 버튼 내용 */
+.btn-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+}
+
+.btn-text {
+  font-weight: 500;
+}
+
+.btn-progress-text {
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 4px;
+  opacity: 0.9;
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* 버튼 상태별 스타일 */
 .btn-start {
   background: var(--main-color, #2563eb);
   color: white;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
 .btn-start:hover {
   background: var(--main-color-hover, #1d4ed8);
   transform: translateY(-1px);
-}
-
-.btn-restart {
-  background: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-}
-
-.btn-restart:hover {
-  background: #e2e8f0;
-  color: #475569;
-  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
 }
 
 .btn-retry {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  background: #dc2626;
+  color: white;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
 }
 
 .btn-retry:hover {
-  background: #fecaca;
+  background: #b91c1c;
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
 }
 
-.btn-stop {
-  background: #fef3c7;
-  color: #d97706;
-  border: 1px solid #fed7aa;
+.btn-running {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
-.btn-stop:hover {
-  background: #fed7aa;
+.btn-running:hover {
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
 
-.btn-icon {
-  width: 14px;
-  height: 14px;
+.btn-running.has-progress {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  position: relative;
+}
+
+.btn-running.has-progress::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg,
+  rgba(251, 191, 36, 0.3),
+  rgba(245, 158, 11, 0.3)
+  );
+  border-radius: 8px;
+  animation: pulse-overlay 1.5s ease-in-out infinite;
+}
+
+/* 애니메이션 */
+@keyframes wave {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+  }
+  50% {
+    transform: translateX(0%) skewX(-15deg);
+  }
+  100% {
+    transform: translateX(100%) skewX(-15deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.6), 0 0 30px rgba(245, 158, 11, 0.4);
+  }
+}
+
+@keyframes pulse-overlay {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* 더보기 컨테이너 */
@@ -612,20 +803,6 @@ const handleActionClick = () => {
 
 .more-icon {
   color: #64748b;
-}
-
-/* 애니메이션 */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
 }
 
 /* 반응형 */

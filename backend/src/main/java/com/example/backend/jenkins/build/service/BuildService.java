@@ -21,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -188,11 +189,10 @@ public class BuildService {
                 Map.class
         );
         return (int) json.get("nextBuildNumber");
-        //Map<String, Object> lastBuild = (Map<String, Object>) json.get("lastBuild");
-        //  return (int) lastBuild.get("number");
     }
 
-    public int getDuration(UUID jobId, int buildNumber) {
+    @Transactional
+    public String getDuration(UUID jobId, int buildNumber) {
         Pipeline pipeline = pipelineService.getPipelineById(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
@@ -204,9 +204,11 @@ public class BuildService {
                 Map.class
         );
 
+        String result = (String) json.get("result");
         // 빌드 완료된 경우 -> 100%
-        if (json.get("result") != null) {
-            return 100;
+        if (result != null) {
+            pipelineService.setState(pipeline, result);
+            return (String) json.get("result");
         }
 
         // Jenkins API 값 추출
@@ -214,7 +216,7 @@ public class BuildService {
         Number timestampNum = (Number) json.get("timestamp");
 
         if (estimatedNum == null || estimatedNum.longValue() <= 0 || timestampNum == null) {
-            return 0; // 계산 불가 시 0%
+            return "0"; // 계산 불가 시 0%
         }
 
         long estimated = estimatedNum.longValue();
@@ -223,7 +225,26 @@ public class BuildService {
 
         // 진행률 계산
         int progress = (int) ((elapsed / (double) estimated) * 100);
-        return Math.min(progress, 99); // 진행 중은 99%까지만
+        return String.valueOf(Math.min(progress, 99)); // 진행 중은 99%까지만
     }
 
+    public Integer getCurrentBuildNumber(UUID jobId) {
+        Pipeline pipeline = pipelineService.getPipelineById(jobId);
+        JenkinsInfo info = pipeline.getJenkinsInfo();
+        return getBuildNumber(pipeline, info) - 1;
+    }
+
+    public void stopBuild(UUID jobId, int buildNumber) {
+        Pipeline pipeline = pipelineService.getPipelineById(jobId);
+        JenkinsInfo info = pipeline.getJenkinsInfo();
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
+
+        String res = httpClientService.exchange(
+                info.getUri() + "/job/" + pipeline.getName() + "/" + buildNumber + "/stop",
+                HttpMethod.POST,
+                new HttpEntity<>(headers),
+                String.class
+        );
+        pipelineService.setState(pipeline, "ABORTED");
+    }
 }

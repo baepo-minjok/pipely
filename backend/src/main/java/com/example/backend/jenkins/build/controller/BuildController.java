@@ -125,16 +125,34 @@ public class BuildController {
     public ResponseEntity<BaseResponse<Boolean>> setStatus(
             @RequestBody @Valid RequestDto.StatusDto dto
     ) {
-        pipelineService.setStatus(dto);
+        pipelineService.setState(dto);
         return ResponseEntity.ok()
                 .body(BaseResponse.success(true));
     }
 
-    @GetMapping("/test")
-    public ResponseEntity<BaseResponse<Integer>> test(
+    @GetMapping("/state")
+    public ResponseEntity<BaseResponse<String>> getBuildState(
             @RequestParam UUID jobId,
-            @RequestParam int buildNumber
+            @RequestParam Integer buildNumber
     ) {
         return ResponseEntity.ok(BaseResponse.success(buildService.getDuration(jobId, buildNumber)));
+    }
+
+    @GetMapping("/buildNumber")
+    public ResponseEntity<BaseResponse<Integer>> getBuildNumber(
+            @RequestParam UUID jobId
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(buildService.getCurrentBuildNumber(jobId)));
+    }
+
+    @PostMapping("/stop")
+    public ResponseEntity<BaseResponse<Boolean>> stop(
+            @RequestParam UUID jobId,
+            @RequestParam Integer buildNumber
+    ) {
+        buildService.stopBuild(jobId, buildNumber);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(true));
     }
 }
