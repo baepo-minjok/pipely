@@ -113,6 +113,7 @@ public class Pipeline {
         BUILD_SUCCESS,
         BUILD_FAILURE,
         BUILD_RUNNING,
+        BUILD_ABORTED,
         BUILD_INIT
     }
 

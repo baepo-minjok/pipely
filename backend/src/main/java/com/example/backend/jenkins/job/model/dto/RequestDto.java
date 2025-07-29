@@ -304,6 +304,9 @@ public class RequestDto {
     }
 
     @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class StatusDto {
         @Schema(
                 description = "job의 ID",
