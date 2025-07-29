@@ -352,7 +352,7 @@ onUnmounted(() => {
           <span class="breadcrumb-item current">Job 목록</span>
         </div>
       </div>
-      <div class="header-actions">
+      <div v-if="selectedJenkins" class="header-actions">
         <button
             class="btn btn-secondary"
             @click="handleViewDeletedJobs"
@@ -365,7 +365,6 @@ onUnmounted(() => {
           삭제된 Job 보기
         </button>
         <button
-            v-if="selectedJenkins"
             class="btn btn-primary create-job-btn"
             @click="handleCreateClick"
         >
@@ -550,7 +549,7 @@ onUnmounted(() => {
               :class="{ 'placeholder-selected': selectedJenkins === '' }"
               class="form-select"
           >
-            <option :value="''" disabled>Jenkins 인스턴스를 선택해주세요</option>
+            <option :value="''" disabled>Jenkins 서버를 선택해주세요</option>
             <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
               {{ info.name }}
             </option>
@@ -637,11 +636,11 @@ onUnmounted(() => {
             <svg class="prompt-icon" fill="none" height="48" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"
                  width="48">
               <rect height="14" rx="2" ry="2" width="20" x="2" y="3"/>
-              <line x1="8" x2="16" y1="21" y2="11"/>
-              <line x1="12" x2="12" y1="17" y2="17"/>
+              <line x1="8" x2="16" y1="21" y2="21"/>
+              <line x1="12" x2="12" y1="17" y2="21"/>
             </svg>
-            <h4 class="prompt-title">Jenkins 인스턴스를 선택하세요</h4>
-            <p class="prompt-description">Job 목록을 확인하려면 먼저 Jenkins 인스턴스를 선택해주세요.</p>
+            <h4 class="prompt-title">Jenkins 서버를 선택하세요</h4>
+            <p class="prompt-description">Job 목록을 확인하려면 먼저 Jenkins 서버를 선택해주세요.</p>
           </div>
         </template>
       </div>
