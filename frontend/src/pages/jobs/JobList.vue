@@ -6,24 +6,47 @@ import {useJobStore} from '@/stores/useJobStore.js';
 import {jobApi} from "@/api/JobApi.js";
 import {versionApi} from "@/api/VersionApi.js";
 import VersionList from "@/pages/jobs/VersionList.vue";
+import DeletedJobList from "@/pages/jobs/DeletedJobList.vue";
 
 const jobStore = useJobStore();
 const router = useRouter();
 const route = useRoute();
+
 const selectedJenkins = ref(route.query.id || '');
 const openDropdownJob = ref(null); // 현재 열린 드롭다운 Job ID
+
+// 스냅샷 목록 모달
 const showSnapshotListModal = ref(false);
 const snapshotListTargetJobId = ref(null);
 
+// 삭제된 Job 목록 모달
+const showDeletedJobsModal = ref(false);
+
+// 스냅샷 저장 모달
+const showSnapshotModal = ref(false);
+const snapshotTargetJob = ref(null);
+const snapshotName = ref("");
+const isSaving = ref(false);
+const showError = ref(false);
+
+// 이름 변경 모달
+const showRenameModal = ref(false);
+const renameTargetSnapshot = ref(null);
+const newSnapshotName = ref("");
+const isRenaming = ref(false);
+const showRenameError = ref(false);
 
 const closeSnapshotListModal = () => {
   showSnapshotListModal.value = false;
   snapshotListTargetJobId.value = null;
 };
 
+const closeDeletedJobsModal = () => {
+  showDeletedJobsModal.value = false;
+};
+
 const selected = computed(() =>
-    jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value)
-);
+    jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value));
 
 const handleCreateClick = () => {
   if (selected.value) {
@@ -39,10 +62,21 @@ const handleCreateClick = () => {
   }
 };
 
-// 드롭다운 관련 핸들러들
-const handleJobAction = (job) => {
-  console.log('Job action:', job);
-  // Job 실행 로직
+// 삭제된 Job 목록 보기
+const handleViewDeletedJobs = () => {
+  showDeletedJobsModal.value = true;
+};
+
+// 빌드 버튼 누를때 액션
+const handleJobAction = async (job) => {
+  try {
+    await jobApi.buildJob({
+      stageBuilds: [], jobId: job.pipelineId
+    });
+    job.buildState = "BUILD_RUNNING";
+  } catch (error) {
+    alert("빌드가 실패했습니다.\n다시 시도해주세요.");
+  }
 };
 
 const handleDeleteJob = async (job) => {
@@ -50,15 +84,10 @@ const handleDeleteJob = async (job) => {
     openDropdownJob.value = null;
     return;
   }
-
   try {
-
     await jobApi.deletedJobs(job.pipelineId);
-
     const originalLength = jobStore.jobList.length;
-
     jobStore.jobList = jobStore.jobList.filter(j => j.name !== job.name);
-
     if (jobStore.jobList.length === originalLength) {
       jobStore.jobList = jobStore.jobList.filter(j =>
           j.id !== job.id &&
@@ -66,9 +95,7 @@ const handleDeleteJob = async (job) => {
       );
     }
     openDropdownJob.value = null;
-
     alert('삭제가 완료되었습니다.');
-
   } catch (err) {
     console.error('삭제 실패:', err);
     alert('삭제에 실패했습니다.');
@@ -76,31 +103,25 @@ const handleDeleteJob = async (job) => {
   }
 };
 
-const showSnapshotModal = ref(false);   // 모달 표시 여부
-const snapshotTargetJob = ref(null);    // 현재 스냅샷 저장할 Job
-const snapshotName = ref("");           // 입력할 스냅샷 이름
-
 const handleSaveSnapshot = (job) => {
   snapshotTargetJob.value = job;
   snapshotName.value = "";
   showSnapshotModal.value = true;
   openDropdownJob.value = null;
 };
+
 const confirmSaveSnapshot = async () => {
-
-  isSaving.value = true;
-
   if (!snapshotName.value.trim()) {
-    alert("스냅샷 이름을 입력하세요.");
+    showError.value = true;
     return;
   }
 
+  isSaving.value = true;
   try {
     const success = await versionApi.createSnapshot(
         snapshotTargetJob.value.pipelineId,
         snapshotName.value
     );
-
     if (success) {
       alert(`스냅샷 "${snapshotName.value}" 생성 성공!`);
       showSnapshotModal.value = false;
@@ -116,14 +137,12 @@ const confirmSaveSnapshot = async () => {
 
 const handleViewSnapshots = (job) => {
   console.log('View snapshots for job:', job.pipelineId);
-  // 스냅샷 목록 보기 로직
   openDropdownJob.value = null;
-  snapshotListTargetJobId.value = job.pipelineId; // job id를 저장
+  snapshotListTargetJobId.value = job.pipelineId;
   showSnapshotListModal.value = true;
 };
 
 const handleToggleDropdown = (job) => {
-  // 같은 Job이면 토글, 다른 Job이면 해당 Job으로 변경
   if (openDropdownJob.value === job.name) {
     openDropdownJob.value = null;
   } else {
@@ -139,25 +158,33 @@ const handleOutsideClick = (event) => {
   openDropdownJob.value = null;
 };
 
-
-// 반응형 데이터
-const isSaving = ref(false);
-const showError = ref(false);
-
-// 메서드
+// 모달 닫기
 const closeModal = () => {
   if (!isSaving.value) {
     snapshotName.value = '';
     showError.value = false;
-    showSnapshotModal.value = false
+    showSnapshotModal.value = false;
   }
 };
 
+const closeRenameModal = () => {
+  if (!isRenaming.value) {
+    newSnapshotName.value = '';
+    showRenameError.value = false;
+    showRenameModal.value = false;
+    renameTargetSnapshot.value = null;
+  }
+};
 
 // ESC 키로 모달 닫기
 const handleKeydown = (event) => {
-  if (event.key === 'Escape' && !isSaving.value) {
-    closeModal();
+  if (event.key === 'Escape') {
+    if (!isSaving.value) {
+      closeModal();
+    }
+    if (!isRenaming.value) {
+      closeRenameModal();
+    }
   }
 };
 
@@ -165,13 +192,71 @@ watch(selectedJenkins, async (id) => {
   if (id) {
     await jobApi.fetchJobList(id);
   }
-  // Jenkins 변경 시 드롭다운 닫기
   openDropdownJob.value = null;
 });
 
-const onRollback = (version) => {
-  console.log('onRollback:', version);
-}
+const onRollback = async (snap) => {
+  console.log('onRollback:', snap);
+  const response = await versionApi.rollbackSnapshot(snap.versionId);
+  if (response) {
+    alert("해당 버전으로 복구되었습니다!");
+    await jobApi.fetchJobList(selectedJenkins.value);
+  } else {
+    alert("오류로 인해 복구가 실패했습니다.\n 다시 시도해주세요!");
+  }
+  closeSnapshotListModal();
+};
+
+const onDelete = async (snap) => {
+  const isOk = confirm("해당 버전이 삭제됩니다\n 정말 진행하시겠습니까?");
+  if (!isOk) {
+    return;
+  }
+  const response = await versionApi.deleteSnapshot(snap.versionId);
+  if (response) {
+    alert("성공적으로 삭제되었습니다!");
+  } else {
+    alert("오류로 인해 삭제가 실패했습니다.\n 다시 시도해주세요!");
+  }
+  closeSnapshotListModal();
+};
+
+// 이름 변경 함수 구현
+const openRenameModal = async (snap) => {
+  renameTargetSnapshot.value = snap;
+  newSnapshotName.value = snap.name || '';
+  showRenameModal.value = true;
+  closeSnapshotListModal();
+};
+
+const confirmRename = async () => {
+  if (!newSnapshotName.value.trim()) {
+    showRenameError.value = true;
+    return;
+  }
+  console.log(renameTargetSnapshot);
+
+  isRenaming.value = true;
+  try {
+    await versionApi.renameVersion({
+      pipelineId: renameTargetSnapshot.value.versionId,
+      newName: newSnapshotName.value
+    });
+    alert(`스냅샷 이름이 "${newSnapshotName.value}"로 변경되었습니다!`);
+  } catch (err) {
+    alert("이름 변경에 실패했습니다.");
+  } finally {
+    isRenaming.value = false;
+    closeRenameModal();
+  }
+};
+
+const onJobRestored = async () => {
+  // Job이 복원되었을 때 목록 새로고침
+  if (selectedJenkins.value) {
+    await jobApi.fetchJobList(selectedJenkins.value);
+  }
+};
 
 onMounted(async () => {
   await jobApi.getJenkinsInfo();
@@ -179,12 +264,10 @@ onMounted(async () => {
     selectedJenkins.value = route.query.id;
     await jobApi.fetchJobList(selectedJenkins.value);
   }
-  // 전역 클릭 이벤트 리스너 추가
   document.addEventListener('click', handleOutsideClick);
   document.addEventListener('keydown', handleKeydown);
 });
 
-// 컴포넌트 언마운트 시 이벤트 리스너 제거
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick);
   document.removeEventListener('keydown', handleKeydown);
@@ -203,22 +286,35 @@ onUnmounted(() => {
           <span class="breadcrumb-item current">Job 목록</span>
         </div>
       </div>
-      <button
-          v-if="selectedJenkins"
-          class="btn btn-primary create-job-btn"
-          @click="handleCreateClick"
-      >
-        <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-          <line x1="12" x2="12" y1="5" y2="19"/>
-          <line x1="5" x2="19" y1="12" y2="12"/>
-        </svg>
-        새 Job 생성
-      </button>
+      <div class="header-actions">
+        <button
+            class="btn btn-secondary"
+            @click="handleViewDeletedJobs"
+        >
+          <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+            <path d="M3 6h18"/>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+          </svg>
+          삭제된 Job 보기
+        </button>
+        <button
+            v-if="selectedJenkins"
+            class="btn btn-primary create-job-btn"
+            @click="handleCreateClick"
+        >
+          <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+            <line x1="12" x2="12" y1="5" y2="19"/>
+            <line x1="5" x2="19" y1="12" y2="12"/>
+          </svg>
+          새 Job 생성
+        </button>
+      </div>
     </div>
 
+    <!-- 스냅샷 저장 모달 -->
     <div v-if="showSnapshotModal" class="modal-overlay" @click="closeModal">
       <div class="modal" @click.stop>
-        <!-- 헤더 -->
         <div class="modal-header">
           <div class="modal-title-section">
             <div class="modal-icon">
@@ -236,8 +332,6 @@ onUnmounted(() => {
             </svg>
           </button>
         </div>
-
-        <!-- 컨텐츠 -->
         <div class="modal-content">
           <div class="modal-description">
             <div class="description-icon">
@@ -251,7 +345,6 @@ onUnmounted(() => {
               <p class="description-sub">이후 언제든 해당 시점으로 복원할 수 있습니다.</p>
             </div>
           </div>
-
           <div class="form-group">
             <label class="form-label" for="snapshotName">
               <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
@@ -270,15 +363,13 @@ onUnmounted(() => {
                 @keyup.enter="confirmSaveSnapshot"
             />
             <span v-if="!snapshotName.trim() && showError" class="error-message">
-            스냅샷 이름을 입력해주세요.
-          </span>
+              스냅샷 이름을 입력해주세요.
+            </span>
             <span class="help-text">
-            나중에 쉽게 찾을 수 있도록 의미있는 이름을 입력하세요.
-          </span>
+              나중에 쉽게 찾을 수 있도록 의미있는 이름을 입력하세요.
+            </span>
           </div>
         </div>
-
-        <!-- 액션 -->
         <div class="modal-actions">
           <button
               :disabled="isSaving"
@@ -300,6 +391,80 @@ onUnmounted(() => {
       </div>
     </div>
 
+    <!-- 이름 변경 모달 -->
+    <div v-if="showRenameModal" class="modal-overlay" @click="closeRenameModal">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <div class="modal-title-section">
+            <div class="modal-icon">
+              <svg fill="none" height="24" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="24">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                <path d="m15 5 4 4"/>
+              </svg>
+            </div>
+            <h3 class="modal-title">스냅샷 이름 변경</h3>
+          </div>
+          <button class="modal-close-btn" @click="closeRenameModal">
+            <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+              <line x1="18" x2="6" y1="6" y2="18"/>
+              <line x1="6" x2="18" y1="6" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-content">
+          <div class="modal-description">
+            <div class="description-icon">
+              <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+              </svg>
+            </div>
+            <div class="description-text">
+              <p class="description-main">스냅샷의 이름을 변경합니다.</p>
+              <p class="description-sub">나중에 쉽게 찾을 수 있도록 의미있는 이름을 입력하세요.</p>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="newSnapshotName">
+              <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              새로운 이름
+            </label>
+            <input
+                id="newSnapshotName"
+                v-model="newSnapshotName"
+                :class="['form-input', { error: !newSnapshotName.trim() && showRenameError }]"
+                placeholder="새로운 스냅샷 이름을 입력하세요..."
+                type="text"
+                @input="showRenameError = false"
+                @keyup.enter="confirmRename"
+            />
+            <span v-if="!newSnapshotName.trim() && showRenameError" class="error-message">
+              새로운 이름을 입력해주세요.
+            </span>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button
+              :disabled="isRenaming"
+              class="btn btn-primary"
+              @click="confirmRename"
+          >
+            <svg v-if="isRenaming" class="animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24" width="16">
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+            <svg v-else fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+              <path d="m15 5 4 4"/>
+            </svg>
+            {{ isRenaming ? '변경 중...' : '이름 변경' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Jenkins 선택 섹션 -->
     <div class="section jenkins-select-section">
       <h3 class="section-title">
@@ -310,7 +475,6 @@ onUnmounted(() => {
         </svg>
         Jenkins 인스턴스 선택
       </h3>
-
       <div class="form-group">
         <label class="form-label" for="jenkins-select">Jenkins 정보</label>
         <div class="custom-select-wrapper">
@@ -331,8 +495,6 @@ onUnmounted(() => {
           </svg>
         </div>
       </div>
-
-      <!-- 선택된 Jenkins 정보 표시 -->
       <div v-if="selected" class="jenkins-info-card">
         <div class="info-item">
           <span class="info-label">이름</span>
@@ -345,7 +507,7 @@ onUnmounted(() => {
         <div class="connection-status">
           <div :class="['status-dot', { connected: selected.connected }]"></div>
           <span :class="['status-text', { connected: selected.connected }]">
-                {{ selected.connected ? '연결됨' : '연결 실패' }}
+            {{ selected.connected ? '연결됨' : '연결 실패' }}
           </span>
         </div>
       </div>
@@ -366,7 +528,6 @@ onUnmounted(() => {
           ({{ jobStore.jobList.length }}개)
         </span>
       </h3>
-
       <div class="job-list-content">
         <template v-if="selectedJenkins">
           <div v-if="jobStore.jobList.length === 0" class="empty-state">
@@ -388,7 +549,6 @@ onUnmounted(() => {
               첫 번째 Job 생성하기
             </button>
           </div>
-
           <div v-else class="job-grid">
             <JobCard
                 v-for="job in jobStore.jobList"
@@ -403,11 +563,8 @@ onUnmounted(() => {
                 @toggleDropdown="handleToggleDropdown"
                 @viewSnapshots="handleViewSnapshots"
             />
-
-
           </div>
         </template>
-
         <template v-else>
           <div class="select-prompt">
             <svg class="prompt-icon" fill="none" height="48" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"
@@ -422,14 +579,28 @@ onUnmounted(() => {
         </template>
       </div>
     </div>
-  </div>
-  <div v-if="showSnapshotListModal" class="modal-overlay" @click="closeSnapshotListModal">
 
-    <div class="modal" @click.stop>
-      <VersionList
-          :jobId="snapshotListTargetJobId"
-          @onRollback="onRollback"
-      />
+    <!-- 스냅샷 목록 모달 -->
+    <div v-if="showSnapshotListModal" class="modal-overlay" @click="closeSnapshotListModal">
+      <div class="modal" @click.stop>
+        <VersionList
+            :jobId="snapshotListTargetJobId"
+            @onDelete="onDelete"
+            @onRollback="onRollback"
+            @rename="openRenameModal"
+        />
+      </div>
+    </div>
+
+    <!-- 삭제된 Job 목록 모달 -->
+    <div v-if="showDeletedJobsModal" class="modal-overlay" @click="closeDeletedJobsModal">
+      <div class="modal" @click.stop>
+        <DeletedJobList
+            :infoId="selectedJenkins"
+            @close="closeDeletedJobsModal"
+            @restored="onJobRestored"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -477,6 +648,12 @@ onUnmounted(() => {
 
 .breadcrumb-separator {
   color: #cbd5e1;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 /* 섹션 */
@@ -688,40 +865,23 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-secondary:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
 .create-job-btn {
   white-space: nowrap;
 }
 
-/* 반응형 */
-@media (max-width: 768px) {
-  .container {
-    padding: 16px;
-  }
-
-  .header {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-
-  .header h1 {
-    font-size: 24px;
-  }
-
-  .section {
-    padding: 20px 16px;
-  }
-
-  .job-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .create-job-btn {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
+/* 모달 오버레이 */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -941,22 +1101,6 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-/* 버튼 */
-.btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 140px;
-  justify-content: center;
-}
-
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -965,16 +1109,6 @@ onUnmounted(() => {
 
 .btn:hover:not(:disabled) {
   transform: translateY(-1px);
-}
-
-.btn-primary {
-  background: var(--main-color);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--main-color-hover);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 /* 애니메이션 */
@@ -992,7 +1126,38 @@ onUnmounted(() => {
 }
 
 /* 반응형 */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .header h1 {
+    font-size: 24px;
+  }
+
+  .header-actions {
+    flex-direction: column;
+  }
+
+  .section {
+    padding: 20px 16px;
+  }
+
+  .job-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .create-job-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   .modal-overlay {
     padding: 16px;
   }
@@ -1052,58 +1217,4 @@ onUnmounted(() => {
     padding: 14px 24px;
   }
 }
-
-/* 다크 모드 지원 (선택사항) */
-@media (prefers-color-scheme: dark) {
-  .modal {
-    background: #1e293b;
-    color: #f1f5f9;
-  }
-
-  .modal-header {
-    border-bottom-color: #334155;
-  }
-
-  .modal-title {
-    color: #f1f5f9;
-  }
-
-  .modal-close-btn {
-    background: #334155;
-    color: #94a3b8;
-  }
-
-  .modal-close-btn:hover {
-    background: #475569;
-    color: #e2e8f0;
-  }
-
-  .modal-description {
-    background: #0f172a;
-    border-color: #334155;
-  }
-
-  .description-main {
-    color: #f1f5f9;
-  }
-
-  .description-sub {
-    color: #94a3b8;
-  }
-
-  .form-input {
-    background: #0f172a;
-    border-color: #334155;
-    color: #f1f5f9;
-  }
-
-  .form-input:focus {
-    border-color: #3b82f6;
-  }
-
-  .modal-actions {
-    border-top-color: #334155;
-  }
-}
-
 </style>

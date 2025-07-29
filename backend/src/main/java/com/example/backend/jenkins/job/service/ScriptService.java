@@ -8,7 +8,6 @@ import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.repository.ScriptRepository;
-import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,7 +23,6 @@ public class ScriptService {
     private final ScriptEditUtil scriptEditUtil;
     private final ScriptRepository scriptRepository;
     private final JenkinsInfoService jenkinsInfoService;
-    private final JobNotificationService jobNotificationService;
 
     public Script getScriptById(UUID scriptId) {
 
@@ -85,18 +83,5 @@ public class ScriptService {
         script.setId(scriptId);
         return script;
     }
-
-    /*private void handleNotifications(Script script, RequestDto.ScriptBaseDto dto) {
-        List<RequestDto.NotificationDto> notiList = dto.getNotificationList();
-        if (notiList == null || notiList.isEmpty()) return;
-
-        JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
-
-        if (dto.getScriptId() != null) {
-            jobNotificationService.syncJobNotifications(notiList, info, script);
-        } else {
-            jobNotificationService.createJobNotifications(notiList, info, script.getId());
-        }
-    }*/
 
 }

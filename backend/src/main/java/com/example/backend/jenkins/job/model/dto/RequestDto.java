@@ -314,4 +314,11 @@ public class RequestDto {
         private boolean success;
     }
 
+    @Data
+    public static class RenameDto {
+        private UUID pipelineId;
+
+        private String newName;
+    }
+
 }

@@ -129,5 +129,32 @@ public class Script {
                 .script(script)
                 .build();
     }
+
+    public static Script replicateEntity(Script entity) {
+        return Script.builder()
+                .githubUrl(entity.getGithubUrl())
+                .branch(entity.getBranch())
+                .isBuildSelected(entity.getIsBuildSelected())
+                .isTestSelected(entity.getIsTestSelected())
+                .isK8sDeploy(entity.getIsK8sDeploy())
+                .tag(entity.getTag())
+                .sshKeyPath(entity.getSshKeyPath())
+                .sshPort(entity.getSshPort())
+                .deployTarget(entity.getDeployTarget())
+                .k8sPath(entity.getK8sPath())
+                .deploymentName(entity.getDeploymentName())
+                .namespace(entity.getNamespace())
+                .appName(entity.getAppName())
+                .containerName(entity.getContainerName())
+                .imageRepo(entity.getImageRepo())
+                .port(entity.getPort())
+                .replicas(entity.getReplicas())
+                .isEc2Deploy(entity.getIsEc2Deploy())
+                .ec2DeployPath(entity.getEc2DeployPath())
+                .script(entity.getScript())
+                .pipelineVersionList(new ArrayList<>())
+                .build();
+    }
+
 }
 

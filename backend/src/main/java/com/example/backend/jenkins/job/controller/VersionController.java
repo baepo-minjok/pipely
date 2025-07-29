@@ -2,6 +2,7 @@ package com.example.backend.jenkins.job.controller;
 
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
+import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.service.PipelineService;
 import com.example.backend.jenkins.job.service.VersionService;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -41,11 +43,11 @@ public class VersionController {
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PreAuthorize("@versionService.isOwner(#user, #versionId)")
-    @DeleteMapping("/{versionId}")
+    @DeleteMapping
     public ResponseEntity<BaseResponse<String>> deleteJobVersion(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @Parameter(description = "삭제할 파이프라인 버전 Id", required = true, example = "c2f4a511-3e55-4db5-b9b3-0123456789ab")
-            @PathVariable @NotNull UUID versionId) {
+            @RequestParam @NotNull UUID versionId) {
         versionService.deletePipelineVersion(versionId);
         return ResponseEntity.ok().body(BaseResponse.success("delete pipeline success"));
     }
@@ -102,6 +104,15 @@ public class VersionController {
     ) {
         return ResponseEntity.ok()
                 .body(BaseResponse.success(pipelineService.getLightVersionDtoList(jobId)));
+    }
+
+    @PostMapping("/rename")
+    public ResponseEntity<BaseResponse<String>> renameVersion(
+            @RequestBody @Valid RequestDto.RenameDto dto
+    ) {
+        pipelineService.renameVersion(dto);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success("rename pipeline version success"));
     }
 
 }
