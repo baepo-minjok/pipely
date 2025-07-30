@@ -60,6 +60,13 @@ watch(messages, () => {
   });
 }, {deep: true});
 
+watch(messages, (newMessages) => {
+  if (isLoggedIn.value) {
+    localStorage.setItem('chatHistory', JSON.stringify(newMessages));
+  }
+}, {deep: true});
+
+
 onMounted(async () => {
 
   messages.value = [];
@@ -70,6 +77,16 @@ onMounted(async () => {
   isLoggedIn.value = await userApi.isLoggedIn();
 
   if (isLoggedIn.value) {
+    const savedChat = localStorage.getItem('chatHistory');
+    if (savedChat) {
+      try {
+        messages.value = JSON.parse(savedChat);
+      } catch {
+        messages.value = [];
+      }
+    } else {
+      messages.value = [];
+    }
     // 연결이 완료된 후 메시지 전송
     const initialMessage = sessionStorage.getItem('initialMessage');
     if (initialMessage) {
@@ -414,6 +431,7 @@ onMounted(async () => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
+  margin: 10px 10px auto;
 }
 
 .user-message .message-bubble {
