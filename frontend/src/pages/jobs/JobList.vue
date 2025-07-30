@@ -11,9 +11,11 @@ import DeletedJobList from "@/pages/jobs/DeletedJobList.vue";
 const jobStore = useJobStore();
 const router = useRouter();
 const route = useRoute();
-
 const selectedJenkins = ref(route.query.id || '');
 const openDropdownJob = ref(null);
+
+// 로딩 상태 추가
+const isLoadingJobs = ref(false);
 
 // polling Map
 const pollingMap = new Map();
@@ -62,6 +64,7 @@ const handleCreateClick = () => {
 const handleViewDeletedJobs = () => {
   showDeletedJobsModal.value = true;
 };
+
 // 공통 polling 함수
 const startPolling = (job, buildNumber) => {
   let retryCount = 0;
@@ -73,16 +76,23 @@ const startPolling = (job, buildNumber) => {
       const res = await jobApi.getBuildStatus(job.pipelineId, buildNumber);
       const status = res.data?.data;
 
-      if (status !== "SUCCESS" && status !== "FAILURE") {
+      if (status !== "SUCCESS" && status !== "FAILURE" && status !== "ABORTED") {
         progressSimulation += Number(status);
         job.progress = Math.min(progressSimulation, 99);
       }
 
-      if (status === "SUCCESS" || status === "FAILURE") {
+      if (status === "SUCCESS" || status === "FAILURE" || status === "ABORTED") {
         clearInterval(intervalId);
-        pollingMap.delete(job.pipelineId); // 관리 Map에서 제거
+        pollingMap.delete(job.pipelineId);
         job.progress = status === "SUCCESS" ? 100 : 0;
-        job.buildState = status === "SUCCESS" ? "BUILD_SUCCESS" : "BUILD_FAILURE";
+
+        if (status === "SUCCESS") {
+          job.buildState = "BUILD_SUCCESS";
+        } else if (status === "FAILURE") {
+          job.buildState = "BUILD_FAILURE";
+        } else if (status === "ABORTED") {
+          job.buildState = "BUILD_ABORTED";
+        }
       }
 
       retryCount = 0;
@@ -97,7 +107,6 @@ const startPolling = (job, buildNumber) => {
     }
   }, 3000);
 
-  // intervalId를 Map에 저장
   pollingMap.set(job.pipelineId, {intervalId, buildNumber});
 };
 
@@ -110,9 +119,8 @@ const handleJobAction = async (job) => {
     });
 
     job.buildState = "BUILD_RUNNING";
-    job.progress = 0; // 진행률 초기화
-
-    const buildNumber = response.data?.data; // 서버에서 반환한 빌드 번호
+    job.progress = 0;
+    const buildNumber = response.data?.data;
     startPolling(job, buildNumber);
   } catch (error) {
     alert("빌드 트리거 요청에 실패했습니다.\n다시 시도해주세요.");
@@ -128,36 +136,41 @@ const handleJobStop = async (job) => {
 
   const {intervalId, buildNumber} = pollingData;
 
-  //  클라이언트 polling 중단
-  clearInterval(intervalId);
-  pollingMap.delete(job.pipelineId);
+  // 중단 중 상태로 변경
+  job.buildState = "BUILD_STOPPING";
 
-  //  서버에 빌드 중단 요청
   try {
     await jobApi.stopBuild(job.pipelineId, buildNumber);
-    job.buildState = "BUILD_STOPPED";
+    clearInterval(intervalId);
+    pollingMap.delete(job.pipelineId);
+    job.buildState = "BUILD_ABORTED";
     job.progress = 0;
+    alert("중단되었습니다.")
   } catch (err) {
+    // 중단 실패 시 다시 실행 중으로 되돌림
+    job.buildState = "BUILD_RUNNING";
     alert("서버에서 빌드 중단에 실패했습니다.");
   }
 };
-
 
 const handleDeleteJob = async (job) => {
   if (!confirm(`정말로 "${job.name}" Job을 삭제하시겠습니까?`)) {
     openDropdownJob.value = null;
     return;
   }
+
   try {
     await jobApi.deletedJobs(job.pipelineId);
     const originalLength = jobStore.jobList.length;
     jobStore.jobList = jobStore.jobList.filter(j => j.name !== job.name);
+
     if (jobStore.jobList.length === originalLength) {
       jobStore.jobList = jobStore.jobList.filter(j =>
           j.id !== job.id &&
           j.pipelineId !== job.pipelineId
       );
     }
+
     openDropdownJob.value = null;
     alert('삭제가 완료되었습니다.');
   } catch (err) {
@@ -179,12 +192,14 @@ const confirmSaveSnapshot = async () => {
     showError.value = true;
     return;
   }
+
   isSaving.value = true;
   try {
     const success = await versionApi.createSnapshot(
         snapshotTargetJob.value.pipelineId,
         snapshotName.value
     );
+
     if (success) {
       alert(`스냅샷 "${snapshotName.value}" 생성 성공!`);
       showSnapshotModal.value = false;
@@ -250,7 +265,12 @@ const handleKeydown = (event) => {
 
 watch(selectedJenkins, async (id) => {
   if (id) {
-    await jobApi.fetchJobList(id);
+    isLoadingJobs.value = true;
+    try {
+      await jobApi.fetchJobList(id);
+    } finally {
+      isLoadingJobs.value = false;
+    }
   }
   openDropdownJob.value = null;
 });
@@ -272,6 +292,7 @@ const onDelete = async (snap) => {
   if (!isOk) {
     return;
   }
+
   const response = await versionApi.deleteSnapshot(snap.versionId);
   if (response) {
     alert("성공적으로 삭제되었습니다!");
@@ -293,6 +314,7 @@ const confirmRename = async () => {
     showRenameError.value = true;
     return;
   }
+
   console.log(renameTargetSnapshot);
   isRenaming.value = true;
   try {
@@ -320,26 +342,32 @@ onMounted(async () => {
   document.addEventListener('keydown', handleKeydown);
 
   await jobApi.getJenkinsInfo();
+
   if (route.query.id !== undefined) {
     selectedJenkins.value = route.query.id;
-    await jobApi.fetchJobList(selectedJenkins.value);
+    isLoadingJobs.value = true;
+    try {
+      await jobApi.fetchJobList(selectedJenkins.value);
 
-    // 빌드 진행중인 Job 감지 후 polling 재시작
-    for (const job of jobStore.jobList) {
-      if (job.buildState === "BUILD_RUNNING") {
-        const buildNumber = await jobApi.getCurrentBuildNumber(job.pipelineId);
-        startPolling(job, buildNumber);
+      // 빌드 진행중인 Job 감지 후 polling 재시작
+      for (const job of jobStore.jobList) {
+        if (job.buildState === "BUILD_RUNNING") {
+          const buildNumber = await jobApi.getCurrentBuildNumber(job.pipelineId);
+          startPolling(job, buildNumber);
+        }
       }
+    } finally {
+      isLoadingJobs.value = false;
     }
   }
 });
-
 
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick);
   document.removeEventListener('keydown', handleKeydown);
 });
 </script>
+
 <template>
   <div class="container">
     <!-- 헤더 -->
@@ -589,13 +617,33 @@ onUnmounted(() => {
           <polyline points="10,9 9,9 8,9"/>
         </svg>
         Job 목록
-        <span v-if="selectedJenkins && jobStore.jobList.length > 0" class="job-count">
+        <span v-if="selectedJenkins && jobStore.jobList.length > 0 && !isLoadingJobs" class="job-count">
           ({{ jobStore.jobList.length }}개)
         </span>
       </h3>
       <div class="job-list-content">
         <template v-if="selectedJenkins">
-          <div v-if="jobStore.jobList.length === 0" class="empty-state">
+          <!-- 로딩 중일 때 스켈레톤 UI 표시 -->
+          <div v-if="isLoadingJobs" class="job-grid">
+            <div v-for="n in 6" :key="n" class="skeleton-card">
+              <div class="skeleton-header">
+                <div class="skeleton-info">
+                  <div class="skeleton-title"></div>
+                  <div class="skeleton-meta"></div>
+                </div>
+                <div class="skeleton-badge"></div>
+              </div>
+              <div class="skeleton-content">
+                <div class="skeleton-description"></div>
+              </div>
+              <div class="skeleton-footer">
+                <div class="skeleton-button"></div>
+                <div class="skeleton-more"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Job 목록이 비어있을 때 -->
+          <div v-else-if="jobStore.jobList.length === 0" class="empty-state">
             <svg class="empty-icon" fill="none" height="64" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"
                  width="64">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -614,6 +662,7 @@ onUnmounted(() => {
               첫 번째 Job 생성하기
             </button>
           </div>
+          <!-- Job 목록 표시 -->
           <div v-else class="job-grid">
             <JobCard
                 v-for="job in jobStore.jobList"
@@ -875,6 +924,89 @@ onUnmounted(() => {
 .job-card-item {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
+}
+
+/* 스켈레톤 UI */
+.skeleton-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite alternate;
+}
+
+.skeleton-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.skeleton-info {
+  flex: 1;
+}
+
+.skeleton-title {
+  height: 20px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  width: 70%;
+}
+
+.skeleton-meta {
+  height: 14px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  width: 50%;
+}
+
+.skeleton-badge {
+  width: 80px;
+  height: 28px;
+  background: #f1f5f9;
+  border-radius: 20px;
+}
+
+.skeleton-content {
+  margin-bottom: 16px;
+}
+
+.skeleton-description {
+  height: 16px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  width: 90%;
+}
+
+.skeleton-footer {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.skeleton-button {
+  flex: 1;
+  height: 44px;
+  background: #e2e8f0;
+  border-radius: 8px;
+}
+
+.skeleton-more {
+  width: 36px;
+  height: 36px;
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
 }
 
 /* 빈 상태 */

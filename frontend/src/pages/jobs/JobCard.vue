@@ -11,6 +11,7 @@ const props = defineProps({
 });
 
 const {job, openDropdownJob} = toRefs(props);
+console.log(job.value);
 
 // 현재 카드의 드롭다운이 열려있는지 확인
 const isDropdownOpen = computed(() => openDropdownJob.value === job.value.name);
@@ -54,6 +55,10 @@ const getStatusClass = (state) => {
       return 'status-failed';
     case 'BUILD_RUNNING':
       return 'status-running';
+    case 'BUILD_STOPPING':
+      return 'status-stopping';
+    case 'BUILD_ABORTED':
+      return 'status-aborted';
     default:
       return 'status-pending';
   }
@@ -67,12 +72,17 @@ const getStatusText = (state) => {
       return '실패';
     case 'BUILD_RUNNING':
       return '실행 중';
+    case 'BUILD_STOPPING':
+      return '중단 중';
+    case 'BUILD_ABORTED':
+      return '중단됨';
     default:
       return '대기';
   }
 };
 
 const getButtonClass = (state) => {
+  console.log(state);
   switch (state) {
     case 'BUILD_SUCCESS':
       return 'btn-start';
@@ -80,6 +90,10 @@ const getButtonClass = (state) => {
       return 'btn-retry';
     case 'BUILD_RUNNING':
       return 'btn-running';
+    case 'BUILD_STOPPING':
+      return 'btn-stopping';
+    case 'BUILD_ABORTED':
+      return 'btn-start';
     default:
       return 'btn-start';
   }
@@ -93,6 +107,10 @@ const getButtonText = (state) => {
       return '재시도';
     case 'BUILD_RUNNING':
       return '실행 중';
+    case 'BUILD_STOPPING':
+      return '중단 중';
+    case 'BUILD_ABORTED':
+      return '실행';
     default:
       return '실행';
   }
@@ -101,7 +119,7 @@ const getButtonText = (state) => {
 const handleActionClick = () => {
   if (job.value.buildState === 'BUILD_RUNNING') {
     emit('stop', job.value);
-  } else {
+  } else if (job.value.buildState !== 'BUILD_STOPPING') {
     emit('action', job.value);
   }
 };
@@ -138,6 +156,16 @@ const handleActionClick = () => {
         <svg v-else-if="job.buildState === 'BUILD_RUNNING'" class="status-icon animate-spin" fill="none" height="16"
              stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
           <path d="M21 12a9 9 0 11-6.219-8.56"/>
+        </svg>
+        <svg v-else-if="job.buildState === 'BUILD_STOPPING'" class="status-icon animate-pulse" fill="none" height="16"
+             stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <circle cx="12" cy="12" r="10"/>
+          <rect height="6" rx="1" ry="1" width="6" x="9" y="9"/>
+        </svg>
+        <svg v-else-if="job.buildState === 'BUILD_ABORTED'" class="status-icon" fill="none" height="16"
+             stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <circle cx="12" cy="12" r="10"/>
+          <rect height="6" rx="1" ry="1" width="6" x="9" y="9"/>
         </svg>
         <svg v-else class="status-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
              viewBox="0 0 24 24"
@@ -195,6 +223,16 @@ const handleActionClick = () => {
                  stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
               <path d="M21 12a9 9 0 11-6.219-8.56"/>
             </svg>
+            <svg v-else-if="stage.state === 'BUILD_STOPPING'" class="stage-icon animate-pulse" fill="none" height="12"
+                 stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
+              <circle cx="12" cy="12" r="10"/>
+              <rect height="6" rx="1" ry="1" width="6" x="9" y="9"/>
+            </svg>
+            <svg v-else-if="stage.state === 'BUILD_ABORTED'" class="stage-icon" fill="none" height="12"
+                 stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="12">
+              <circle cx="12" cy="12" r="10"/>
+              <rect height="6" rx="1" ry="1" width="6" x="9" y="9"/>
+            </svg>
             <div v-else class="stage-dot"></div>
           </div>
           <span class="stage-name">{{ stage.type }}</span>
@@ -206,6 +244,7 @@ const handleActionClick = () => {
     <div class="card-footer">
       <button
           :class="[getButtonClass(job.buildState), { 'has-progress': hasProgress }]"
+          :disabled="job.buildState === 'BUILD_STOPPING'"
           :style="hasProgress ? { '--progress': `${progressPercentage}%` } : {}"
           class="action-btn"
           @click.stop="handleActionClick"
@@ -242,6 +281,18 @@ const handleActionClick = () => {
             <rect height="10" rx="1" ry="1" width="4" x="6" y="7"/>
             <rect height="10" rx="1" ry="1" width="4" x="14" y="7"/>
           </svg>
+          <svg v-else-if="job.buildState === 'BUILD_STOPPING'" class="btn-icon animate-pulse" fill="none" height="16"
+               stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+            <circle cx="12" cy="12" r="10"/>
+            <rect height="6" rx="1" ry="1" width="6" x="9" y="9"/>
+          </svg>
+          <svg v-else-if="job.buildState === 'BUILD_ABORTED'" class="btn-icon" fill="currentColor" height="16"
+               stroke="currentColor"
+               stroke-width="1" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
+            <title>replay</title>
+            <path
+                d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
+          </svg>
           <svg v-else class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
                viewBox="0 0 24 24"
                width="16">
@@ -261,6 +312,7 @@ const handleActionClick = () => {
             <circle cx="5" cy="12" r="1"/>
           </svg>
         </button>
+
         <!-- 드롭다운 메뉴 -->
         <div v-if="isDropdownOpen" class="dropdown-menu" @click.stop>
           <button class="dropdown-item" @click="handleSaveSnapshot">
@@ -388,6 +440,16 @@ const handleActionClick = () => {
   color: #d97706;
 }
 
+.status-stopping {
+  background: #fef3c7;
+  color: #ea580c;
+}
+
+.status-aborted {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
 .status-pending {
   background: #f1f5f9;
   color: #64748b;
@@ -513,6 +575,12 @@ const handleActionClick = () => {
   min-height: 44px;
 }
 
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* 진행률 레이어들 */
 .btn-progress-layers {
   position: absolute;
@@ -608,7 +676,7 @@ const handleActionClick = () => {
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
 }
 
-.btn-start:hover {
+.btn-start:hover:not(:disabled) {
   background: var(--main-color-hover, #1d4ed8);
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
@@ -620,7 +688,7 @@ const handleActionClick = () => {
   box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
 }
 
-.btn-retry:hover {
+.btn-retry:hover:not(:disabled) {
   background: #b91c1c;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
@@ -632,7 +700,7 @@ const handleActionClick = () => {
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
-.btn-running:hover {
+.btn-running:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
 }
@@ -655,6 +723,13 @@ const handleActionClick = () => {
   );
   border-radius: 8px;
   animation: pulse-overlay 1.5s ease-in-out infinite;
+}
+
+.btn-stopping {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  color: white;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+  animation: stopping-pulse 1s ease-in-out infinite;
 }
 
 /* 애니메이션 */
@@ -694,6 +769,15 @@ const handleActionClick = () => {
   }
   50% {
     opacity: 0.6;
+  }
+}
+
+@keyframes stopping-pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(234, 88, 12, 0.6);
   }
 }
 
