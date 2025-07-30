@@ -1,22 +1,18 @@
 <script setup>
 import {ref} from 'vue';
 import {useRouter} from 'vue-router';
-import {useUserStore} from "@/stores/useUserStore.js";
+import PipelyOverview from '@/components/common/PipelyOverview.vue';
 
-const userStore = useUserStore();
 const router = useRouter();
 const sendText = ref('');
 const isTransitioning = ref(false);
-
 
 // 메시지 전송 함수
 function sendMessage() {
   if (sendText.value.trim() && !isTransitioning.value) {
     isTransitioning.value = true;
-
     // 전송할 메시지를 세션 스토리지에 저장 (chat-interface에서 사용)
     sessionStorage.setItem('initialMessage', sendText.value.trim());
-
     // 애니메이션 후 페이지 이동
     setTimeout(() => {
       router.push('/ai/chat');
@@ -42,50 +38,50 @@ function handleKeyPress(event) {
         <Transition name="welcome-text">
           <p v-if="!isTransitioning" class="welcome-message">무엇을 도와드릴까요?</p>
         </Transition>
-
-
         <form class="message-form" @submit.prevent="sendMessage">
           <div :class="{ 'transforming': isTransitioning }" class="input_box">
             <input
-                v-model="sendText"
-                :disabled="isTransitioning"
-                class="message-input"
-                placeholder="오늘 어떤 도움을 드릴까요?"
-                type="text"
-                @keypress="handleKeyPress"
+              v-model="sendText"
+              :disabled="isTransitioning"
+              class="message-input"
+              placeholder="오늘 어떤 도움을 드릴까요?"
+              type="text"
+              @keypress="handleKeyPress"
             />
             <button
-                :disabled="!sendText.trim() || isTransitioning"
-                class="send_btn"
-                type="submit"
+              :disabled="!sendText.trim() || isTransitioning"
+              class="send_btn"
+              type="submit"
             >
               <Transition mode="out-in" name="button-icon">
                 <svg
-                    v-if="!isTransitioning"
-                    key="arrow"
-                    fill="none"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    width="16"
-                    xmlns="http://www.w3.org/2000/svg"
+                  v-if="!isTransitioning"
+                  key="arrow"
+                  fill="none"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  width="16"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
                 </svg>
                 <div
-                    v-else
-                    key="loading"
-                    class="loading-spinner"
+                  v-else
+                  key="loading"
+                  class="loading-spinner"
                 ></div>
               </Transition>
             </button>
           </div>
         </form>
-
         <!-- 전환 중 오버레이 -->
         <Transition name="overlay">
         </Transition>
       </div>
     </div>
+
+    <!-- Pipely Overview Component -->
+    <PipelyOverview/>
 
     <!-- 배경 애니메이션 -->
     <div :class="{ 'active': isTransitioning }" class="background-animation">
@@ -97,12 +93,13 @@ function handleKeyPress(event) {
 </template>
 
 <style scoped>
+/* Your existing styles remain the same */
 .page-container {
   width: 100%;
-  height: 100vh;
+  min-height: 100vh; /* Changed from height: 100vh to min-height */
   position: relative;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  overflow: hidden;
+  overflow-x: hidden; /* Changed from overflow: hidden */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -125,7 +122,7 @@ function handleKeyPress(event) {
 
 .container {
   width: 100%;
-  height: 100%;
+  height: 100vh; /* Keep this for the main chat section */
   position: relative;
   z-index: 2;
 }
@@ -389,7 +386,6 @@ function handleKeyPress(event) {
   transform: translate(-50%, -50%) scale(0.8);
 }
 
-
 /* 반응형 디자인 */
 @media (max-width: 1024px) {
   .chat_box {
@@ -421,11 +417,6 @@ function handleKeyPress(event) {
     width: 40px;
     height: 40px;
   }
-
-  .transition-overlay {
-    min-width: 280px;
-    padding: 24px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -445,11 +436,6 @@ function handleKeyPress(event) {
 }
 
 .bot-avatar-large {
-  width: 60px;
-  height: 60px;
-}
-
-.bot-avatar-large {
   width: 80px;
   height: 80px;
   background: rgba(255, 255, 255, 0.2);
@@ -464,6 +450,15 @@ function handleKeyPress(event) {
   animation: float 3s ease-in-out infinite;
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
 /* 접근성 */
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -476,10 +471,6 @@ function handleKeyPress(event) {
 /* 다크 모드 지원 */
 @media (prefers-color-scheme: dark) {
   .input_box {
-    background: rgba(255, 255, 255, 0.9);
-  }
-
-  .transition-overlay {
     background: rgba(255, 255, 255, 0.9);
   }
 }
