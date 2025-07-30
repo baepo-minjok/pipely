@@ -19,7 +19,7 @@ const onLogoutClick = async () => {
   userStore.reset();
 
   await userApi.logout();
-
+  localStorage.removeItem('chatHistory');
   router.push('/user/login');
   //emit('select');
 };
