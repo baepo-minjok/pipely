@@ -1,13 +1,6 @@
-import axios from 'axios';
 import {useJobStore} from '@/stores/useJobStore.js';
 
-const instance = axios.create({
-    baseURL: '/api',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    withCredentials: true,
-});
+import instance from '@/api/axiosInstance.js'
 
 export const jobApi = {
     // Script 생성 및 반환

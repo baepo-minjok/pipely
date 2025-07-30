@@ -1,13 +1,4 @@
-import axios from "axios";
-
-const instance = axios.create({
-    baseURL: "/api",
-    headers: {
-        "Content-Type": "application/json",
-    },
-    withCredentials: true,
-});
-
+import instance from '@/api/axiosInstance.js'
 
 export const jenkinsInfoApi = {
     // Jenkins Info 상세 조회
