@@ -46,10 +46,6 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to, from, next) => {
-    if (!to.meta.requiresAuth) {
-        next();
-        return;
-    }
     const isLoggedIn = await userApi.isLoggedIn();
     const userStore = useUserStore();
 

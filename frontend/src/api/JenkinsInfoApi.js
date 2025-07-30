@@ -1,4 +1,4 @@
-import instance from '@/api/axiosInstance.js'
+import {instance} from '@/api/axiosInstance.js'
 
 export const jenkinsInfoApi = {
     // Jenkins Info 상세 조회
