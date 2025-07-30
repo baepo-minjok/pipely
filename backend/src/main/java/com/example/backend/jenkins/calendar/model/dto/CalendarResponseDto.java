@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 public class CalendarResponseDto {
 
     @Data
@@ -38,5 +40,18 @@ public class CalendarResponseDto {
 
         @Schema(description = "해당 날짜의 실패한 빌드 수", example = "1")
         private int errorCount;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class CalendarEventGroupRes {
+
+        @Schema(description = "날짜 (yyyy-MM-dd)", example = "2025-07-24")
+        private String date;
+
+        @Schema(description = "해당 날짜의 이벤트 목록")
+        private List<CalendarEventRes> events;
     }
 }
