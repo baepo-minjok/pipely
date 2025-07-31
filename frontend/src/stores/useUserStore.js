@@ -4,8 +4,8 @@ import {userApi} from "@/api/UserApi.js";
 
 export const useUserStore = defineStore(
     "userStore", () => {
-
         const isFetched = ref(false);
+        const expiresAt = ref(null);
 
         const userInfo = reactive({
             name: "",
@@ -28,9 +28,10 @@ export const useUserStore = defineStore(
                     userInfo.infoList = data.infoDtoList;
                     userInfo.connected = data.connected;
 
+                    expiresAt.value = Math.floor(Date.now() / 1000) + (30 * 60);
+
                     isFetched.value = true;
                 } else {
-
                     isFetched.value = false;
                 }
             } catch (error) {
@@ -44,6 +45,7 @@ export const useUserStore = defineStore(
             userInfo.isVerified = false;
             userInfo.infoList = [];
             isFetched.value = false;
+            expiresAt.value = null;
         }
 
         function getUserInfo() {
@@ -54,6 +56,7 @@ export const useUserStore = defineStore(
             userInfo,
             fetchUserInfo,
             isFetched,
+            expiresAt,
             getUserInfo,
             reset
         };
@@ -64,10 +67,9 @@ export const useUserStore = defineStore(
             strategies: [
                 {
                     storage: sessionStorage,
-                    paths: ["userInfo"],
+                    paths: ["userInfo", "expiresAt"],
                 },
-
             ],
         },
     },
-)
+);

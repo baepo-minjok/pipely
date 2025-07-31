@@ -45,7 +45,7 @@ const closeDeletedJobsModal = () => {
 };
 
 const selected = computed(() =>
-    jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value));
+  jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value));
 
 const handleCreateClick = () => {
   if (selected.value) {
@@ -166,8 +166,8 @@ const handleDeleteJob = async (job) => {
 
     if (jobStore.jobList.length === originalLength) {
       jobStore.jobList = jobStore.jobList.filter(j =>
-          j.id !== job.id &&
-          j.pipelineId !== job.pipelineId
+        j.id !== job.id &&
+        j.pipelineId !== job.pipelineId
       );
     }
 
@@ -196,8 +196,8 @@ const confirmSaveSnapshot = async () => {
   isSaving.value = true;
   try {
     const success = await versionApi.createSnapshot(
-        snapshotTargetJob.value.pipelineId,
-        snapshotName.value
+      snapshotTargetJob.value.pipelineId,
+      snapshotName.value
     );
 
     if (success) {
@@ -382,8 +382,8 @@ onUnmounted(() => {
       </div>
       <div v-if="selectedJenkins" class="header-actions">
         <button
-            class="btn btn-secondary"
-            @click="handleViewDeletedJobs"
+          class="btn btn-secondary"
+          @click="handleViewDeletedJobs"
         >
           <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
             <path d="M3 6h18"/>
@@ -393,8 +393,8 @@ onUnmounted(() => {
           삭제된 Job 보기
         </button>
         <button
-            class="btn btn-primary create-job-btn"
-            @click="handleCreateClick"
+          class="btn btn-primary create-job-btn"
+          @click="handleCreateClick"
         >
           <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
             <line x1="12" x2="12" y1="5" y2="19"/>
@@ -447,13 +447,13 @@ onUnmounted(() => {
               스냅샷 이름
             </label>
             <input
-                id="snapshotName"
-                v-model="snapshotName"
-                :class="['form-input', { error: !snapshotName.trim() && showError }]"
-                placeholder="예: 기능 개발 완료, 버그 수정 전 등..."
-                type="text"
-                @input="showError = false"
-                @keyup.enter="confirmSaveSnapshot"
+              id="snapshotName"
+              v-model="snapshotName"
+              :class="['form-input', { error: !snapshotName.trim() && showError }]"
+              placeholder="예: 기능 개발 완료, 버그 수정 전 등..."
+              type="text"
+              @input="showError = false"
+              @keyup.enter="confirmSaveSnapshot"
             />
             <span v-if="!snapshotName.trim() && showError" class="error-message">
               스냅샷 이름을 입력해주세요.
@@ -465,9 +465,9 @@ onUnmounted(() => {
         </div>
         <div class="modal-actions">
           <button
-              :disabled="isSaving"
-              class="btn btn-primary"
-              @click="confirmSaveSnapshot"
+            :disabled="isSaving"
+            class="btn btn-primary"
+            @click="confirmSaveSnapshot"
           >
             <svg v-if="isSaving" class="animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2"
                  viewBox="0 0 24 24" width="16">
@@ -525,13 +525,13 @@ onUnmounted(() => {
               새로운 이름
             </label>
             <input
-                id="newSnapshotName"
-                v-model="newSnapshotName"
-                :class="['form-input', { error: !newSnapshotName.trim() && showRenameError }]"
-                placeholder="새로운 스냅샷 이름을 입력하세요..."
-                type="text"
-                @input="showRenameError = false"
-                @keyup.enter="confirmRename"
+              id="newSnapshotName"
+              v-model="newSnapshotName"
+              :class="['form-input', { error: !newSnapshotName.trim() && showRenameError }]"
+              placeholder="새로운 스냅샷 이름을 입력하세요..."
+              type="text"
+              @input="showRenameError = false"
+              @keyup.enter="confirmRename"
             />
             <span v-if="!newSnapshotName.trim() && showRenameError" class="error-message">
               새로운 이름을 입력해주세요.
@@ -540,9 +540,9 @@ onUnmounted(() => {
         </div>
         <div class="modal-actions">
           <button
-              :disabled="isRenaming"
-              class="btn btn-primary"
-              @click="confirmRename"
+            :disabled="isRenaming"
+            class="btn btn-primary"
+            @click="confirmRename"
           >
             <svg v-if="isRenaming" class="animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2"
                  viewBox="0 0 24 24" width="16">
@@ -572,10 +572,10 @@ onUnmounted(() => {
         <label class="form-label" for="jenkins-select">Jenkins 정보</label>
         <div class="custom-select-wrapper">
           <select
-              id="jenkins-select"
-              v-model="selectedJenkins"
-              :class="{ 'placeholder-selected': selectedJenkins === '' }"
-              class="form-select"
+            id="jenkins-select"
+            v-model="selectedJenkins"
+            :class="{ 'placeholder-selected': selectedJenkins === '' }"
+            class="form-select"
           >
             <option :value="''" disabled>Jenkins 서버를 선택해주세요</option>
             <option v-for="info in jobStore.jenkinsInfo" :key="info.id" :value="info.id">
@@ -665,18 +665,18 @@ onUnmounted(() => {
           <!-- Job 목록 표시 -->
           <div v-else class="job-grid">
             <JobCard
-                v-for="job in jobStore.jobList"
-                :key="job.name"
-                :job="job"
-                :open-dropdown-job="openDropdownJob"
-                class="job-card-item"
-                @action="handleJobAction"
-                @click="() => router.push(`/job/${job.name}`)"
-                @delete="handleDeleteJob"
-                @saveSnapshot="handleSaveSnapshot"
-                @stop="handleJobStop"
-                @toggleDropdown="handleToggleDropdown"
-                @viewSnapshots="handleViewSnapshots"
+              v-for="job in jobStore.jobList"
+              :key="job.name"
+              :job="job"
+              :open-dropdown-job="openDropdownJob"
+              class="job-card-item"
+              @action="handleJobAction"
+              @click="() => router.push({ path: `/job/${job.name}`, query: { id: job.pipelineId } })"
+              @delete="handleDeleteJob"
+              @saveSnapshot="handleSaveSnapshot"
+              @stop="handleJobStop"
+              @toggleDropdown="handleToggleDropdown"
+              @viewSnapshots="handleViewSnapshots"
             />
           </div>
         </template>
@@ -699,10 +699,10 @@ onUnmounted(() => {
     <div v-if="showSnapshotListModal" class="modal-overlay" @click="closeSnapshotListModal">
       <div class="modal" @click.stop>
         <VersionList
-            :jobId="snapshotListTargetJobId"
-            @onDelete="onDelete"
-            @onRollback="onRollback"
-            @rename="openRenameModal"
+          :jobId="snapshotListTargetJobId"
+          @onDelete="onDelete"
+          @onRollback="onRollback"
+          @rename="openRenameModal"
         />
       </div>
     </div>
@@ -711,9 +711,9 @@ onUnmounted(() => {
     <div v-if="showDeletedJobsModal" class="modal-overlay" @click="closeDeletedJobsModal">
       <div class="modal" @click.stop>
         <DeletedJobList
-            :infoId="selectedJenkins"
-            @close="closeDeletedJobsModal"
-            @restored="onJobRestored"
+          :infoId="selectedJenkins"
+          @close="closeDeletedJobsModal"
+          @restored="onJobRestored"
         />
       </div>
     </div>

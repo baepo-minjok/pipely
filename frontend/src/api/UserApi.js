@@ -132,4 +132,15 @@ export const userApi = {
                 return error.response.data.error;
             });
     },
+
+    reissueToken() {
+        return instance
+            .post("/auth/token/refresh")
+            .then((res) => {
+                return true;
+            })
+            .catch((error) => {
+                return false;
+            })
+    }
 };

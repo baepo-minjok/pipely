@@ -62,6 +62,7 @@ router.beforeEach(async (to, from, next) => {
         return;
     }
     if (to.meta.requiresAuth && !isLoggedIn) {
+        localStorage.removeItem('chatHistory');
         userStore.reset();
         if (to.name !== 'Login') {
             next('/user/login');
@@ -69,6 +70,10 @@ router.beforeEach(async (to, from, next) => {
             next();
         }
     } else {
+        if (!isLoggedIn) {
+            localStorage.removeItem('chatHistory');
+            userStore.reset();
+        }
         next();
     }
 });
