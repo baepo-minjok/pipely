@@ -1,4 +1,4 @@
-import instance from '@/api/axiosInstance.js'
+import {instance, loginInstance} from '@/api/axiosInstance.js'
 
 export const userApi = {
     // 로그인 api
@@ -98,7 +98,7 @@ export const userApi = {
     },
 
     isLoggedIn() {
-        return instance
+        return loginInstance
             .get("/auth/user/isLogged")
             .then((res) => {
                 return true;

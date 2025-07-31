@@ -66,9 +66,9 @@ const isValidUrl = (string) => {
 // 폼이 유효한지 확인
 const isFormValid = computed(() => {
   return formData.value.name.trim() &&
-      formData.value.uri.trim() &&
-      formData.value.jenkinsId.trim() &&
-      formData.value.apiToken.trim();
+    formData.value.uri.trim() &&
+    formData.value.jenkinsId.trim() &&
+    formData.value.apiToken.trim();
 });
 
 // 연결 테스트
@@ -133,7 +133,11 @@ const createInfo = async () => {
 
 // 취소
 const handleCancelClick = () => {
-  const hasChanges = Object.values(formData.value).some(value => value.trim() !== '');
+  const hasChanges = Object.entries(formData.value).some(([key, value]) => {
+    if (typeof value !== 'string') return false;
+    return value.trim() !== '';
+  });
+
 
   if (hasChanges) {
     const confirmed = confirm('작성 중인 내용이 있습니다.\n정말로 취소하시겠습니까?');
@@ -197,12 +201,12 @@ const clearError = (field) => {
               정보 닉네임
             </label>
             <input
-                id="name"
-                v-model="formData.name"
-                :class="['form-input', { error: errors.name }]"
-                placeholder="예: 개발서버 Jenkins"
-                type="text"
-                @input="clearError('name')"
+              id="name"
+              v-model="formData.name"
+              :class="['form-input', { error: errors.name }]"
+              placeholder="예: 개발서버 Jenkins"
+              type="text"
+              @input="clearError('name')"
             />
             <span v-if="errors.name" class="error-message">{{ errors.name }}</span>
             <span class="help-text">Jenkins 서버를 구분할 수 있는 이름을 입력하세요.</span>
@@ -220,11 +224,11 @@ const clearError = (field) => {
               설명
             </label>
             <textarea
-                id="description"
-                v-model="formData.description"
-                class="form-textarea"
-                placeholder="Jenkins 서버에 대한 설명을 입력하세요. (선택사항)"
-                @input="clearError('description')"
+              id="description"
+              v-model="formData.description"
+              class="form-textarea"
+              placeholder="Jenkins 서버에 대한 설명을 입력하세요. (선택사항)"
+              @input="clearError('description')"
             ></textarea>
             <span class="help-text">이 Jenkins 서버의 용도나 특징을 간단히 설명해주세요.</span>
           </div>
@@ -248,12 +252,12 @@ const clearError = (field) => {
                 Jenkins URL
               </label>
               <input
-                  id="uri"
-                  v-model="formData.uri"
-                  :class="['form-input', { error: errors.uri }]"
-                  placeholder="https://jenkins.example.com"
-                  type="url"
-                  @input="clearError('uri')"
+                id="uri"
+                v-model="formData.uri"
+                :class="['form-input', { error: errors.uri }]"
+                placeholder="https://jenkins.example.com"
+                type="url"
+                @input="clearError('uri')"
               />
               <span v-if="errors.uri" class="error-message">{{ errors.uri }}</span>
               <span class="help-text">Jenkins 서버의 전체 URL을 입력하세요.</span>
@@ -268,12 +272,12 @@ const clearError = (field) => {
                 Jenkins 사용자 ID
               </label>
               <input
-                  id="jenkinsId"
-                  v-model="formData.jenkinsId"
-                  :class="['form-input', { error: errors.jenkinsId }]"
-                  placeholder="jenkins_user"
-                  type="text"
-                  @input="clearError('jenkinsId')"
+                id="jenkinsId"
+                v-model="formData.jenkinsId"
+                :class="['form-input', { error: errors.jenkinsId }]"
+                placeholder="jenkins_user"
+                type="text"
+                @input="clearError('jenkinsId')"
               />
               <span v-if="errors.jenkinsId" class="error-message">{{ errors.jenkinsId }}</span>
               <span class="help-text">Jenkins에 로그인할 때 사용하는 사용자 ID입니다.</span>
@@ -289,12 +293,12 @@ const clearError = (field) => {
                 API Token
               </label>
               <input
-                  id="apiToken"
-                  v-model="formData.apiToken"
-                  :class="['form-input', { error: errors.apiToken }]"
-                  placeholder="11abcdef1234567890abcdef1234567890"
-                  type="password"
-                  @input="clearError('apiToken')"
+                id="apiToken"
+                v-model="formData.apiToken"
+                :class="['form-input', { error: errors.apiToken }]"
+                placeholder="11abcdef1234567890abcdef1234567890"
+                type="password"
+                @input="clearError('apiToken')"
               />
               <span v-if="errors.apiToken" class="error-message">{{ errors.apiToken }}</span>
               <div class="help-text">
@@ -305,10 +309,10 @@ const clearError = (field) => {
             <!-- 연결 테스트 -->
             <div class="connection-test">
               <button
-                  :disabled="isTestingConnection || !formData.uri || !formData.jenkinsId || !formData.apiToken"
-                  class="test-connection-btn"
-                  type="button"
-                  @click="testConnection"
+                :disabled="isTestingConnection || !formData.uri || !formData.jenkinsId || !formData.apiToken"
+                class="test-connection-btn"
+                type="button"
+                @click="testConnection"
               >
                 <svg v-if="isTestingConnection" class="animate-spin" fill="none" height="16" stroke="currentColor"
                      stroke-width="2" viewBox="0 0 24 24" width="16">
@@ -348,10 +352,10 @@ const clearError = (field) => {
           <!-- 액션 버튼 -->
           <div class="form-actions">
             <button
-                :disabled="isLoading"
-                class="btn btn-secondary"
-                type="button"
-                @click="handleCancelClick"
+              :disabled="isLoading"
+              class="btn btn-secondary"
+              type="button"
+              @click="handleCancelClick"
             >
               <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
                 <line x1="18" x2="6" y1="6" y2="18"/>
@@ -360,9 +364,9 @@ const clearError = (field) => {
               취소
             </button>
             <button
-                :disabled="isLoading || !isFormValid"
-                class="btn btn-primary"
-                type="submit"
+              :disabled="isLoading || !isFormValid"
+              class="btn btn-primary"
+              type="submit"
             >
               <svg v-if="isLoading" class="animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2"
                    viewBox="0 0 24 24" width="16">
@@ -385,7 +389,7 @@ const clearError = (field) => {
           <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20"
                xmlns="http://www.w3.org/2000/svg"><title>help-circle-outline</title>
             <path
-                d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"/>
+              d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"/>
           </svg>
           도움말
         </h3>

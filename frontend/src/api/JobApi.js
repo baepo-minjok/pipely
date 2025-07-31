@@ -1,6 +1,6 @@
 import {useJobStore} from '@/stores/useJobStore.js';
 
-import instance from '@/api/axiosInstance.js'
+import {instance} from '@/api/axiosInstance.js'
 
 export const jobApi = {
     // Script 생성 및 반환

@@ -8,6 +8,13 @@ const instance = axios.create({
     },
     withCredentials: true,
 });
+const loginInstance = axios.create({
+    baseURL: '/api',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    withCredentials: true,
+});
 instance.interceptors.response.use(
     (response) => {
         return response;
@@ -28,4 +35,4 @@ instance.interceptors.response.use(
     }
 );
 
-export default instance;
+export {instance, loginInstance};
