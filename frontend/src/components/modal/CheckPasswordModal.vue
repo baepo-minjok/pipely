@@ -68,19 +68,19 @@ const handleCheck = async () => {
   <div class="modal-overlay">
     <div class="modal">
       <div class="close_button_container">
-        <img alt="Close" class="close_button" src="@/assets/icons/close.svg" @click="$emit('close')"/>
+        <img alt="Close" class="close_button" src="../../assets/icons/close.svg" @click="$emit('close')"/>
       </div>
       <div class="container">
         <img alt="logo" src="/src/assets/images/logo.png"/>
         <h1>비밀번호 확인</h1>
         <form class="form_box" @submit.prevent="handleCheck">
           <input
-              id="password"
-              v-model="password"
-              :class="['input_box', passwordError ? 'input_box--error' : '']"
-              name="password"
-              placeholder="기존 비밀번호를 입력해주세요."
-              type="password"
+            id="password"
+            v-model="password"
+            :class="['input_box', passwordError ? 'input_box--error' : '']"
+            name="password"
+            placeholder="기존 비밀번호를 입력해주세요."
+            type="password"
           />
           <p v-if="passwordError" class="input-error">{{ passwordError }}</p>
           <button class="btn find_btn" type="button" @click="handleCheck">확인</button>
