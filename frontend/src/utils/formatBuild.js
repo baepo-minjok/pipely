@@ -42,6 +42,7 @@ export const getStageStatusClass = (stageName) => {
     {
       GIT_CLONE: 'success',
       BUILD: 'success',
+      TEST: 'success',
       DEPLOY: 'fail',
     }[stageName] || ''
   );
