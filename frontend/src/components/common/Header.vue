@@ -40,7 +40,7 @@ watch(
 );
 
 watch(remainingTime, async (val) => {
-  if (val <= 100 && val > 0) {
+  if (val <= 300 && val > 0) {
     showSessionWarning.value = true;
   } else if (val <= 0) {
     showSessionWarning.value = false;
@@ -55,13 +55,14 @@ const handleSessionExtend = async () => {
   try {
     const res = await userApi.reissueToken();
     if (res) {
+      await userStore.fetchUserInfo();
       showSessionWarning.value = false;
     } else {
       throw new Error('토큰 재발급 실패');
     }
   } catch (error) {
     alert("인증정보가 만료되었습니다.\n 다시 로그인해주세요!");
-    handleSessionLogout();
+    await handleSessionLogout();
   }
 };
 

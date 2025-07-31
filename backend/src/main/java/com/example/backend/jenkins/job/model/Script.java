@@ -46,7 +46,6 @@ public class Script {
     @Schema(description = "테스트 스테이지 선택 여부", example = "false")
     private Boolean isTestSelected;
 
-    // ✅ Kubernetes 배포 관련 입력값
     @Column(name = "is_k8s_deploy")
     @Schema(description = "Kubernetes 배포 여부", example = "true")
     private Boolean isK8sDeploy;

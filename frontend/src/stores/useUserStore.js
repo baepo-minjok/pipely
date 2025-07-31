@@ -58,7 +58,7 @@ export const useUserStore = defineStore(
             isFetched,
             expiresAt,
             getUserInfo,
-            reset
+            reset,
         };
     },
     {

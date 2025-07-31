@@ -268,6 +268,15 @@ watch(selectedJenkins, async (id) => {
     isLoadingJobs.value = true;
     try {
       await jobApi.fetchJobList(id);
+      // 빌드 진행중인 Job 감지 후 polling 재시작
+      for (const job of jobStore.jobList) {
+        console.log(job);
+        if (job.buildState === "BUILD_RUNNING") {
+          console.log(job.buildState);
+          const buildNumber = await jobApi.getCurrentBuildNumber(job.pipelineId);
+          startPolling(job, buildNumber);
+        }
+      }
     } finally {
       isLoadingJobs.value = false;
     }
@@ -351,7 +360,9 @@ onMounted(async () => {
 
       // 빌드 진행중인 Job 감지 후 polling 재시작
       for (const job of jobStore.jobList) {
+        console.log(job);
         if (job.buildState === "BUILD_RUNNING") {
+          console.log(job.buildState);
           const buildNumber = await jobApi.getCurrentBuildNumber(job.pipelineId);
           startPolling(job, buildNumber);
         }

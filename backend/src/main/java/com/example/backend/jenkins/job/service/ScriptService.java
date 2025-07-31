@@ -43,9 +43,9 @@ public class ScriptService {
             script = updateExistingScript(requestDto);
         } else {
             script = createNewScript(requestDto);
-            script = scriptRepository.save(script);
         }
 
+        script = scriptRepository.save(script);
         return ResponseDto.entityToLightScriptDto(script);
     }
 
@@ -72,16 +72,41 @@ public class ScriptService {
 
     private Script updateExistingScript(RequestDto.ScriptBaseDto dto) {
         UUID scriptId = dto.getScriptId();
+        Script existingScript = getScriptById(scriptId);
         if (!scriptRepository.existsById(scriptId)) {
             throw new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND);
         }
 
         String scriptContent = configService.createScript(configService.buildScriptContext(dto));
         String injectedScript = scriptEditUtil.injectBooleanParams(scriptContent);
+        
+        applyDtoToScript(existingScript, dto, injectedScript);
+        return existingScript;
+    }
 
-        Script script = Script.toEntity(dto, injectedScript);
-        script.setId(scriptId);
-        return script;
+    private void applyDtoToScript(Script script, RequestDto.ScriptBaseDto dto, String injectedScript) {
+        // 기본 필드
+        script.setGithubUrl(dto.getGithubUrl());
+        script.setBranch(dto.getBranch());
+        script.setIsBuildSelected(dto.getIsBuildSelected());
+        script.setIsTestSelected(dto.getIsTestSelected());
+        script.setIsK8sDeploy(dto.getIsK8sDeploy());
+        script.setTag(dto.getTag());
+        script.setK8sPath(dto.getK8sPath());
+        script.setDeploymentName(dto.getDeploymentName());
+        script.setNamespace(dto.getNamespace());
+        script.setAppName(dto.getAppName());
+        script.setContainerName(dto.getContainerName());
+        script.setImageRepo(dto.getImageRepo());
+        script.setPort(dto.getPort());
+        script.setReplicas(dto.getReplicas());
+        script.setIsEc2Deploy(dto.getIsEc2Deploy());
+        script.setEc2DeployPath(dto.getEc2DeployPath());
+        script.setSshKeyPath(dto.getSshKeyPath());
+        script.setSshPort(dto.getSshPort());
+        script.setDeployTarget(dto.getDeployTarget());
+
+        script.setScript(injectedScript);
     }
 
 }

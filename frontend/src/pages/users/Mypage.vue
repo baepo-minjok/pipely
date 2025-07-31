@@ -2,8 +2,8 @@
 import {useRouter} from 'vue-router';
 import {onMounted, ref} from 'vue';
 import {useUserStore} from "@/stores/useUserStore.js"
-import CheckPasswordModal from "@/pages/users/CheckPasswordModal.vue";
 import BuildCalendar from "@/pages/users/BuildCalendar.vue";
+import CheckPasswordModal from "@/components/modal/CheckPasswordModal.vue";
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -25,9 +25,9 @@ const fetchUser = () => {
 
 const withdraw = () => {
   const isOk = confirm(
-      "정말로 서비스를 탈퇴하시겠습니까?\n\n" +
-      "탈퇴 시 계정 및 모든 데이터가 삭제되며,\n" +
-      "10일 이내에는 다시 로그인하면 복구가 가능합니다."
+    "정말로 서비스를 탈퇴하시겠습니까?\n\n" +
+    "탈퇴 시 계정 및 모든 데이터가 삭제되며,\n" +
+    "10일 이내에는 다시 로그인하면 복구가 가능합니다."
   );
   if (!isOk) {
     return;
@@ -58,7 +58,7 @@ const closePasswordModal = () => {
 onMounted(async () => {
   isLoading.value = true;
   try {
-    if (!userStore.isFetched.value) {
+    if (!userStore.isFetched) {
       fetchUser();
     } else {
       await userStore.fetchUserInfo();
@@ -270,10 +270,10 @@ const goToJobList = (id) => {
 
         <div v-else class="cicd-grid">
           <div
-              v-for="info in infoList"
-              :key="info.id"
-              class="cicd-card"
-              @click="router.push(`/mypage/cicd/${info.id}`)"
+            v-for="info in infoList"
+            :key="info.id"
+            class="cicd-card"
+            @click="router.push(`/mypage/cicd/${info.id}`)"
           >
             <div class="card-header">
               <h4 class="card-title">{{ info.name }}</h4>
@@ -337,9 +337,9 @@ const goToJobList = (id) => {
 
     <!-- 모달 -->
     <CheckPasswordModal
-        v-if="isPasswordModalOpen"
-        :destination="modalTarget"
-        @close="closePasswordModal"
+      v-if="isPasswordModalOpen"
+      :destination="modalTarget"
+      @close="closePasswordModal"
     />
   </div>
 </template>
