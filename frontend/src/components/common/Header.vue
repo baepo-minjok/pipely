@@ -1,14 +1,16 @@
 <script setup>
-import {onBeforeUnmount, onMounted, ref} from 'vue';
+import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
 import {userApi} from "@/api/UserApi.js";
 import {useUserStore} from "@/stores/useUserStore.js"
+import SessionWarningModal from "@/components/modal/SessionWarningModal.vue";
 
 const router = useRouter();
 const showMenu = ref(false);
 const profileWrapper = ref(null);
 const userStore = useUserStore();
-
+const remainingTime = ref(0);
+let timer = null;
 // 유저 정보 변수
 const email = ref("");
 const name = ref("");
@@ -17,11 +19,87 @@ const isLoggedIn = ref(false);
 // 알림 관리 변수
 const noti = ref(Number);
 
+// 모달 상태 관리
+const showSessionWarning = ref(false);
+
 const fetchUser = () => {
   const userInfo = userStore.getUserInfo();
   email.value = userInfo.email;
   name.value = userInfo.name;
 }
+watch(
+  () => userStore.isFetched,
+  (newVal) => {
+    if (newVal) {
+      isLoggedIn.value = true;
+      fetchUser();
+    } else {
+      isLoggedIn.value = false;
+    }
+  }
+);
+
+watch(remainingTime, async (val) => {
+  if (val <= 100 && val > 0) {
+    showSessionWarning.value = true;
+  } else if (val <= 0) {
+    showSessionWarning.value = false;
+    userStore.reset();
+    localStorage.removeItem('chatHistory');
+    sessionStorage.clear();
+    router.push({name: 'Login'});
+  }
+});
+
+const handleSessionExtend = async () => {
+  try {
+    const res = await userApi.reissueToken();
+    if (res) {
+      showSessionWarning.value = false;
+    } else {
+      throw new Error('토큰 재발급 실패');
+    }
+  } catch (error) {
+    alert("인증정보가 만료되었습니다.\n 다시 로그인해주세요!");
+    handleSessionLogout();
+  }
+};
+
+const handleSessionLogout = async () => {
+  await userApi.logout();
+  showSessionWarning.value = false;
+  userStore.reset();
+  localStorage.removeItem('chatHistory');
+  sessionStorage.clear();
+  router.push({name: 'Main'});
+};
+
+const updateRemainingTime = () => {
+  if (userStore.expiresAt) {
+    const now = Math.floor(Date.now() / 1000);
+    remainingTime.value = Math.max(0, userStore.expiresAt - now);
+  }
+};
+
+const formattedTime = computed(() => {
+  const minutes = Math.floor(remainingTime.value / 60);
+  const seconds = remainingTime.value % 60;
+  return `${minutes}분 ${seconds}초`;
+});
+
+const progressPercentage = computed(() => {
+  if (!userStore.expiresAt) return 100;
+  const totalTime = 30 * 60;
+  const percentage = (remainingTime.value / totalTime) * 100;
+  return Math.max(0, Math.min(100, percentage));
+});
+
+const getTimerClass = () => {
+  const minutes = Math.floor(remainingTime.value / 60);
+  if (minutes <= 5) return 'critical';
+  if (minutes <= 10) return 'warning';
+  return 'normal';
+};
 
 const goToHome = () => {
   router.push('/');
@@ -73,6 +151,8 @@ const handleKeydown = (event) => {
 };
 
 onMounted(() => {
+  updateRemainingTime();
+  timer = setInterval(updateRemainingTime, 1000); // 1초마다 갱신
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('keydown', handleKeydown);
 
@@ -83,6 +163,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  clearInterval(timer);
   document.removeEventListener('click', handleClickOutside);
   document.removeEventListener('keydown', handleKeydown);
 });
@@ -97,7 +178,6 @@ onBeforeUnmount(() => {
           <img alt="Pipely" class="logo-img" src="/src/assets/images/logo.png"/>
         </div>
       </div>
-
       <!-- 우측 액션 영역 -->
       <div class="header-actions">
         <button class="action-btn notification-btn" title="알림">
@@ -185,6 +265,29 @@ onBeforeUnmount(() => {
             </div>
           </button>
         </div>
+        <div v-if="userStore.isFetched" class="session-timer">
+          <div :class="getTimerClass()" class="timer-container">
+            <div class="timer-icon">
+              <svg fill="none" height="16" viewBox="0 0 24 24" width="16" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                          stroke-width="2"/>
+              </svg>
+            </div>
+            <div class="timer-content">
+              <span class="timer-value">{{ formattedTime }}</span>
+            </div>
+            <div class="timer-progress">
+              <div :style="{ width: progressPercentage + '%' }" class="progress-bar"></div>
+            </div>
+          </div>
+        </div>
+        <SessionWarningModal
+          :is-visible="showSessionWarning"
+          :remaining-time="remainingTime"
+          @extend="handleSessionExtend"
+          @logout="handleSessionLogout"
+        />
       </div>
     </div>
   </header>
@@ -382,12 +485,6 @@ onBeforeUnmount(() => {
   line-height: 1.2;
 }
 
-.profile-role {
-  font-size: 12px;
-  color: #64748b;
-  line-height: 1.2;
-}
-
 .dropdown-arrow {
   color: #94a3b8;
   transition: transform 0.2s ease;
@@ -504,6 +601,151 @@ onBeforeUnmount(() => {
   opacity: 0;
   transform: translateY(-8px) scale(0.95);
 }
+
+/* 세션 타이머 스타일 */
+.session-timer {
+  display: flex;
+  align-items: center;
+  margin-right: 16px;
+}
+
+.timer-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  min-width: 120px;
+}
+
+.timer-container.normal {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.timer-container.warning {
+  background: #fffbeb;
+  border-color: #fed7aa;
+  color: #ea580c;
+  animation: pulse-warning 2s infinite;
+}
+
+.timer-container.critical {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+  animation: pulse-critical 1s infinite;
+}
+
+@keyframes pulse-warning {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1);
+  }
+}
+
+@keyframes pulse-critical {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+  }
+}
+
+.timer-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.timer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.timer-label {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.7;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.timer-value {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.timer-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.progress-bar {
+  height: 100%;
+  background: currentColor;
+  transition: width 1s ease;
+  opacity: 0.6;
+}
+
+.timer-container.normal .progress-bar {
+  background: #22c55e;
+}
+
+.timer-container.warning .progress-bar {
+  background: #f59e0b;
+}
+
+.timer-container.critical .progress-bar {
+  background: #ef4444;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .timer-container {
+    min-width: 100px;
+    padding: 6px 10px;
+  }
+
+  .timer-label {
+    font-size: 9px;
+  }
+
+  .timer-value {
+    font-size: 11px;
+  }
+
+  .timer-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .timer-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
 
 /* 반응형 */
 @media (max-width: 768px) {
