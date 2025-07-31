@@ -21,7 +21,7 @@ let countdownTimer = null
 // 원형 진행률 계산
 const circumference = 2 * Math.PI * 54 // r=54
 const strokeDashoffset = computed(() => {
-  const progress = remainingSeconds.value / 100
+  const progress = remainingSeconds.value / 300
   return circumference - (progress * circumference)
 })
 
