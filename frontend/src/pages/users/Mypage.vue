@@ -2,6 +2,7 @@
 import {useRouter} from 'vue-router';
 import {onMounted, ref} from 'vue';
 import {useUserStore} from "@/stores/useUserStore.js"
+import BuildCalendar from "@/pages/users/BuildCalendar.vue";
 import CheckPasswordModal from "@/components/modal/CheckPasswordModal.vue";
 
 const userStore = useUserStore();
@@ -302,6 +303,13 @@ const goToJobList = (id) => {
           </div>
         </div>
       </div>
+<!--      <Calendar />-->
+      <div class="calendar-section">
+        <BuildCalendar />
+      </div>
+
+
+
 
       <!-- 계정 관리 섹션 -->
       <div class="section danger-section">
@@ -885,6 +893,9 @@ const goToJobList = (id) => {
   font-size: 14px;
   margin: 0;
   line-height: 1.5;
+}
+.calendar-section {
+  margin-bottom: 24px;
 }
 
 /* 반응형 */
