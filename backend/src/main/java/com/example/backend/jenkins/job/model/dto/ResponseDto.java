@@ -290,4 +290,20 @@ public class ResponseDto {
         private String stageName;
     }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    @Schema(name = "ExternalJobDto", description = "외부 Jenkins 서버에서 조회한 파이프라인 Job 정보")
+    public static class ExternalJobDto {
+
+        @Schema(description = "Jenkins Job 이름", example = "backend")
+        private String name;
+
+        @Schema(description = "Jenkins Job URL", example = "http://122.40.225.54:7979/job/backend/")
+        private String url;
+
+        @Schema(description = "Jenkins Job 상태 (SUCCESS, FAILURE, NOT_BUILT, ABORTED 등)", example = "SUCCESS")
+        private String status;
+    }
 }

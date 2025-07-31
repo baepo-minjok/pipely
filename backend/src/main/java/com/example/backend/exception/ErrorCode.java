@@ -87,6 +87,8 @@ public enum ErrorCode {
     JENKINS_SCRIPT_NOT_FOUND(HttpStatus.NOT_FOUND, "JENKINS_SCRIPT_NOT_FOUND_404", "Script 정보가 존재하지 않습니다."),
     JENKINS_JOB_EXIST(HttpStatus.BAD_REQUEST, "JENKINS_JOB_EXIST_400", "Jenkins에 이미 동일한 이름의 Job이 존재합니다."),
     CANNOT_DELETE_LATEST_VERSION(HttpStatus.BAD_REQUEST, "CANNOT_DELETE_LATEST_VERSION_400", "최신버전은 삭제 할 수 없습니다."),
+    JENKINS_API_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "JENKINS_API_ERROR_500", "Jenkins API 응답 처리 중 오류가 발생했습니다."),
+
     /**
      * Jenkins/build 도메인에서 사용하는 ErrorCode
      */

@@ -14,14 +14,22 @@ import com.example.backend.jenkins.job.repository.PipelineRepository;
 import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.service.HttpClientService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -289,6 +297,64 @@ public class PipelineService {
     public void setState(Pipeline pipeline, String state) {
         pipeline.setBuildState(Pipeline.BuildState.valueOf("BUILD_" + state));
         pipelineRepository.save(pipeline);
+    }
+
+    @Transactional
+    public List<ResponseDto.ExternalJobDto> fetchPipelineJobs(UUID jenkinsInfoId) {
+        // 1. JenkinsInfo 조회
+        JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(jenkinsInfoId);
+
+        // 2. GET 요청 URL
+        String url = info.getUri() + "/api/json?tree=jobs[name,url,_class,color]";
+
+        // 3. GET 요청
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        String response = httpClientService.exchange(url, HttpMethod.GET, request, String.class);
+
+        // ✅ 4. DB에서 현재 관리 중인 Job 이름 목록 조회
+        Set<String> managedJobNames = pipelineRepository.findAllByJenkinsInfoId(info.getId())
+                .stream()
+                .map(Pipeline::getName)
+                .collect(Collectors.toSet());
+
+        // ✅ 5. JSON 파싱 → DB에 없는 Job만 반환
+        return parseExternalJobs(response).stream()
+                .filter(job -> !managedJobNames.contains(job.getName()))
+                .toList();
+    }
+
+    private List<ResponseDto.ExternalJobDto> parseExternalJobs(String json) {
+        List<ResponseDto.ExternalJobDto> jobs = new ArrayList<>();
+        try {
+            JsonNode root = new ObjectMapper().readTree(json);
+            JsonNode jobNodes = root.path("jobs");
+
+            for (JsonNode job : jobNodes) {
+                if (!"org.jenkinsci.plugins.workflow.job.WorkflowJob".equals(job.path("_class").asText())) {
+                    continue; // Pipeline만 필터링
+                }
+
+                jobs.add(ResponseDto.ExternalJobDto.builder()
+                        .name(job.path("name").asText())
+                        .url(job.path("url").asText())
+                        .status(convertColorToStatus(job.path("color").asText()))
+                        .build());
+            }
+        } catch (JsonProcessingException e) {
+            throw new CustomException(ErrorCode.JENKINS_API_ERROR);
+        }
+        return jobs;
+    }
+
+    private String convertColorToStatus(String color) {
+        return switch (color) {
+            case "blue" -> "SUCCESS";
+            case "red" -> "FAILURE";
+            case "notbuilt" -> "NOT_BUILT";
+            case "aborted" -> "ABORTED";
+            default -> "UNKNOWN";
+        };
     }
 }
 

@@ -60,4 +60,6 @@ public interface PipelineRepository extends JpaRepository<Pipeline, UUID> {
             @Param("jenkinsInfoId") UUID jenkinsInfoId,
             @Param("name") String name
     );
+
+    List<Pipeline> findAllByJenkinsInfoId(UUID id);
 }

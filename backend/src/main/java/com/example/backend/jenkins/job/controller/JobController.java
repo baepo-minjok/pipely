@@ -229,4 +229,26 @@ public class JobController {
         return ResponseEntity.ok()
                 .body(BaseResponse.success("restoration job success"));
     }
+
+    @Operation(
+            summary = "외부 Jenkins 서버의 파이프라인 Job 목록 조회",
+            description = "지정된 Jenkins 서버(jenkinsInfoId)에서 WorkflowJob(파이프라인)만 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Job 목록 조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 실패"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "Jenkins 서버 정보(JenkinsInfo) 없음"),
+            @ApiResponse(responseCode = "500", description = "Jenkins 서버와 통신 오류")
+    })
+    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #jenkinsInfoId)")
+    @GetMapping("/external-jobs")
+    public ResponseEntity<BaseResponse<List<ResponseDto.ExternalJobDto>>> getExternalJobs(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @Parameter(description = "조회할 JenkinsInfo UUID", required = true, example = "2c1edbe1-4e6a-420d-84cd-3ffb2b9d7c85")
+            @RequestParam @NotNull UUID jenkinsInfoId
+    ) {
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(pipelineService.fetchPipelineJobs(jenkinsInfoId)));
+    }
 }
