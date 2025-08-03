@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
@@ -17,8 +19,18 @@ public class LlmService {
 
     private final RestTemplate restTemplate;
 
+    /**
+     * RestTemplate 타임아웃 설정
+     */
+    private ClientHttpRequestFactory createRequestFactory() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10000); // 10초
+        factory.setReadTimeout(60000);    // 60초
+        return factory;
+    }
+
     public LlmService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
+        this.restTemplate = new RestTemplate(createRequestFactory());
     }
 
     @Value("${openai.api-key}")
