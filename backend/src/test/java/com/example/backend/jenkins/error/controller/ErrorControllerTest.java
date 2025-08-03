@@ -62,42 +62,6 @@ class ErrorControllerTest {
     }
 
     @Test
-    @DisplayName("최근 빌드 1건 조회")
-    void getRecentBuildTest() throws Exception {
-        ErrorResponseDto.FailedBuild mockRes = ErrorResponseDto.FailedBuild.of("JobA", 1, "FAILURE", 1000L, 100L);
-        when(errorService.getRecentBuildByJob(eq(jobId), any())).thenReturn(mockRes);
-
-        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId);
-
-        mockMvc.perform(post("/api/jenkins-error/recent")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reqDto))
-                        .with(SecurityMockMvcRequestPostProcessors.authentication(
-                                new UsernamePasswordAuthenticationToken(testUser, null)))
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.jobName").value("JobA"));
-    }
-
-    @Test
-    @DisplayName("전체 빌드 조회")
-    void getBuildsByJobTest() throws Exception {
-        when(errorService.getBuildsForJobByUser(eq(jobId), any()))
-                .thenReturn(List.of(ErrorResponseDto.FailedBuild.of("JobA", 1, "FAILURE", 1000L, 100L)));
-
-        ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId);
-
-        mockMvc.perform(post("/api/jenkins-error/history")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reqDto))
-                        .with(SecurityMockMvcRequestPostProcessors.authentication(
-                                new UsernamePasswordAuthenticationToken(testUser, null)))
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data[0].jobName").value("JobA"));
-    }
-
-    @Test
     @DisplayName("실패한 빌드만 조회")
     void getFailedBuildsByJobTest() throws Exception {
         when(errorService.getFailedBuildsForJobByUser(eq(jobId), any()))
@@ -113,23 +77,6 @@ class ErrorControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].buildNumber").value(2));
-    }
-
-    @Test
-    @DisplayName("전체 최근 빌드 조회")
-    void getAllRecentBuildsTest() throws Exception {
-        when(errorService.getJenkinsInfoByIdAndUser(eq(infoId), any())).thenReturn(null);
-        when(errorService.getRecentBuilds(any())).thenReturn(List.of());
-
-        ErrorRequestDto.JenkinsDto reqDto = new ErrorRequestDto.JenkinsDto(infoId, "JobA");
-
-        mockMvc.perform(post("/api/jenkins-error/recent/all")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(reqDto))
-                        .with(SecurityMockMvcRequestPostProcessors.authentication(
-                                new UsernamePasswordAuthenticationToken(testUser, null)))
-                )
-                .andExpect(status().isOk());
     }
 
     @Test
