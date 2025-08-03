@@ -75,7 +75,11 @@ public class LlmService {
         );
 
         // 응답에서 실제 메시지 추출
-        return ((Map)((List)response.getBody().get("choices")).get(0)).get("message").toString();
+        List<Map<String, Object>> choices = (List<Map<String, Object>>) response.getBody().get("choices");
+        Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+
+        return message.get("content").toString();
+
     }
 }
 
