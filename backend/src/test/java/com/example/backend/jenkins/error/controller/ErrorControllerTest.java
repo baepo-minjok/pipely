@@ -69,7 +69,7 @@ class ErrorControllerTest {
 
         ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId);
 
-        mockMvc.perform(post("/api/jenkins-error/history/failed")
+        mockMvc.perform(post("/api/jenkins/error/failed/job")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reqDto))
                         .with(SecurityMockMvcRequestPostProcessors.authentication(
@@ -87,7 +87,7 @@ class ErrorControllerTest {
 
         ErrorRequestDto.JenkinsDto reqDto = new ErrorRequestDto.JenkinsDto(infoId, "JobA");
 
-        mockMvc.perform(post("/api/jenkins-error/failed/all")
+        mockMvc.perform(post("/api/jenkins/error/failed/all")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reqDto))
                         .with(SecurityMockMvcRequestPostProcessors.authentication(
@@ -108,7 +108,7 @@ class ErrorControllerTest {
 
         ErrorRequestDto.JobSummaryDto reqDto = ErrorRequestDto.JobSummaryDto.builder().jobId(jobId).buildNumber(1).build();
 
-        mockMvc.perform(post("/api/jenkins-error/summary")
+        mockMvc.perform(post("/api/jenkins/error/failed/summary")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reqDto))
                         .with(SecurityMockMvcRequestPostProcessors.authentication(
@@ -126,7 +126,7 @@ class ErrorControllerTest {
         ErrorRequestDto.JobDto reqDto = new ErrorRequestDto.JobDto(jobId);
 
         // when & then
-        mockMvc.perform(post("/api/jenkins-error/rollback/last-success")
+        mockMvc.perform(post("/api/jenkins/error/rollback/success")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reqDto))
                         .with(SecurityMockMvcRequestPostProcessors.authentication(
