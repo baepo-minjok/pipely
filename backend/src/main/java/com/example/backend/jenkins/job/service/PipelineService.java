@@ -1,6 +1,7 @@
 package com.example.backend.jenkins.job.service;
 
 import com.example.backend.auth.user.model.Users;
+import com.example.backend.event.PipelineStateChangedEvent;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
@@ -16,6 +17,7 @@ import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.service.HttpClientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +41,7 @@ public class PipelineService {
     private final StageService stageService;
     private final PipelineVersionRepository pipelineVersionRepository;
     private final JobNotificationService jobNotificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Create a new Jenkins job and persist the pipeline.
@@ -258,12 +261,18 @@ public class PipelineService {
     @Transactional
     public void setState(RequestDto.StatusDto dto) {
         Pipeline pipeline = getPipelineById(dto.getJobId());
+        String state = "";
         if (dto.isSuccess()) {
             pipeline.setBuildState(Pipeline.BuildState.BUILD_SUCCESS);
+            state = "SUCCESS";
         } else {
             pipeline.setBuildState(Pipeline.BuildState.BUILD_FAILURE);
+            state = "FAILURE";
         }
         pipelineRepository.save(pipeline);
+
+        eventPublisher.publishEvent(new PipelineStateChangedEvent(pipeline.getJenkinsInfo().getUser().getEmail(),
+                PipelineStateChangedEvent.ChangedState.builder().name(pipeline.getName()).state(state).build()));
     }
 
     @Transactional
