@@ -82,26 +82,6 @@ class ErrorServiceTest {
     }
 
     @Test
-    @DisplayName("getRecentBuild - 정상 Jenkins 응답이면 DTO 반환")
-    void getRecentBuild_success() {
-        Map<String, Object> mockResponse = Map.of(
-                "number", 10,
-                "result", "FAILURE",
-                "timestamp", 1000L,
-                "duration", 3000L
-        );
-
-        when(httpClientService.buildHeaders(mockInfo, MediaType.APPLICATION_JSON)).thenReturn(new HttpHeaders());
-        when(httpClientService.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Map.class)))
-                .thenReturn(mockResponse);
-
-        ErrorResponseDto.FailedBuild result = errorService.getRecentBuild(mockInfo, "test-job");
-
-        assertEquals("FAILURE", result.getResult());
-        assertEquals(10, result.getBuildNumber());
-    }
-
-    @Test
     @DisplayName("summarizeBuild - 예외 로그 포함 시 LLM 호출")
     void summarizeBuild_failureLog() {
         String buildLog = "Exception in thread main";
