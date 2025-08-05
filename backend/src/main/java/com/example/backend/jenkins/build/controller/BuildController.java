@@ -48,7 +48,7 @@ public class BuildController {
     public ResponseEntity<BaseResponse<Integer>> Steps(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestBody @Valid BuildRequestDto.BuildStageRequestDto dto) {
-        return ResponseEntity.ok(BaseResponse.success(buildService.StageJenkinsBuild(dto)));
+        return ResponseEntity.ok(BaseResponse.success(buildService.triggerStages(dto)));
     }
 
     @Operation(
@@ -154,5 +154,15 @@ public class BuildController {
         buildService.stopBuild(jobId, buildNumber);
         return ResponseEntity.ok()
                 .body(BaseResponse.success(true));
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<Void> test(
+            @AuthenticationPrincipal(expression = "userEntity") Users user,
+            @RequestParam UUID jobId,
+            @RequestParam Integer buildNumber
+    ) {
+        buildService.sendLog(jobId, buildNumber, user.getEmail());
+        return ResponseEntity.ok().build();
     }
 }

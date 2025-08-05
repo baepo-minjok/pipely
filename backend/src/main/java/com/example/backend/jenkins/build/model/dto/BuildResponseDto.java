@@ -156,4 +156,19 @@ public class BuildResponseDto {
 
 
     }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class BuildStatusDto {
+        private String status;
+        private List<Map<String, String>> stages;
+        private String log;
+        private String progress;
+
+        public boolean isFinished() {
+            return "BUILD_SUCCESS".equals(status) || "BUILD_ABORTED".equals(status) || "BUILD_FAILURE".equals(status);
+        }
+    }
 }

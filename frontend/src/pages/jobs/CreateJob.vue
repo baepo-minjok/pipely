@@ -8,7 +8,6 @@ import {formatSchedule} from '@/utils/formatSchedule.js';
 
 const route = useRoute();
 const router = useRouter();
-
 const isLoading = ref(false);
 const isScriptGenerating = ref(false);
 const isJobCreating = ref(false);
@@ -36,12 +35,10 @@ const weekdays = [
 ];
 
 /**
- *
  * 알림 설정 map 변환
  */
 const buildNotificationMap = () => {
   const map = {};
-
   if (isDiscordChecked.value) {
     map.discord = {
       webhookUrl: notificationData.discordUrl,
@@ -49,7 +46,6 @@ const buildNotificationMap = () => {
       checkFailure: notificationData.isDiscordFailure,
     };
   }
-
   if (isSlackChecked.value) {
     map.slack = {
       webhookUrl: notificationData.slackUrl,
@@ -57,7 +53,6 @@ const buildNotificationMap = () => {
       checkFailure: notificationData.isSlackFailure,
     };
   }
-
   return map;
 };
 
@@ -73,13 +68,11 @@ const toggleDay = (day) => {
 const schedulePreview = computed(() => {
   console.log(formatSchedule(scheduleData));
   if (!isScheduleSelected.value) return '스케줄이 비활성화됨';
-
   const repeatText = scheduleData.repeatType === 'daily' ? '매일' : '매주';
   const daysText =
-      scheduleData.repeatType === 'weekly'
-          ? scheduleData.selectedDays.map((d) => weekdays.find((w) => w.value === d)?.label).join(', ') || '요일 미선택'
-          : '';
-
+    scheduleData.repeatType === 'weekly'
+      ? scheduleData.selectedDays.map((d) => weekdays.find((w) => w.value === d)?.label).join(', ') || '요일 미선택'
+      : '';
   const timeText = scheduleData.time || '시간 미설정';
   return `${repeatText} ${daysText} ${timeText}`;
 });
@@ -231,7 +224,6 @@ const handleCancelClick = () => {
 watch(scriptText, (newVal) => {
   console.log('watch - scriptText changed:', newVal);
 });
-
 </script>
 
 <template>
@@ -241,7 +233,6 @@ watch(scriptText, (newVal) => {
       <div class="skeleton-header">
         <div class="skeleton-title"></div>
       </div>
-
       <div class="skeleton-content">
         <div v-for="i in 5" :key="i" class="skeleton-section">
           <div class="skeleton-section-title"></div>
@@ -250,7 +241,6 @@ watch(scriptText, (newVal) => {
           </div>
         </div>
       </div>
-
       <div class="skeleton-buttons">
         <div class="skeleton-button"></div>
         <div class="skeleton-button"></div>
@@ -271,317 +261,367 @@ watch(scriptText, (newVal) => {
       </div>
 
       <div class="content">
-        <!-- 서버 정보 -->
-        <div class="section jenkins-info">
-          <h3 class="section-title">
-            <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-              <rect height="14" rx="2" ry="2" width="20" x="2" y="3"/>
-              <line x1="8" x2="16" y1="21" y2="21"/>
-              <line x1="12" x2="12" y1="17" y2="21"/>
-            </svg>
-            서버 정보
-          </h3>
-          <div class="jenkins-info-card" @click="router.push(`/mypage/cicd/${jenkinsInfo.id}`)">
-            <div class="info-item">
-              <span class="info-label">이름</span>
-              <span class="info-value">{{ jenkinsInfo.name }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">주소</span>
-              <span class="info-value">{{ jenkinsInfo.uri }}</span>
-            </div>
-            <div class="connection_status">
-              <div :class="['status_dot', { connected: jenkinsInfo.connected === 'true' }]"></div>
-              <span :class="['status_text', { connected: jenkinsInfo.connected === 'true' }]">
-                {{ jenkinsInfo.connected ? '연결됨' : '연결 실패' }}
-            </span>
+        <!-- 메인 컨텐츠 -->
+        <div class="main-content">
+          <!-- 서버 정보 -->
+          <div class="section jenkins-info">
+            <h3 class="section-title">
+              <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+                <rect height="14" rx="2" ry="2" width="20" x="2" y="3"/>
+                <line x1="8" x2="16" y1="21" y2="21"/>
+                <line x1="12" x2="12" y1="17" y2="21"/>
+              </svg>
+              서버 정보
+            </h3>
+            <div class="jenkins-info-card" @click="router.push(`/mypage/cicd/${jenkinsInfo.id}`)">
+              <div class="info-item">
+                <span class="info-label">이름</span>
+                <span class="info-value">{{ jenkinsInfo.name }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">주소</span>
+                <span class="info-value">{{ jenkinsInfo.uri }}</span>
+              </div>
+              <div class="connection_status">
+                <div :class="['status_dot', { connected: jenkinsInfo.connected === 'true' }]"></div>
+                <span :class="['status_text', { connected: jenkinsInfo.connected === 'true' }]">
+                  {{ jenkinsInfo.connected ? '연결됨' : '연결 실패' }}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Job 기본 정보 -->
-        <div class="section">
-          <h3 class="section-title">
-            <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <line x1="16" x2="8" y1="13" y2="13"/>
-              <line x1="16" x2="8" y1="17" y2="17"/>
-              <polyline points="10,9 9,9 8,9"/>
-            </svg>
-            Job 기본 정보
-          </h3>
-          <div class="form-group">
-            <label class="form-label" for="name">Job 이름</label>
-            <input
+          <!-- Job 기본 정보 -->
+          <div class="section">
+            <h3 class="section-title">
+              <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" x2="8" y1="13" y2="13"/>
+                <line x1="16" x2="8" y1="17" y2="17"/>
+                <polyline points="10,9 9,9 8,9"/>
+              </svg>
+              Job 기본 정보
+            </h3>
+            <div class="form-group">
+              <label class="form-label" for="name">Job 이름</label>
+              <input
                 id="name"
                 v-model="jobData.name"
                 class="form-input"
                 placeholder="Job 이름을 입력해주세요."
                 type="text"
-            />
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="description">설명</label>
-            <textarea
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="description">설명</label>
+              <textarea
                 id="description"
                 v-model="jobData.description"
                 class="form-textarea"
                 placeholder="Job에 대한 설명을 입력해주세요."
-            ></textarea>
+              ></textarea>
+            </div>
           </div>
-        </div>
 
-        <!-- 연동 설정 -->
-        <div class="section">
-          <h3 class="section-title">
-            <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
-            트리거 설정
-          </h3>
-
-          <div class="checkbox-group">
-            <label class="toggle-switch">
-              <input id="webhook_check" v-model="jobData.trigger" type="checkbox"/>
-              <span class="slider"></span>
-              <img alt="icon" class="dropdown-icon" src="/src/assets/icons/github.svg"/>
-              <span class="toggle-label">Github</span>
-            </label>
+          <!-- 연동 설정 -->
+          <div class="section">
+            <h3 class="section-title">
+              <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+              트리거 설정
+            </h3>
+            <div class="checkbox-group">
+              <label class="toggle-switch">
+                <input id="webhook_check" v-model="jobData.trigger" type="checkbox"/>
+                <span class="slider"></span>
+                <img alt="icon" class="dropdown-icon" src="/src/assets/icons/github.svg"/>
+                <span class="toggle-label">Github</span>
+              </label>
+            </div>
           </div>
-        </div>
 
-        <!-- 알림 설정 -->
-        <div class="section">
-          <h3 class="section-title">
-            <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
-                 stroke-width="2" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-
-            알림 설정
-          </h3>
-
-          <div class="checkbox-group">
-            <label class="toggle-switch">
-              <input id="webhook_check" v-model="isDiscordChecked" type="checkbox"/>
-              <span class="slider"></span>
-              <span class="toggle-label">Discord</span>
-            </label>
-            <div v-if="isDiscordChecked" class="nested-input">
-
+          <!-- 알림 설정 -->
+          <div class="section">
+            <h3 class="section-title">
+              <svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                   stroke-width="2" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              알림 설정
+            </h3>
+            <div class="checkbox-group">
               <label class="toggle-switch">
-                <input id="webhook_check" v-model="notificationData.isDiscordSuccess" type="checkbox"/>
+                <input id="webhook_check" v-model="isDiscordChecked" type="checkbox"/>
                 <span class="slider"></span>
-                <span class="toggle-label">성공시 알림</span>
+                <span class="toggle-label">Discord</span>
               </label>
-              <label class="toggle-switch">
-                <input id="webhook_check" v-model="notificationData.isDiscordFailure" type="checkbox"/>
-                <span class="slider"></span>
-                <span class="toggle-label">실패시 알림</span>
-              </label>
-
-              <input
+              <div v-if="isDiscordChecked" class="nested-input">
+                <label class="toggle-switch">
+                  <input id="webhook_check" v-model="notificationData.isDiscordSuccess" type="checkbox"/>
+                  <span class="slider"></span>
+                  <span class="toggle-label">성공시 알림</span>
+                </label>
+                <label class="toggle-switch">
+                  <input id="webhook_check" v-model="notificationData.isDiscordFailure" type="checkbox"/>
+                  <span class="slider"></span>
+                  <span class="toggle-label">실패시 알림</span>
+                </label>
+                <input
                   v-model="notificationData.discordUrl"
                   class="form-input"
                   placeholder="Discord Webhook 링크를 입력해주세요."
                   type="text"
-              />
+                />
+              </div>
             </div>
-          </div>
-
-          <div class="checkbox-group">
-            <label class="toggle-switch">
-              <input id="webhook_check" v-model="isSlackChecked" type="checkbox"/>
-              <span class="slider"></span>
-              <span class="toggle-label">Slack</span>
-            </label>
-            <div v-if="isSlackChecked" class="nested-input">
+            <div class="checkbox-group">
               <label class="toggle-switch">
-                <input id="webhook_check" v-model="notificationData.isSlackSuccess" type="checkbox"/>
+                <input id="webhook_check" v-model="isSlackChecked" type="checkbox"/>
                 <span class="slider"></span>
-                <span class="toggle-label">성공시 알림</span>
+                <span class="toggle-label">Slack</span>
               </label>
-              <label class="toggle-switch">
-                <input id="webhook_check" v-model="notificationData.isSlackFailure" type="checkbox"/>
-                <span class="slider"></span>
-                <span class="toggle-label">실패시 알림</span>
-              </label>
-              <input
+              <div v-if="isSlackChecked" class="nested-input">
+                <label class="toggle-switch">
+                  <input id="webhook_check" v-model="notificationData.isSlackSuccess" type="checkbox"/>
+                  <span class="slider"></span>
+                  <span class="toggle-label">성공시 알림</span>
+                </label>
+                <label class="toggle-switch">
+                  <input id="webhook_check" v-model="notificationData.isSlackFailure" type="checkbox"/>
+                  <span class="slider"></span>
+                  <span class="toggle-label">실패시 알림</span>
+                </label>
+                <input
                   v-model="notificationData.slackUrl"
                   class="form-input"
                   placeholder="Slack Webhook 링크를 입력해주세요."
                   type="text"
-              />
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- 스케줄 설정 -->
-        <div class="section">
-          <h3 class="section-title">
-            <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12,6 12,12 16,14"/>
-            </svg>
-            스케줄 설정
-            <label class="toggle-switch">
-              <input id="webhook_check" v-model="isScheduleSelected" type="checkbox"/>
-              <span class="slider"></span>
-              <span class="toggle-label"></span>
-            </label>
-          </h3>
-          <div class="checkbox-group">
-
-            <div v-if="isScheduleSelected" class="schedule-card">
-              <!-- 반복 유형 -->
-              <div class="form-row">
-                <label class="form-label">반복</label>
-                <select v-model="scheduleData.repeatType" class="form-select">
-                  <option value="daily">매일</option>
-                  <option value="weekly">매주</option>
-                </select>
-              </div>
-
-              <!-- 요일 선택 (매주일 때만 표시) -->
-              <div v-if="scheduleData.repeatType === 'weekly'" class="form-row">
-                <label class="form-label">요일</label>
-                <div class="weekday-buttons">
-                  <button
+          <!-- 스케줄 설정 -->
+          <div class="section">
+            <h3 class="section-title">
+              <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12,6 12,12 16,14"/>
+              </svg>
+              스케줄 설정
+              <label class="toggle-switch">
+                <input id="webhook_check" v-model="isScheduleSelected" type="checkbox"/>
+                <span class="slider"></span>
+                <span class="toggle-label"></span>
+              </label>
+            </h3>
+            <div class="checkbox-group">
+              <div v-if="isScheduleSelected" class="schedule-card">
+                <!-- 반복 유형 -->
+                <div class="form-row">
+                  <label class="form-label">반복</label>
+                  <select v-model="scheduleData.repeatType" class="form-select">
+                    <option value="daily">매일</option>
+                    <option value="weekly">매주</option>
+                  </select>
+                </div>
+                <!-- 요일 선택 (매주일 때만 표시) -->
+                <div v-if="scheduleData.repeatType === 'weekly'" class="form-row">
+                  <label class="form-label">요일</label>
+                  <div class="weekday-buttons">
+                    <button
                       v-for="day in weekdays"
                       :key="day.value"
                       :class="['weekday-btn', { active: scheduleData.selectedDays.includes(day.value) }]"
                       type="button"
                       @click="toggleDay(day.value)"
-                  >
-                    {{ day.label }}
-                  </button>
+                    >
+                      {{ day.label }}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <!-- 시간 선택 -->
-              <div class="form-row">
-                <label class="form-label">시간</label>
-                <input v-model="scheduleData.time" class="form-input" type="time"/>
-              </div>
-
-              <!-- 미리보기 -->
-              <div class="schedule-preview">
-                <span>🕒 현재 설정: {{ schedulePreview }}</span>
+                <!-- 시간 선택 -->
+                <div class="form-row">
+                  <label class="form-label">시간</label>
+                  <input v-model="scheduleData.time" class="form-input" type="time"/>
+                </div>
+                <!-- 미리보기 -->
+                <div class="schedule-preview">
+                  <span>🕒 현재 설정: {{ schedulePreview }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- 스크립트 -->
-        <div class="section">
-          <h3 class="section-title">
-            <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-              <polyline points="16,18 22,12 16,6"/>
-              <polyline points="8,6 2,12 8,18"/>
-            </svg>
-            스크립트
-          </h3>
-
-          <div class="script-config">
-            <div class="form-group">
-              <label class="form-label" for="github_url">Github 주소</label>
-              <input
+          <!-- 스크립트 -->
+          <div class="section">
+            <h3 class="section-title">
+              <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+                <polyline points="16,18 22,12 16,6"/>
+                <polyline points="8,6 2,12 8,18"/>
+              </svg>
+              스크립트
+            </h3>
+            <div class="script-config">
+              <div class="form-group">
+                <label class="form-label" for="github_url">Github 주소</label>
+                <input
                   id="github_url"
                   v-model="scriptData.githubUrl"
                   class="form-input"
                   placeholder="Github 프로젝트 주소를 입력해주세요."
                   type="text"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="branch">Git Branch</label>
-              <input
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="branch">Git Branch</label>
+                <input
                   id="branch"
                   v-model="scriptData.branch"
                   class="form-input"
                   type="text"
-              />
-            </div>
-
-            <div class="stage-selection">
-              <label class="form-label">스테이지 선택</label>
-              <div class="stage-options">
-                <label class="toggle-switch">
-                  <input id="webhook_check" v-model="scriptData.isBuildSelected" type="checkbox"/>
-                  <span class="slider"></span>
-                  <span class="toggle-label">Build</span>
-                </label>
-                <label class="toggle-switch">
-                  <input id="webhook_check" v-model="scriptData.isTestSelected" type="checkbox"/>
-                  <span class="slider"></span>
-                  <span class="toggle-label">Test</span>
-                </label>
-                <label class="toggle-switch">
-                  <input id="webhook_check" v-model="scriptData.isDeploySelected" type="checkbox"/>
-                  <span class="slider"></span>
-                  <span class="toggle-label">Deploy</span>
-                </label>
+                />
               </div>
-
-              <div v-if="scriptData.isDeploySelected" class="deploy-config">
-                <div class="dropdown-container">
-                  <button class="custom-dropdown" @click="toggleDropdown">
-                    <div class="dropdown-content">
-                      <img :src="selectedItem.image" alt="icon" class="dropdown-icon"/>
-                      <span>{{ selectedItem.label }}</span>
-                    </div>
-                    <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                      <polyline points="6,9 12,15 18,9"/>
-                    </svg>
-                  </button>
-                  <div v-if="openDropdown" class="dropdown-menu">
-                    <div
+              <div class="stage-selection">
+                <label class="form-label">스테이지 선택</label>
+                <div class="stage-options">
+                  <label class="toggle-switch">
+                    <input id="webhook_check" v-model="scriptData.isBuildSelected" type="checkbox"/>
+                    <span class="slider"></span>
+                    <span class="toggle-label">Build</span>
+                  </label>
+                  <label class="toggle-switch">
+                    <input id="webhook_check" v-model="scriptData.isTestSelected" type="checkbox"/>
+                    <span class="slider"></span>
+                    <span class="toggle-label">Test</span>
+                  </label>
+                  <label class="toggle-switch">
+                    <input id="webhook_check" v-model="scriptData.isDeploySelected" type="checkbox"/>
+                    <span class="slider"></span>
+                    <span class="toggle-label">Deploy</span>
+                  </label>
+                </div>
+                <div v-if="scriptData.isDeploySelected" class="deploy-config">
+                  <div class="dropdown-container">
+                    <button class="custom-dropdown" @click="toggleDropdown">
+                      <div class="dropdown-content">
+                        <img :src="selectedItem.image" alt="icon" class="dropdown-icon"/>
+                        <span>{{ selectedItem.label }}</span>
+                      </div>
+                      <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                           width="16">
+                        <polyline points="6,9 12,15 18,9"/>
+                      </svg>
+                    </button>
+                    <div v-if="openDropdown" class="dropdown-menu">
+                      <div
                         v-for="(item, index) in cicdItems"
                         :key="index"
                         class="dropdown-item"
                         @click="selectItem(item)"
-                    >
-                      <img :src="item.image" alt="icon" class="dropdown-icon"/>
-                      <span>{{ item.label }}</span>
+                      >
+                        <img :src="item.image" alt="icon" class="dropdown-icon"/>
+                        <span>{{ item.label }}</span>
+                      </div>
                     </div>
                   </div>
+                  <KubernetesInput v-if="scriptData.isK8sDeploy" :form="scriptData"/>
+                  <EC2Input v-if="scriptData.isEc2Deploy" :form="scriptData"/>
                 </div>
-
-                <KubernetesInput v-if="scriptData.isK8sDeploy" :form="scriptData"/>
-                <EC2Input v-if="scriptData.isEc2Deploy" :form="scriptData"/>
               </div>
-            </div>
-
-            <button
+              <button
                 :disabled="isScriptGenerating"
                 class="generate-script-btn"
                 @click="handleCreateScriptClick"
-            >
-              <svg v-if="isScriptGenerating" class="animate-spin" fill="none" height="16" stroke="currentColor"
-                   stroke-width="2" viewBox="0 0 24 24" width="16">
-                <path d="M21 12a9 9 0 11-6.219-8.56"/>
-              </svg>
-              <svg v-else fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                <polyline points="16,18 22,12 16,6"/>
-                <polyline points="8,6 2,12 8,18"/>
-              </svg>
-              {{ isScriptGenerating ? '생성 중...' : '스크립트 생성' }}
-            </button>
-
-            <div class="script-editor">
-              <label class="form-label">생성된 스크립트</label>
-              <textarea
+              >
+                <svg v-if="isScriptGenerating" class="animate-spin" fill="none" height="16" stroke="currentColor"
+                     stroke-width="2" viewBox="0 0 24 24" width="16">
+                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+                <svg v-else fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                     width="16">
+                  <polyline points="16,18 22,12 16,6"/>
+                  <polyline points="8,6 2,12 8,18"/>
+                </svg>
+                {{ isScriptGenerating ? '생성 중...' : '스크립트 생성' }}
+              </button>
+              <div class="script-editor">
+                <label class="form-label">생성된 스크립트</label>
+                <textarea
                   id="script"
                   v-model="scriptText"
                   class="script-textarea"
                   disabled="true"
                   placeholder="스크립트가 여기에 생성됩니다..."
                   spellcheck="false"
-              ></textarea>
+                ></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 도움말 섹션 -->
+        <div class="help-section">
+          <h3 class="help-title">
+            <svg fill="currentColor" height="20" viewBox="0 0 24 24" width="20"
+                 xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M11,18H13V16H11V18M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,6A4,4 0 0,0 8,10H10A2,2 0 0,1 12,8A2,2 0 0,1 14,10C14,12 11,11.75 11,15H13C13,12.75 16,12.5 16,10A4,4 0 0,0 12,6Z"/>
+            </svg>
+            도움말
+          </h3>
+          <div class="help-content">
+            <div class="help-item">
+              <h4>Jenkins Job이란?</h4>
+              <p>Jenkins Job은 빌드, 테스트, 배포 등의 작업을 자동화하는 단위입니다. 소스 코드 변경 시 자동으로 실행되거나 스케줄에 따라 정기적으로 실행할 수 있습니다.</p>
+            </div>
+
+            <div class="help-item">
+              <h4>스크립트 생성 가이드</h4>
+              <ol>
+                <li>GitHub 저장소 URL을 정확히 입력하세요</li>
+                <li>사용할 브랜치를 선택하세요 (기본: main)</li>
+                <li>필요한 스테이지를 선택하세요:
+                  <ul>
+                    <li><strong>Build:</strong> 소스 코드 컴파일 및 빌드</li>
+                    <li><strong>Test:</strong> 단위 테스트 및 통합 테스트</li>
+                    <li><strong>Deploy:</strong> 애플리케이션 배포</li>
+                  </ul>
+                </li>
+                <li>배포 환경(Kubernetes/EC2)을 선택하고 설정하세요</li>
+              </ol>
+            </div>
+
+            <div class="help-item">
+              <h4>알림 설정 방법</h4>
+              <ul>
+                <li><strong>Discord:</strong> 서버 설정 → 연동 → 웹후크에서 URL 복사</li>
+                <li><strong>Slack:</strong> 앱 → Incoming Webhooks → 웹후크 URL 생성</li>
+                <li>성공/실패 시 알림을 각각 설정할 수 있습니다</li>
+              </ul>
+            </div>
+
+            <div class="help-item">
+              <h4>스케줄 설정</h4>
+              <ul>
+                <li><strong>매일:</strong> 지정한 시간에 매일 실행</li>
+                <li><strong>매주:</strong> 선택한 요일의 지정 시간에 실행</li>
+                <li>GitHub 트리거와 함께 사용 가능합니다</li>
+              </ul>
+            </div>
+
+            <div class="help-item">
+              <h4>문제 해결</h4>
+              <ul>
+                <li>스크립트 생성 실패 시 GitHub URL과 브랜치를 확인하세요</li>
+                <li>배포 설정이 올바른지 확인하세요</li>
+                <li>Jenkins 서버 연결 상태를 확인하세요</li>
+                <li>필수 필드가 모두 입력되었는지 확인하세요</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -597,9 +637,9 @@ watch(scriptText, (newVal) => {
           취소
         </button>
         <button
-            :disabled="isJobCreating || !jobData.name || !scriptText"
-            class="btn btn-primary"
-            @click="handleCreateJobClick"
+          :disabled="isJobCreating || !jobData.name || !scriptText"
+          class="btn btn-primary"
+          @click="handleCreateJobClick"
         >
           <svg v-if="isJobCreating" class="animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2"
                viewBox="0 0 24 24" width="16">
@@ -618,7 +658,6 @@ watch(scriptText, (newVal) => {
 </template>
 
 <style scoped>
-
 .toggle-switch {
   display: flex;
   align-items: center;
@@ -667,7 +706,7 @@ watch(scriptText, (newVal) => {
 }
 
 .container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 20px auto 0;
   padding: 24px;
   min-height: 100vh;
@@ -795,10 +834,16 @@ watch(scriptText, (newVal) => {
 
 /* 컨텐츠 */
 .content {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+.main-content {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  margin-bottom: 32px;
 }
 
 .section {
@@ -975,7 +1020,6 @@ watch(scriptText, (newVal) => {
 }
 
 /* 스케줄 컨트롤 */
-
 .schedule-card {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -1172,6 +1216,75 @@ watch(scriptText, (newVal) => {
   color: #64748b;
 }
 
+/* 도움말 섹션 */
+.help-section {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  height: fit-content;
+  position: sticky;
+  top: 24px;
+}
+
+.help-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+}
+
+.help-title svg {
+  color: #2563eb;
+}
+
+.help-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.help-item h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.help-item p {
+  margin: 0 0 8px 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.help-item ol,
+.help-item ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.help-item li {
+  margin-bottom: 4px;
+}
+
+.help-item ul ul {
+  margin-top: 4px;
+  padding-left: 16px;
+}
+
+.help-item strong {
+  color: #374151;
+  font-weight: 600;
+}
+
 /* 액션 버튼 */
 .actions {
   display: flex;
@@ -1224,6 +1337,16 @@ watch(scriptText, (newVal) => {
 }
 
 /* 반응형 */
+@media (max-width: 1024px) {
+  .content {
+    grid-template-columns: 1fr;
+  }
+
+  .help-section {
+    position: static;
+  }
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 16px;
@@ -1252,6 +1375,10 @@ watch(scriptText, (newVal) => {
 
   .custom-dropdown {
     width: 100%;
+  }
+
+  .help-section {
+    padding: 20px 16px;
   }
 }
 </style>

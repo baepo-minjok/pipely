@@ -1,30 +1,124 @@
 <script setup>
-import {computed, ref, watch} from 'vue';
+import {computed, onMounted, ref, watch} from 'vue';
 import {useRoute} from 'vue-router';
 import JobInfo from '@/components/jobs/JobInfo.vue';
 import JobBuild from '@/components/jobs/JobBuild.vue';
 import {useJobStore} from '@/stores/useJobStore';
+import {connectWebSocket} from "@/websocket";
 import {jobApi} from "@/api/JobApi.js";
 
 const route = useRoute();
 const jobId = ref(route.query.id);
+const buildNumber = ref(Number);
+const buildProgress = ref({
+  status: '',
+  stages: [],
+  log: '',
+  progress: 0,
+  currentStage: '',
+  isBuilding: false
+});
 
 const selectedTab = ref('detail');
 const selectedTabComponent = computed(() => (selectedTab.value === 'detail' ? JobInfo : JobBuild));
-
 const jobStore = useJobStore();
+const isBuilding = ref(false);
 
 const handleBuildRunClick = async () => {
   selectedTab.value = 'build';
+  isBuilding.value = true;
+  buildProgress.value.isBuilding = true;
+  buildProgress.value.status = 'BUILD_RUNNING';
+  buildProgress.value.progress = 0;
+  buildProgress.value.currentStage = 'Initializing...';
+
   const requestBody = {
     jobId: jobId.value,
     stageBuilds: [],
   };
-  const response = await jobApi.buildJob(requestBody);
-  if (response.status === 200) {
-    console.log('✅ 수동 실행 요청 성공');
-  } else {
-    console.error('❌ 수동 실행 요청 실패');
+
+  try {
+    const response = await jobApi.buildJob(requestBody);
+    if (response.status === 200) {
+      console.log('✅ 수동 실행 요청 성공');
+      buildNumber.value = response.data.data;
+      await jobApi.viewBuild(jobId.value, buildNumber.value);
+    } else {
+      console.error('❌ 수동 실행 요청 실패');
+      buildProgress.value.isBuilding = false;
+      buildProgress.value.status = 'BUILD_FAILURE';
+      isBuilding.value = false;
+    }
+  } catch (error) {
+    console.error('Build error:', error);
+    buildProgress.value.isBuilding = false;
+    buildProgress.value.status = 'BUILD_FAILURE';
+    isBuilding.value = false;
+  }
+};
+
+const handleStopBuild = async () => {
+  console.log("err")
+  try {
+    buildProgress.value.status = 'BUILD_STOPPING';
+    buildProgress.value.currentStage = 'Stopping build...';
+    // API 호출하여 빌드 중단
+    await jobApi.stopBuild(jobId.value, buildNumber.value);
+    setTimeout(() => {
+      buildProgress.value.status = 'BUILD_ABORTED';
+      buildProgress.value.isBuilding = false;
+      buildProgress.value.currentStage = 'Build stopped';
+      isBuilding.value = false;
+    }, 2000);
+  } catch (error) {
+    console.error('Stop build error:', error);
+  }
+};
+
+// 진행률 계산
+const progressPercentage = computed(() => {
+  if (buildProgress.value.isBuilding && buildProgress.value.status === 'BUILD_RUNNING') {
+    return Math.min(Math.max(buildProgress.value.progress || 0, 0), 100);
+  }
+  return 0;
+});
+
+// 버튼 상태 계산
+const getButtonState = () => {
+  return buildProgress.value.status || 'BUILD_PENDING';
+};
+
+const getButtonText = () => {
+  switch (buildProgress.value.status) {
+    case 'BUILD_RUNNING':
+      return '실행 중';
+    case 'BUILD_STOPPING':
+      return '중단 중';
+    case 'BUILD_SUCCESS':
+      return '재실행';
+    case 'BUILD_FAILURE':
+      return '재시도';
+    case 'BUILD_ABORTED':
+      return '실행하기';
+    default:
+      return '실행하기';
+  }
+};
+
+const getButtonClass = () => {
+  switch (buildProgress.value.status) {
+    case 'BUILD_RUNNING':
+      return 'btn-running';
+    case 'BUILD_STOPPING':
+      return 'btn-stopping';
+    case 'BUILD_SUCCESS':
+      return 'btn-success';
+    case 'BUILD_FAILURE':
+      return 'btn-retry';
+    case 'BUILD_ABORTED':
+      return 'btn-primary';
+    default:
+      return 'btn-primary';
   }
 };
 
@@ -33,82 +127,153 @@ watch(
   (newId) => jobStore.fetchJobDetail(newId),
   {immediate: true}
 );
+
+onMounted(async () => {
+  connectWebSocket((msg) => {
+    const data = JSON.parse(msg);
+    buildProgress.value.status = data.status;
+    buildProgress.value.stages = data.stages;
+    buildProgress.value.log = data.log;
+    buildProgress.value.progress = data.progress || 0;
+    buildProgress.value.currentStage = data.currentStage || '';
+    buildProgress.value.isBuilding = data.status === 'BUILD_RUNNING';
+    isBuilding.value = data.status === 'BUILD_RUNNING';
+    console.log(buildProgress.value);
+  });
+
+  buildNumber.value = await jobApi.getCurrentBuildNumber(jobId.value);
+  await jobApi.viewBuild(jobId.value, buildNumber.value);
+});
 </script>
 
 <template>
-  <div class="container">
-    <div class="header">
-      <h1>Job 상세</h1>
-      <div class="breadcrumb">
-        <span class="breadcrumb-item">Jenkins</span>
-        <span class="breadcrumb-separator">></span>
-        <span class="breadcrumb-item">{{ jobStore.jobDetail.name || 'Job' }}</span>
-        <span class="breadcrumb-separator">></span>
-        <span class="breadcrumb-item current">상세 정보</span>
-      </div>
-    </div>
-
-    <div class="layout">
-      <aside class="sidebar">
-        <nav class="nav-menu">
-          <button
-            :class="['nav-item', { active: selectedTab === 'detail' }]"
-            @click="selectedTab = 'detail'"
-          >
-            <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14,2 14,8 20,8"/>
-              <line x1="16" x2="8" y1="13" y2="13"/>
-              <line x1="16" x2="8" y1="17" y2="17"/>
+  <div class="page-container">
+    <div class="content-wrapper">
+      <div class="header">
+        <div class="header-content">
+          <h1 class="page-title">Job 상세</h1>
+          <div class="breadcrumb">
+            <span class="breadcrumb-item">Jenkins</span>
+            <svg class="breadcrumb-separator" fill="none" height="14" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24" width="14">
+              <polyline points="9,18 15,12 9,6"/>
             </svg>
-            상세 정보
-          </button>
-          <button
-            :class="['nav-item', { active: selectedTab === 'build' }]"
-            @click="selectedTab = 'build'"
-          >
-            <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
+            <span class="breadcrumb-item">{{ jobStore.jobDetail.name || 'Job' }}</span>
+            <svg class="breadcrumb-separator" fill="none" height="14" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24" width="14">
+              <polyline points="9,18 15,12 9,6"/>
             </svg>
-            빌드
-          </button>
-        </nav>
-        <div class="manual-run-form">
-          <button class="btn btn-primary" @click="handleBuildRunClick">
-            <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-              <polygon points="5,3 19,12 5,21"/>
-            </svg>
-            실행하기
-          </button>
+            <span class="breadcrumb-item current">상세 정보</span>
+          </div>
         </div>
-      </aside>
+      </div>
 
-      <main class="content">
-        <component
-          :is="selectedTabComponent"
-        />
-      </main>
+      <div class="layout">
+        <aside class="sidebar">
+          <nav class="nav-menu">
+            <button
+              :class="['nav-item', { active: selectedTab === 'detail' }]"
+              @click="selectedTab = 'detail'"
+            >
+              <svg class="nav-icon" fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                   width="20">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" x2="8" y1="13" y2="13"/>
+                <line x1="16" x2="8" y1="17" y2="17"/>
+              </svg>
+              <span>상세 정보</span>
+            </button>
+            <button
+              :class="['nav-item', { active: selectedTab === 'build' }]"
+              @click="selectedTab = 'build'"
+            >
+              <svg class="nav-icon" fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                   width="20">
+                <path d="M12 2L2 7l10 5 10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+              <span>빌드</span>
+            </button>
+          </nav>
+
+          <div class="action-section">
+            <button
+              :class="['action-btn', getButtonClass(), { 'has-progress': buildProgress.isBuilding }]"
+              :disabled="buildProgress.status === 'BUILD_STOPPING'"
+              :style="buildProgress.isBuilding ? { '--progress': `${progressPercentage}%` } : {}"
+              @click="buildProgress.status === 'BUILD_RUNNING' ? handleStopBuild() : handleBuildRunClick()"
+            >
+              <!-- 진행률 배경 -->
+              <div v-if="buildProgress.isBuilding" class="btn-progress-bg">
+                <div :style="{ width: `${progressPercentage}%` }" class="btn-progress-fill"></div>
+                <div class="btn-wave-effect"></div>
+              </div>
+
+              <!-- 버튼 내용 -->
+              <div class="btn-content">
+                <svg v-if="buildProgress.status === 'BUILD_RUNNING'" class="btn-icon animate-pulse" fill="none"
+                     height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+                  <rect height="10" rx="1" ry="1" width="4" x="6" y="7"/>
+                  <rect height="10" rx="1" ry="1" width="4" x="14" y="7"/>
+                </svg>
+                <svg v-else-if="buildProgress.status === 'BUILD_SUCCESS'" class="btn-icon" fill="currentColor"
+                     height="16" viewBox="0 0 24 24" width="16">
+                  <path
+                    d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
+                </svg>
+                <svg v-else-if="buildProgress.status === 'BUILD_FAILURE'" class="btn-icon" fill="currentColor"
+                     height="16" viewBox="0 0 24 24" width="16">
+                  <path
+                    d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
+                </svg>
+                <svg v-else class="btn-icon" fill="none" height="16" stroke="currentColor" stroke-width="2"
+                     viewBox="0 0 24 24" width="16">
+                  <polygon points="5,3 19,12 5,21"/>
+                </svg>
+                <span class="btn-text">{{ getButtonText() }}</span>
+                <span v-if="buildProgress.isBuilding" class="progress-percentage">{{
+                    Math.round(progressPercentage)
+                  }}%</span>
+              </div>
+            </button>
+          </div>
+        </aside>
+
+        <main class="content">
+          <component
+            :is="selectedTabComponent"
+            :build-progress="buildProgress"
+          />
+        </main>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.container {
-  max-width: 1200px;
-  margin: 20px auto;
-  padding-left: 24px;
-  padding-right: 24px;
+.page-container {
   min-height: 100vh;
   background: #f8fafc;
+  padding: 24px;
 }
 
+.content-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 헤더 */
 .header {
   margin-bottom: 32px;
 }
 
-.header h1 {
+.header-content {
+  margin-bottom: 16px;
+}
+
+.page-title {
   font-size: 32px;
   font-weight: 700;
   color: #1e293b;
@@ -136,26 +301,100 @@ watch(
   color: #cbd5e1;
 }
 
-.layout {
+/* 빌드 상태 배너 */
+.build-status-banner {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.status-content {
   display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f1f5f9;
+}
+
+.status-icon {
+  color: #2563eb;
+}
+
+.status-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.progress-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2563eb;
+  min-width: 40px;
+}
+
+/* 레이아웃 */
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
   gap: 24px;
 }
 
+/* 사이드바 */
 .sidebar {
-  margin-top: 20px;
-  width: 280px;
   background: white;
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   border: 1px solid #e2e8f0;
   height: fit-content;
+  position: sticky;
+  top: 24px;
 }
 
 .nav-menu {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 24px;
 }
 
 .nav-item {
@@ -185,69 +424,252 @@ watch(
   color: white;
 }
 
-.nav-item.active svg {
+.nav-item.active .nav-icon {
   color: white;
 }
 
-.nav-item svg {
+.nav-icon {
   color: #64748b;
   transition: color 0.2s ease;
 }
 
-.content {
-  flex: 1;
-}
-
-.manual-run-form {
-  margin-top: 20px;
-  padding-top: 16px;
+/* 액션 섹션 */
+.action-section {
+  padding-top: 24px;
   border-top: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: center;
 }
 
-.manual-run-form .btn {
+.action-btn {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  background: var(--main-color);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+  justify-content: center;
   width: 100%;
-  transition: background 0.2s ease;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  min-height: 48px;
 }
 
-.manual-run-form .btn:hover {
-  background: var(--main-color-hover);
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
+/* 진행률 배경 */
+.btn-progress-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
 
-@media (max-width: 768px) {
-  .container {
-    padding: 16px;
+.btn-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.2) 100%);
+  transition: width 0.5s ease;
+}
+
+.btn-wave-effect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.1) 75%, transparent 100%);
+  animation: wave 2s ease-in-out infinite;
+  transform: translateX(-100%);
+}
+
+.btn-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.btn-text {
+  font-weight: 600;
+}
+
+.progress-percentage {
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 4px;
+  opacity: 0.9;
+}
+
+/* 버튼 상태별 스타일 */
+.btn-primary {
+  background: #2563eb;
+  color: white;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+.btn-running {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.btn-running:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.btn-stopping {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  color: white;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+  animation: stopping-pulse 1s ease-in-out infinite;
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.btn-retry {
+  background: #dc2626;
+  color: white;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.btn-retry:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+/* 메인 컨텐츠 */
+.content {
+  min-height: 600px;
+}
+
+/* 애니메이션 */
+@keyframes wave {
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
   }
+  50% {
+    transform: translateX(0%) skewX(-15deg);
+  }
+  100% {
+    transform: translateX(100%) skewX(-15deg);
+  }
+}
 
+@keyframes stopping-pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(234, 88, 12, 0.6);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 반응형 */
+@media (max-width: 1024px) {
   .layout {
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .sidebar {
-    width: 100%;
+    position: static;
   }
 
   .nav-menu {
-    flex-direction: row;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 16px;
   }
 
-  .nav-item {
-    white-space: nowrap;
-    min-width: fit-content;
+  .page-title {
+    font-size: 24px;
+  }
+
+  .sidebar {
+    padding: 20px 16px;
+  }
+
+  .nav-menu {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .build-status-banner {
+    padding: 12px 16px;
+  }
+
+  .status-content {
+    gap: 12px;
+  }
+
+  .status-indicator {
+    width: 32px;
+    height: 32px;
   }
 }
 </style>

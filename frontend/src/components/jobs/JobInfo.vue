@@ -6,19 +6,35 @@ import {formatSchedule} from '@/utils/formatSchedule.js';
 import {jobApi} from "@/api/JobApi.js";
 import {useJobStore} from '@/stores/useJobStore';
 
+const emit = defineEmits(['update:jobDetail']);
+const props = defineProps({
+  buildProgress: Object
+});
+
 const jobStore = useJobStore();
 const jobDetail = jobStore.jobDetail;
 const jobId = jobDetail.pipelineId;
 const scriptText = jobStore.scriptText;
 const selectedItem = jobStore.selectedItem;
 
-const emit = defineEmits(['update:jobDetail']);
-
 const isEditing = ref(false);
 const isLoading = ref(false);
 
-// 편집 가능한 데이터
+// 현재 빌드 상태 계산
+const isJobRunning = computed(() => {
+  return props.buildProgress?.status === 'BUILD_RUNNING';
+});
 
+// 폼 유효성 검사
+const isFormValid = computed(() => {
+  if (!isEditing.value) return true;
+  return editableData.name.trim() &&
+    editableData.scriptText.trim() &&
+    (!editableData.notifications.isDiscordChecked || editableData.notifications.discord.webhookUrl.trim()) &&
+    (!editableData.notifications.isSlackChecked || editableData.notifications.slack.webhookUrl.trim());
+});
+
+// 편집 가능한 데이터
 const editableData = reactive({
   name: '',
   description: '',
@@ -97,9 +113,6 @@ const cicdItems = [
 // 드롭다운 토글
 const toggleDropdown = () => {
   openDropdown.value = !openDropdown.value;
-  console.log(openDropdown.value);
-  console.log(editableData.scriptData.isK8sDeploy);
-  console.log((isEditing.value && editableData.scriptData.isK8sDeploy));
 };
 
 // 아이템 선택
@@ -114,7 +127,6 @@ const selectItem = (item) => {
 const handleCreateScriptClick = async () => {
   isScriptGenerating.value = true;
   try {
-
     const response = await jobApi.createScript(editableData.scriptData);
     if (response.status === 200) {
       const data = response.data.data;
@@ -149,9 +161,7 @@ const hasDeploy = computed(() => {
 // 스케줄 파싱 함수
 const parseSchedule = (scheduleString) => {
   if (!scheduleString) return {enabled: false, repeatType: 'daily', selectedDays: [], time: ''};
-
   const schedule = {enabled: true, repeatType: 'daily', selectedDays: [], time: ''};
-
   if (scheduleString.includes('매주')) {
     schedule.repeatType = 'weekly';
     const dayMatch = scheduleString.match(/[월화수목금토일]/g);
@@ -160,9 +170,7 @@ const parseSchedule = (scheduleString) => {
       schedule.selectedDays = dayMatch.map(day => dayMap[day]).filter(Boolean);
     }
   }
-
   const timeMatch = scheduleString.match(/(\d{1,2})[:시]\s*(\d{1,2})?/);
-
   if (timeMatch) {
     const hour = parseInt(timeMatch[1]);
     const minute = timeMatch[2] || '00';
@@ -170,20 +178,16 @@ const parseSchedule = (scheduleString) => {
     const adjustedHour = isAfternoon && hour !== 12 ? hour + 12 : (hour === 12 && !isAfternoon ? 0 : hour);
     schedule.time = `${adjustedHour.toString().padStart(2, '0')}:${minute.padStart(2, '0')}`;
   }
-
   return schedule;
 };
-
 
 // 스케줄 포맷팅 함수
 const formatScheduleDisplay = (schedule) => {
   if (!schedule.enabled) return '스케줄이 비활성화됨';
-
   const repeatText = schedule.repeatType === 'daily' ? '매일' : '매주';
   const daysText = schedule.repeatType === 'weekly'
     ? schedule.selectedDays.map(d => weekdays.find(w => w.value === d)?.label).join(', ') || '요일 미선택'
     : '';
-
   let timeText = '시간 미설정';
   if (schedule.time) {
     const [hour, minute] = schedule.time.split(':');
@@ -192,7 +196,6 @@ const formatScheduleDisplay = (schedule) => {
     const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
     timeText = `${period} ${displayHour}시 ${minute}분`;
   }
-
   return `${repeatText} ${daysText} ${timeText}`.trim();
 };
 
@@ -216,7 +219,6 @@ const init = () => {
   editableData.name = jobDetail.name || '';
   editableData.description = jobDetail.description || '';
   editableData.trigger = jobDetail.trigger || false;
-
   editableData.notifications.isDiscordChecked = !!jobDetail.notificationList?.discord;
   editableData.notifications.isSlackChecked = !!jobDetail.notificationList?.slack;
   if (jobDetail.notificationList?.discord) {
@@ -225,21 +227,16 @@ const init = () => {
   if (jobDetail.notificationList?.slack) {
     editableData.notifications.slack = {...jobDetail.notificationList.slack};
   }
-
   if (jobDetail.lightScriptDto) {
     Object.assign(editableData.scriptData, jobDetail.lightScriptDto);
     editableData.scriptData.isDeploySelected = jobDetail.lightScriptDto.isK8sDeploy || jobDetail.lightScriptDto.isEc2Deploy;
   }
-
   editableData.scriptText = scriptText || '';
   editableData.schedule = parseSchedule(jobDetail.schedule);
-
   if (selectedItem) {
     editableData.selectedItem = selectedItem;
   }
-  console.log(editableData);
 };
-
 
 // 편집 모드 시작
 const startEditing = () => {
@@ -249,11 +246,11 @@ const startEditing = () => {
 // 편집 취소
 const cancelEditing = () => {
   isEditing.value = false;
-  // 편집 데이터 초기화는 필요시 수행
+  init(); // 편집 데이터 초기화
 };
 
-// 저장
-const saveChanges = async () => {
+// 저장 (진행률 표시 포함)
+const saveWithProgress = async () => {
   isLoading.value = true;
   const jobData = {
     pipelineId: jobId,
@@ -262,29 +259,29 @@ const saveChanges = async () => {
     description: editableData.description,
     trigger: editableData.trigger,
     notificationMap: buildNotificationMap(),
-    schedule: formatSchedule(editableData.schedule)
+    schedule: editableData.schedule.enabled ? formatSchedule(editableData.schedule) : ''
   };
-  try {
-    // 여기서 API 호출하여 저장
-    const response = await jobApi.updateJob(jobData);
-    console.log(response);
 
+  try {
+    const response = await jobApi.updateJob(jobData);
     Object.assign(jobDetail, {...jobDetail, ...jobData});
     jobStore.resetJobDetail();
     await jobStore.fetchJobDetail(jobId);
     init();
     isEditing.value = false;
-    alert('저장되었습니다.');
+    // 성공 토스트 메시지 (실제 구현에서는 toast 라이브러리 사용)
+    alert('설정이 성공적으로 저장되었습니다.');
   } catch (error) {
-    alert('저장 중 오류가 발생했습니다.');
+    // 에러 토스트 메시지
+    alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
     console.error('Save error:', error);
   } finally {
     isLoading.value = false;
   }
 };
+
 const buildNotificationMap = () => {
   const map = {};
-
   if (editableData.notifications.isDiscordChecked) {
     map.discord = {
       webhookUrl: editableData.notifications.discord.discordUrl,
@@ -292,7 +289,6 @@ const buildNotificationMap = () => {
       checkFailure: editableData.notifications.discord.checkFailure,
     };
   }
-
   if (editableData.notifications.isSlackChecked) {
     map.slack = {
       webhookUrl: editableData.notifications.slack.slackUrl,
@@ -300,71 +296,114 @@ const buildNotificationMap = () => {
       checkFailure: editableData.notifications.slack.checkFailure,
     };
   }
-
   return map;
 };
 
 onMounted(() => {
   init();
-})
+});
 </script>
 
 <template>
   <div class="container">
+    <!-- 실행 상태 배너 (Job이 실행 중일 때만 표시) -->
+    <div v-if="isJobRunning" class="running-banner">
+      <div class="banner-content">
+        <div class="banner-icon">
+          <svg class="animate-spin" fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+               width="20">
+            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          </svg>
+        </div>
+        <div class="banner-text">
+          <div class="banner-title">Job 실행 중</div>
+          <div class="banner-subtitle">현재 이 Job이 실행 중입니다. 편집이 제한될 수 있습니다.</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Job 기본 정보 -->
     <div class="section">
-      <h3 class="section-title">
-        <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14,2 14,8 20,8"/>
-          <line x1="16" x2="8" y1="13" y2="13"/>
-          <line x1="16" x2="8" y1="17" y2="17"/>
-        </svg>
-        Job 기본 정보
-      </h3>
-      <div class="form-group">
-        <label class="form-label">Job 이름</label>
-        <input
-          v-if="isEditing"
-          v-model="editableData.name"
-          class="form-input"
-          placeholder="Job 이름을 입력해주세요"
-        />
-        <input
-          v-else
-          :value="jobDetail.name"
-          class="form-input"
-          disabled
-        />
+      <div class="section-header">
+        <h3 class="section-title">
+          <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="16" x2="8" y1="13" y2="13"/>
+            <line x1="16" x2="8" y1="17" y2="17"/>
+          </svg>
+          Job 기본 정보
+        </h3>
       </div>
-      <div class="form-group">
-        <label class="form-label">설명</label>
-        <textarea
-          v-if="isEditing"
-          v-model="editableData.description"
-          class="form-textarea"
-          placeholder="Job에 대한 설명을 입력해주세요"
-        />
-        <textarea
-          v-else
-          :value="jobDetail.description"
-          class="form-textarea"
-          disabled
-        />
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">
+            Job 이름
+            <span class="required">*</span>
+          </label>
+          <div class="input-wrapper">
+            <input
+              v-if="isEditing"
+              v-model="editableData.name"
+              :class="['form-input', { 'error': !editableData.name.trim() }]"
+              placeholder="Job 이름을 입력해주세요"
+            />
+            <input
+              v-else
+              :value="jobDetail.name"
+              class="form-input readonly"
+              readonly
+            />
+            <div v-if="!isEditing && jobDetail.name" class="input-icon">
+              <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+                <path d="M9 12l2 2 4-4"/>
+                <circle cx="12" cy="12" r="10"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label">설명</label>
+          <div class="input-wrapper">
+            <textarea
+              v-if="isEditing"
+              v-model="editableData.description"
+              class="form-textarea"
+              placeholder="Job에 대한 설명을 입력해주세요"
+              rows="3"
+            />
+            <textarea
+              v-else
+              :value="jobDetail.description || '설명이 없습니다.'"
+              class="form-textarea readonly"
+              readonly
+              rows="3"
+            />
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- 트리거 설정 -->
     <div class="section">
-      <h3 class="section-title">
-        <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-        </svg>
-        트리거 설정
-      </h3>
-      <div class="checkbox-group">
-        <label class="toggle-switch">
+      <div class="section-header">
+        <h3 class="section-title">
+          <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          트리거 설정
+        </h3>
+        <div class="section-badge">
+          <div :class="['status-dot', { 'active': jobDetail.trigger }]"></div>
+          {{ jobDetail.trigger ? '활성화' : '비활성화' }}
+        </div>
+      </div>
+
+      <div class="toggle-group">
+        <label class="enhanced-toggle">
           <input
             v-if="isEditing"
             v-model="editableData.trigger"
@@ -376,13 +415,17 @@ onMounted(() => {
             disabled
             type="checkbox"
           />
-          <span class="slider"></span>
-          <img alt="icon" class="dropdown-icon" src="/src/assets/icons/github.svg"/>
-          <span class="toggle-label">Github</span>
+          <span class="toggle-slider"></span>
+          <div class="toggle-content">
+            <img alt="GitHub" class="toggle-icon" src="/src/assets/icons/github.svg"/>
+            <div class="toggle-info">
+              <div class="toggle-title">Github Webhook</div>
+              <div class="toggle-description">코드 푸시 시 자동으로 빌드를 실행합니다</div>
+            </div>
+          </div>
         </label>
       </div>
     </div>
-
     <!-- 알림 설정 -->
     <div class="section">
       <h3 class="section-title">
@@ -770,11 +813,13 @@ onMounted(() => {
         </button>
       </div>
     </div>
+
     <!-- 편집 컨트롤 -->
     <div class="edit-controls">
       <div class="edit-actions">
         <button
           v-if="!isEditing"
+          :disabled="isJobRunning"
           class="btn btn-secondary"
           @click="startEditing"
         >
@@ -786,9 +831,9 @@ onMounted(() => {
         </button>
         <template v-else>
           <button
-            :disabled="isLoading"
+            :disabled="isLoading || !isFormValid"
             class="btn btn-primary"
-            @click="saveChanges"
+            @click="saveWithProgress"
           >
             <svg v-if="isLoading" class="animate-spin" fill="none" height="16" stroke="currentColor" stroke-width="2"
                  viewBox="0 0 24 24" width="16">
@@ -811,6 +856,16 @@ onMounted(() => {
             취소
           </button>
         </template>
+      </div>
+
+      <!-- 유효성 검사 메시지 -->
+      <div v-if="isEditing && !isFormValid" class="validation-message">
+        <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" x2="12" y1="8" y2="12"/>
+          <line x1="12" x2="12.01" y1="16" y2="16"/>
+        </svg>
+        필수 항목을 모두 입력해주세요.
       </div>
     </div>
   </div>
@@ -1394,5 +1449,272 @@ onMounted(() => {
 
 .dropdown-item:last-child {
   border-radius: 0 0 8px 8px;
+}
+
+.running-banner {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.banner-text {
+  flex: 1;
+}
+
+.banner-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.banner-subtitle {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* 섹션 헤더 개선 */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: #f1f5f9;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  transition: background 0.2s ease;
+}
+
+.status-dot.active {
+  background: #10b981;
+}
+
+/* 폼 그리드 */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* 향상된 입력 필드 */
+.input-wrapper {
+  position: relative;
+}
+
+.form-input.readonly,
+.form-textarea.readonly {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+  cursor: default;
+}
+
+.form-input.error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.input-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #10b981;
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 4px;
+}
+
+/* 향상된 토글 */
+.enhanced-toggle {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.enhanced-toggle:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.enhanced-toggle input {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background: #cbd5e1;
+  border-radius: 24px;
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.enhanced-toggle input:checked + .toggle-slider {
+  background: #2563eb;
+}
+
+.enhanced-toggle input:checked + .toggle-slider::before {
+  transform: translateX(24px);
+}
+
+.toggle-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.toggle-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-info {
+  flex: 1;
+}
+
+.toggle-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.toggle-description {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+/* 유효성 검사 메시지 */
+.validation-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+/* 향상된 버튼 스타일 */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn.btn-primary:disabled {
+  background: #9ca3af;
+}
+
+/* 반응형 개선 */
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .enhanced-toggle {
+    padding: 16px;
+  }
+
+  .toggle-content {
+    gap: 8px;
+  }
+
+  .banner-content {
+    gap: 12px;
+  }
+
+  .banner-icon {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* 애니메이션 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 </style>
