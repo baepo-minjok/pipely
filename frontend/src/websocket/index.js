@@ -1,32 +1,27 @@
-// src/websocket/index.js (혹은 src/websocket.js)
-
 import {Client} from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
 let stompClient = null;
 
-export function connectWebSocket(onMessage) {
-  const wsUrl = "http://localhost:8080/ws-endpoint";
+export function connectWebSocket(onBuildMessage, onAlertMessage) {
+  const wsUrl = "https://www.pipely.kro.kr/ws-endpoint";
   stompClient = new Client({
     webSocketFactory: () => new SockJS(wsUrl),
     reconnectDelay: 5000,
     onConnect: () => {
-      stompClient.subscribe("/topic/messages", (msg) => {
-        if (onMessage) onMessage(msg.body); // 콜백 실행
+      // 빌드 구독
+      stompClient.subscribe("/user/queue/build", (msg) => {
+        if (onBuildMessage) onBuildMessage(msg.body);
       });
+      // 알림 구독
       stompClient.subscribe("/user/queue/alert", (msg) => {
-        if (onMessage) onMessage(msg.body);
+        if (onAlertMessage) onAlertMessage(msg.body);
       });
     },
   });
   stompClient.activate();
 }
 
-export function sendMessage(destination, body) {
-  if (stompClient && stompClient.connected) {
-    stompClient.publish({destination, body});
-  }
-}
 
 export function disconnectWebSocket() {
   if (stompClient) stompClient.deactivate();

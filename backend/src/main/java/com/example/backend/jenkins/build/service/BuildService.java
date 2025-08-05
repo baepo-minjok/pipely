@@ -334,9 +334,8 @@ public class BuildService {
      * 빌드 상태를 주기적으로 프론트로 전송 (실시간 진행률).
      */
     public void sendLog(UUID jobId, int buildNumber, String email) {
-        String key = jobId + "_" + buildNumber;
+        String key = jobId.toString();
 
-        // 이미 진행중이면 무시(또는 기존 Future에 listener 추가해서 결과만 공유할 수도 있음)
         if (pollingTasks.containsKey(key) && !pollingTasks.get(key).isDone()) {
             log.info("Polling already running for {} (jobId={}, buildNumber={})", key, jobId, buildNumber);
             return;
@@ -359,7 +358,7 @@ public class BuildService {
                     if (dto == null) {
                         if (++waitCount > maxWaitCount) {
                             messagingTemplate.convertAndSendToUser(
-                                    email, "/queue/alert",
+                                    email, "/queue/build",
                                     BuildResponseDto.BuildStatusDto.builder()
                                             .status("QUEUE_TIMEOUT")
                                             .stages(Collections.emptyList())
@@ -372,12 +371,11 @@ public class BuildService {
                         continue;
                     }
 
-                    messagingTemplate.convertAndSendToUser(email, "/queue/alert", dto);
+                    messagingTemplate.convertAndSendToUser(email, "/queue/build", dto);
                     if (dto.isFinished()) running = false;
                     sleep(sleepMs);
                 }
             } finally {
-                // polling 종료 후 Map에서 제거
                 pollingTasks.remove(key);
             }
         });

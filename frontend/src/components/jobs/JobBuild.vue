@@ -1,5 +1,5 @@
 <script setup>
-import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
+import {computed, onMounted, onUnmounted, ref} from 'vue';
 import {buildApi} from '@/api/BuildApi';
 import {
   formatDate,
@@ -11,39 +11,35 @@ import {
   getUser,
 } from '@/utils/formatBuild';
 import {useJobStore} from "@/stores/useJobStore.js";
-import {jobApi} from "@/api/JobApi.js";
+import {useBuildStore} from "@/stores/useBuildStore.js";
 
+const buildStore = useBuildStore();
 const jobStore = useJobStore();
 const jobDetail = jobStore.jobDetail;
 const jobId = jobDetail.pipelineId;
-const streamLogText = ref('');
 const buildHistory = ref([]);
 const isLogExpanded = ref(false);
 let intervalId = null;
 
-const props = defineProps({
-  buildProgress: Object
-});
-
 // 현재 빌드 상태 계산
 const currentBuildStatus = computed(() => {
-  return props.buildProgress?.status || 'BUILD_PENDING';
+  return buildStore.buildProgress.status || 'BUILD_PENDING';
 });
 
 // 현재 진행률 계산
 const buildProgressPercentage = computed(() => {
-  if (props.buildProgress?.isBuilding && props.buildProgress?.status === 'BUILD_RUNNING') {
-    return Math.min(Math.max(props.buildProgress?.progress || 0, 0), 100);
+  if (buildStore.buildProgress.isBuilding && buildStore.buildProgress.status === 'BUILD_RUNNING') {
+    return Math.min(Math.max(buildStore.buildProgress.progress || 0, 0), 100);
   }
   return 0;
 });
 
 // 스테이지별 상태 계산
 const getEnhancedStageStatus = (stageName) => {
-  const baseStatus = getStageStatusClass(stageName, props.buildProgress?.stages);
+  const baseStatus = getStageStatusClass(stageName, buildStore.buildProgress.stages);
 
   // 현재 실행 중인 스테이지 확인
-  if (props.buildProgress?.currentStage === stageName && props.buildProgress?.isBuilding) {
+  if (buildStore.buildProgress.currentStage === stageName && buildStore.buildProgress.isBuilding) {
     return 'running';
   }
 
@@ -56,21 +52,6 @@ const getBuildAllHistory = async () => {
     buildHistory.value = [...response.data.data];
   }
   console.log(buildHistory.value);
-};
-
-const getBuildLatestHistory = async () => {
-  try {
-    const buildNumber = await jobApi.getCurrentBuildNumber(jobId);
-    const data = {
-      jobId: jobId,
-      buildNumber: buildNumber,
-    };
-    const response = await buildApi.getBuildLatestLog(data);
-    console.log(response);
-    streamLogText.value = response.data?.data.log.join('\n');
-  } catch (error) {
-    streamLogText.value = "실행로그 로딩에 실패했습니다.."
-  }
 };
 
 const handleBuildRestartClick = async (excludedStageName) => {
@@ -93,25 +74,9 @@ const handleBuildRestartClick = async (excludedStageName) => {
   }
 };
 
-watch(
-  () => props.buildProgress?.log,
-  (newVal) => {
-    if (newVal) {
-      streamLogText.value = newVal;
-      // 로그가 업데이트되면 자동으로 스크롤
-      setTimeout(() => {
-        const logContainer = document.querySelector('.log-content');
-        if (logContainer) {
-          logContainer.scrollTop = logContainer.scrollHeight;
-        }
-      }, 100);
-    }
-  }
-);
 
 onMounted(async () => {
   await getBuildAllHistory();
-  await getBuildLatestHistory();
 });
 
 onUnmounted(() => {
@@ -173,13 +138,14 @@ onUnmounted(() => {
               }}
             </div>
             <div class="status-subtitle">
-              {{ buildProgress?.currentStage || '상태 정보 없음' }}
+              {{ buildStore.buildProgress.currentStage || '상태 정보 없음' }}
             </div>
           </div>
         </div>
 
         <!-- 진행률 바 (실행 중일 때만 표시) -->
-        <div v-if="buildProgress?.isBuilding && currentBuildStatus === 'BUILD_RUNNING'" class="build-progress">
+        <div v-if="buildStore.buildProgress.isBuilding && currentBuildStatus === 'BUILD_RUNNING'"
+             class="build-progress">
           <div class="progress-bar">
             <div
               :style="{ width: `${buildProgressPercentage}%` }"
@@ -216,7 +182,7 @@ onUnmounted(() => {
               :class="[
                 'stage-box',
                 getEnhancedStageStatus(stage.stageName),
-                { 'current': buildProgress?.currentStage === formatStageName(stage.stageName) }
+                { 'current': buildStore.buildProgress.currentStage === formatStageName(stage.stageName) }
               ]"
             >
               <div class="stage-icon">
@@ -282,7 +248,7 @@ onUnmounted(() => {
             </svg>
             {{ isLogExpanded ? '축소' : '확대' }}
           </button>
-          <div v-if="buildProgress?.isBuilding" class="live-indicator">
+          <div v-if="buildStore.buildProgress.isBuilding" class="live-indicator">
             <div class="live-dot"></div>
             <span>실시간</span>
           </div>
@@ -290,8 +256,8 @@ onUnmounted(() => {
       </div>
 
       <div :class="['log-container', { 'expanded': isLogExpanded }]">
-        <pre class="log-content">{{ streamLogText || '로그가 없습니다.' }}</pre>
-        <div v-if="buildProgress?.isBuilding" class="log-loading">
+        <pre class="log-content">{{ buildStore.buildProgress.log || '로그가 없습니다.' }}</pre>
+        <div v-if="buildStore.buildProgress.isBuilding" class="log-loading">
           <div class="loading-dots">
             <div class="dot"></div>
             <div class="dot"></div>

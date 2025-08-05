@@ -4,34 +4,20 @@ import {useRoute} from 'vue-router';
 import JobInfo from '@/components/jobs/JobInfo.vue';
 import JobBuild from '@/components/jobs/JobBuild.vue';
 import {useJobStore} from '@/stores/useJobStore';
-import {connectWebSocket} from "@/websocket";
+import {useBuildStore} from "@/stores/useBuildStore.js";
 import {jobApi} from "@/api/JobApi.js";
 
 const route = useRoute();
 const jobId = ref(route.query.id);
-const buildNumber = ref(Number);
-const buildProgress = ref({
-  status: '',
-  stages: [],
-  log: '',
-  progress: 0,
-  currentStage: '',
-  isBuilding: false
-});
 
 const selectedTab = ref('detail');
 const selectedTabComponent = computed(() => (selectedTab.value === 'detail' ? JobInfo : JobBuild));
 const jobStore = useJobStore();
-const isBuilding = ref(false);
+const buildStore = useBuildStore();
 
 const handleBuildRunClick = async () => {
   selectedTab.value = 'build';
-  isBuilding.value = true;
-  buildProgress.value.isBuilding = true;
-  buildProgress.value.status = 'BUILD_RUNNING';
-  buildProgress.value.progress = 0;
-  buildProgress.value.currentStage = 'Initializing...';
-
+  buildStore.gettingStart();
   const requestBody = {
     jobId: jobId.value,
     stageBuilds: [],
@@ -41,34 +27,33 @@ const handleBuildRunClick = async () => {
     const response = await jobApi.buildJob(requestBody);
     if (response.status === 200) {
       console.log('✅ 수동 실행 요청 성공');
-      buildNumber.value = response.data.data;
-      await jobApi.viewBuild(jobId.value, buildNumber.value);
+      buildStore.buildNumber = response.data.data;
+      await buildStore.getBuildInfo(jobId.value);
     } else {
       console.error('❌ 수동 실행 요청 실패');
-      buildProgress.value.isBuilding = false;
-      buildProgress.value.status = 'BUILD_FAILURE';
-      isBuilding.value = false;
+      buildStore.buildProgress.isBuilding = false;
+      buildStore.buildProgress.status = 'BUILD_FAILURE';
+      buildStore.isBuilding.value = false;
     }
   } catch (error) {
     console.error('Build error:', error);
-    buildProgress.value.isBuilding = false;
-    buildProgress.value.status = 'BUILD_FAILURE';
-    isBuilding.value = false;
+    buildStore.buildProgress.isBuilding = false;
+    buildStore.buildProgress.status = 'BUILD_FAILURE';
+    buildStore.isBuilding = false;
   }
 };
 
 const handleStopBuild = async () => {
-  console.log("err")
   try {
-    buildProgress.value.status = 'BUILD_STOPPING';
-    buildProgress.value.currentStage = 'Stopping build...';
-    // API 호출하여 빌드 중단
-    await jobApi.stopBuild(jobId.value, buildNumber.value);
+    buildStore.buildProgress.status = 'BUILD_STOPPING';
+    buildStore.buildProgress.currentStage = 'Stopping build...';
+
+    await jobApi.stopBuild(jobId.value, buildStore.buildNumber);
     setTimeout(() => {
-      buildProgress.value.status = 'BUILD_ABORTED';
-      buildProgress.value.isBuilding = false;
-      buildProgress.value.currentStage = 'Build stopped';
-      isBuilding.value = false;
+      buildStore.buildProgress.status = 'BUILD_ABORTED';
+      buildStore.buildProgress.isBuilding = false;
+      buildStore.buildProgress.currentStage = 'Build stopped';
+      buildStore.isBuilding = false;
     }, 2000);
   } catch (error) {
     console.error('Stop build error:', error);
@@ -77,19 +62,14 @@ const handleStopBuild = async () => {
 
 // 진행률 계산
 const progressPercentage = computed(() => {
-  if (buildProgress.value.isBuilding && buildProgress.value.status === 'BUILD_RUNNING') {
-    return Math.min(Math.max(buildProgress.value.progress || 0, 0), 100);
+  if (buildStore.buildProgress.isBuilding && buildStore.buildProgress.status === 'BUILD_RUNNING') {
+    return Math.min(Math.max(buildStore.buildProgress.progress || 0, 0), 100);
   }
   return 0;
 });
 
-// 버튼 상태 계산
-const getButtonState = () => {
-  return buildProgress.value.status || 'BUILD_PENDING';
-};
-
 const getButtonText = () => {
-  switch (buildProgress.value.status) {
+  switch (buildStore.buildProgress.status) {
     case 'BUILD_RUNNING':
       return '실행 중';
     case 'BUILD_STOPPING':
@@ -106,7 +86,7 @@ const getButtonText = () => {
 };
 
 const getButtonClass = () => {
-  switch (buildProgress.value.status) {
+  switch (buildStore.buildProgress.status) {
     case 'BUILD_RUNNING':
       return 'btn-running';
     case 'BUILD_STOPPING':
@@ -129,20 +109,13 @@ watch(
 );
 
 onMounted(async () => {
-  connectWebSocket((msg) => {
-    const data = JSON.parse(msg);
-    buildProgress.value.status = data.status;
-    buildProgress.value.stages = data.stages;
-    buildProgress.value.log = data.log;
-    buildProgress.value.progress = data.progress || 0;
-    buildProgress.value.currentStage = data.currentStage || '';
-    buildProgress.value.isBuilding = data.status === 'BUILD_RUNNING';
-    isBuilding.value = data.status === 'BUILD_RUNNING';
-    console.log(buildProgress.value);
-  });
+  const buildNumber = await jobApi.getCurrentBuildNumber(jobId.value);
+  if (buildNumber === buildStore.buildNumber && buildStore.id === jobId.value) {
 
-  buildNumber.value = await jobApi.getCurrentBuildNumber(jobId.value);
-  await jobApi.viewBuild(jobId.value, buildNumber.value);
+  } else {
+    buildStore.buildNumber = buildNumber;
+    await buildStore.getBuildInfo(jobId.value);
+  }
 });
 </script>
 
@@ -200,30 +173,33 @@ onMounted(async () => {
 
           <div class="action-section">
             <button
-              :class="['action-btn', getButtonClass(), { 'has-progress': buildProgress.isBuilding }]"
-              :disabled="buildProgress.status === 'BUILD_STOPPING'"
-              :style="buildProgress.isBuilding ? { '--progress': `${progressPercentage}%` } : {}"
-              @click="buildProgress.status === 'BUILD_RUNNING' ? handleStopBuild() : handleBuildRunClick()"
+              :class="['action-btn', getButtonClass(), { 'has-progress': buildStore.buildProgress.isBuilding }]"
+              :disabled="buildStore.buildProgress.status === 'BUILD_STOPPING'"
+              :style="buildStore.buildProgress.isBuilding ? { '--progress': `${progressPercentage}%` } : {}"
+              @click="buildStore.buildProgress.status === 'BUILD_RUNNING' ? handleStopBuild() : handleBuildRunClick()"
             >
               <!-- 진행률 배경 -->
-              <div v-if="buildProgress.isBuilding" class="btn-progress-bg">
+              <div v-if="buildStore.buildProgress.isBuilding" class="btn-progress-bg">
                 <div :style="{ width: `${progressPercentage}%` }" class="btn-progress-fill"></div>
                 <div class="btn-wave-effect"></div>
               </div>
 
               <!-- 버튼 내용 -->
               <div class="btn-content">
-                <svg v-if="buildProgress.status === 'BUILD_RUNNING'" class="btn-icon animate-pulse" fill="none"
+                <svg v-if="buildStore.buildProgress.status === 'BUILD_RUNNING'" class="btn-icon animate-pulse"
+                     fill="none"
                      height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
                   <rect height="10" rx="1" ry="1" width="4" x="6" y="7"/>
                   <rect height="10" rx="1" ry="1" width="4" x="14" y="7"/>
                 </svg>
-                <svg v-else-if="buildProgress.status === 'BUILD_SUCCESS'" class="btn-icon" fill="currentColor"
+                <svg v-else-if="buildStore.buildProgress.status === 'BUILD_SUCCESS'" class="btn-icon"
+                     fill="currentColor"
                      height="16" viewBox="0 0 24 24" width="16">
                   <path
                     d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
                 </svg>
-                <svg v-else-if="buildProgress.status === 'BUILD_FAILURE'" class="btn-icon" fill="currentColor"
+                <svg v-else-if="buildStore.buildProgress.status === 'BUILD_FAILURE'" class="btn-icon"
+                     fill="currentColor"
                      height="16" viewBox="0 0 24 24" width="16">
                   <path
                     d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
@@ -233,7 +209,7 @@ onMounted(async () => {
                   <polygon points="5,3 19,12 5,21"/>
                 </svg>
                 <span class="btn-text">{{ getButtonText() }}</span>
-                <span v-if="buildProgress.isBuilding" class="progress-percentage">{{
+                <span v-if="buildStore.buildProgress.isBuilding" class="progress-percentage">{{
                     Math.round(progressPercentage)
                   }}%</span>
               </div>
@@ -244,7 +220,7 @@ onMounted(async () => {
         <main class="content">
           <component
             :is="selectedTabComponent"
-            :build-progress="buildProgress"
+            :build-progress="buildStore.buildProgress"
           />
         </main>
       </div>

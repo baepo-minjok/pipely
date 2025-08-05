@@ -4,20 +4,25 @@ import {useRouter} from 'vue-router';
 import {userApi} from "@/api/UserApi.js";
 import {useUserStore} from "@/stores/useUserStore.js"
 import SessionWarningModal from "@/components/modal/SessionWarningModal.vue";
+import {useBuildStore} from "@/stores/useBuildStore.js";
 
 const router = useRouter();
 const showMenu = ref(false);
+const showNotifications = ref(false); // 알림 드롭다운 상태 추가
 const profileWrapper = ref(null);
+const notificationWrapper = ref(null); // 알림 드롭다운 ref 추가
 const userStore = useUserStore();
 const remainingTime = ref(0);
 let timer = null;
+
 // 유저 정보 변수
 const email = ref("");
 const name = ref("");
 const isLoggedIn = ref(false);
+const buildStore = useBuildStore();
 
 // 알림 관리 변수
-const noti = ref(Number);
+const noti = computed(() => buildStore.alertMessage.length);
 
 // 모달 상태 관리
 const showSessionWarning = ref(false);
@@ -27,6 +32,7 @@ const fetchUser = () => {
   email.value = userInfo.email;
   name.value = userInfo.name;
 }
+
 watch(
   () => userStore.isFetched,
   (newVal) => {
@@ -36,8 +42,7 @@ watch(
     } else {
       isLoggedIn.value = false;
     }
-  }
-);
+  });
 
 watch(remainingTime, async (val) => {
   if (val <= 300 && val > 0) {
@@ -108,6 +113,54 @@ const goToHome = () => {
 
 const handleMenuClick = () => {
   showMenu.value = !showMenu.value;
+  showNotifications.value = false; // 프로필 메뉴 열 때 알림 닫기
+};
+
+// 알림 드롭다운 토글
+const handleNotificationClick = () => {
+  showNotifications.value = !showNotifications.value;
+  showMenu.value = false; // 알림 열 때 프로필 메뉴 닫기
+};
+
+// 개별 알림 삭제
+const removeNotification = (index) => {
+  buildStore.removeAlert(index);
+};
+
+// 모든 알림 삭제
+const clearAllNotifications = () => {
+  buildStore.clearAllAlerts();
+  showNotifications.value = false;
+};
+
+// 알림 상태에 따른 아이콘 및 스타일 반환
+const getNotificationStyle = (state) => {
+  switch (state) {
+    case 'SUCCESS':
+      return {
+        icon: 'M21 7L9 19L3.5 13.5L4.91 12.09L9 16.17L19.59 5.59L21 7Z',
+        class: 'success',
+        text: '성공'
+      };
+    case 'FAILURE':
+      return {
+        icon: 'M18 6L6 18M6 6l12 12',
+        class: 'failure',
+        text: '실패'
+      };
+    case 'RUNNING':
+      return {
+        icon: 'M21 12a9 9 0 11-6.219-8.56',
+        class: 'running',
+        text: '실행 중'
+      };
+    default:
+      return {
+        icon: 'M12 8v4l3 3',
+        class: 'default',
+        text: '알림'
+      };
+  }
 };
 
 const handleLoginClick = () => {
@@ -116,7 +169,6 @@ const handleLoginClick = () => {
 
 const handleDropdownSelect = async (action) => {
   showMenu.value = false;
-
   switch (action) {
     case 'jobList' :
       router.push({name: 'JobList'})
@@ -142,25 +194,33 @@ const handleClickOutside = (event) => {
   if (profileWrapper.value && !profileWrapper.value.contains(event.target)) {
     showMenu.value = false;
   }
+  if (notificationWrapper.value && !notificationWrapper.value.contains(event.target)) {
+    showNotifications.value = false;
+  }
 };
 
 // ESC 키로 드롭다운 닫기
 const handleKeydown = (event) => {
-  if (event.key === 'Escape' && showMenu.value) {
-    showMenu.value = false;
+  if (event.key === 'Escape') {
+    if (showMenu.value) {
+      showMenu.value = false;
+    }
+    if (showNotifications.value) {
+      showNotifications.value = false;
+    }
   }
 };
 
 onMounted(() => {
   updateRemainingTime();
-  timer = setInterval(updateRemainingTime, 1000); // 1초마다 갱신
+  timer = setInterval(updateRemainingTime, 1000);
   document.addEventListener('click', handleClickOutside);
   document.addEventListener('keydown', handleKeydown);
-
   if (userStore.isFetched) {
     isLoggedIn.value = true;
     fetchUser();
   }
+  buildStore.connect();
 });
 
 onBeforeUnmount(() => {
@@ -179,15 +239,107 @@ onBeforeUnmount(() => {
           <img alt="Pipely" class="logo-img" src="/src/assets/images/logo.png"/>
         </div>
       </div>
+
       <!-- 우측 액션 영역 -->
       <div class="header-actions">
-        <button class="action-btn notification-btn" title="알림">
-          <svg height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><title>bell-outline</title>
-            <path
-              d="M10 21H14C14 22.1 13.1 23 12 23S10 22.1 10 21M21 19V20H3V19L5 17V11C5 7.9 7 5.2 10 4.3V4C10 2.9 10.9 2 12 2S14 2.9 14 4V4.3C17 5.2 19 7.9 19 11V17L21 19M17 11C17 8.2 14.8 6 12 6S7 8.2 7 11V18H17V11Z"/>
-          </svg>
-          <span v-if="noti > 0" class="notification-badge">1</span>
-        </button>
+        <!-- 알림 버튼 -->
+        <div ref="notificationWrapper" class="notification-wrapper">
+          <button
+            :class="{ active: showNotifications }"
+            class="action-btn notification-btn"
+            title="알림"
+            @click="handleNotificationClick"
+          >
+            <svg height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+              <title>bell-outline</title>
+              <path
+                d="M10 21H14C14 22.1 13.1 23 12 23S10 22.1 10 21M21 19V20H3V19L5 17V11C5 7.9 7 5.2 10 4.3V4C10 2.9 10.9 2 12 2S14 2.9 14 4V4.3C17 5.2 19 7.9 19 11V17L21 19M17 11C17 8.2 14.8 6 12 6S7 8.2 7 11V18H17V11Z"/>
+            </svg>
+            <span v-if="noti > 0" class="notification-badge">{{ noti }}</span>
+          </button>
+
+          <!-- 알림 드롭다운 -->
+          <transition name="dropdown">
+            <div v-if="showNotifications" class="notification-dropdown">
+              <div class="notification-header">
+                <h3 class="notification-title">알림</h3>
+                <button
+                  v-if="noti > 0"
+                  class="clear-all-btn"
+                  @click="clearAllNotifications"
+                >
+                  모두 삭제
+                </button>
+              </div>
+
+              <div class="notification-content">
+                <!-- 알림이 있을 때 -->
+                <div v-if="noti > 0" class="notification-list">
+                  <div
+                    v-for="(alert, index) in buildStore.alertMessage"
+                    :key="index"
+                    :class="['notification-item', getNotificationStyle(alert.state).class]"
+                  >
+                    <div class="notification-icon">
+                      <svg
+                        v-if="alert.state === 'RUNNING'"
+                        class="animate-spin"
+                        fill="none"
+                        height="16"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        width="16"
+                      >
+                        <path :d="getNotificationStyle(alert.state).icon"/>
+                      </svg>
+                      <svg
+                        v-else
+                        fill="none"
+                        height="16"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        width="16"
+                      >
+                        <path :d="getNotificationStyle(alert.state).icon"/>
+                      </svg>
+                    </div>
+
+                    <div class="notification-body">
+                      <div class="notification-job-name">{{ alert.name }}</div>
+                      <div class="notification-status">
+                        빌드 {{ getNotificationStyle(alert.state).text }}
+                      </div>
+                    </div>
+
+                    <button
+                      class="notification-remove"
+                      @click="removeNotification(index)"
+                    >
+                      <svg fill="none" height="14" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                           width="14">
+                        <line x1="18" x2="6" y1="6" y2="18"/>
+                        <line x1="6" x2="18" y1="6" y2="18"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 알림이 없을 때 -->
+                <div v-else class="notification-empty">
+                  <div class="empty-icon">
+                    <svg fill="none" height="48" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24" width="48">
+                      <path
+                        d="M10 21H14C14 22.1 13.1 23 12 23S10 22.1 10 21M21 19V20H3V19L5 17V11C5 7.9 7 5.2 10 4.3V4C10 2.9 10.9 2 12 2S14 2.9 14 4V4.3C17 5.2 19 7.9 19 11V17L21 19M17 11C17 8.2 14.8 6 12 6S7 8.2 7 11V18H17V11Z"/>
+                    </svg>
+                  </div>
+                  <div class="empty-text">새로운 알림이 없습니다</div>
+                </div>
+              </div>
+            </div>
+          </transition>
+        </div>
 
         <!-- 프로필 드롭다운 -->
         <div v-if="isLoggedIn" ref="profileWrapper" class="profile-wrapper">
@@ -224,7 +376,6 @@ onBeforeUnmount(() => {
                   <div class="user-email">{{ email }}</div>
                 </div>
               </div>
-
               <div class="dropdown-content">
                 <button class="dropdown-item" @click="handleDropdownSelect('jobList')">
                   <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
@@ -240,9 +391,7 @@ onBeforeUnmount(() => {
                   </svg>
                   마이페이지
                 </button>
-
                 <div class="dropdown-divider"></div>
-
                 <button v-if="isLoggedIn" class="dropdown-item danger" @click="handleDropdownSelect('logout')">
                   <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -266,6 +415,7 @@ onBeforeUnmount(() => {
             </div>
           </button>
         </div>
+
         <div v-if="userStore.isFetched" class="session-timer">
           <div :class="getTimerClass()" class="timer-container">
             <div class="timer-icon">
@@ -283,6 +433,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
+
         <SessionWarningModal
           :is-visible="showSessionWarning"
           :remaining-time="remainingTime"
@@ -338,43 +489,6 @@ onBeforeUnmount(() => {
   object-fit: contain;
 }
 
-/* 네비게이션 */
-.navigation {
-  flex: 1;
-  display: flex;
-  justify-content: left;
-  padding-left: 30px;
-}
-
-.nav-links {
-  display: flex;
-  gap: 8px;
-}
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: none;
-  border: none;
-  border-radius: 8px;
-  color: #303030;
-  font-size: 24px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.nav-link:hover {
-  color: #212020;
-  transform: translateY(-1px);
-}
-
-.nav-link svg {
-  color: currentColor;
-}
-
 /* 헤더 액션 */
 .header-actions {
   display: flex;
@@ -403,6 +517,12 @@ onBeforeUnmount(() => {
   transform: translateY(-1px);
 }
 
+.action-btn.active {
+  background: #f1f5f9;
+  border: 1px solid #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
 .notification-badge {
   position: absolute;
   top: -2px;
@@ -418,6 +538,184 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 알림 드롭다운 */
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  min-width: 320px;
+  max-width: 400px;
+  z-index: 50;
+  overflow: hidden;
+  max-height: 400px;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.notification-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.clear-all-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.clear-all-btn:hover {
+  background: #e2e8f0;
+}
+
+.notification-content {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.notification-list {
+  padding: 8px 0;
+}
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  background: #f8fafc;
+}
+
+.notification-item.success {
+  border-left-color: #10b981;
+}
+
+.notification-item.failure {
+  border-left-color: #ef4444;
+}
+
+.notification-item.running {
+  border-left-color: #f59e0b;
+}
+
+.notification-item.default {
+  border-left-color: #64748b;
+}
+
+.notification-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.notification-item.success .notification-icon {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.notification-item.failure .notification-icon {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.notification-item.running .notification-icon {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.notification-item.default .notification-icon {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.notification-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-job-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+  truncate: true;
+}
+
+.notification-status {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.notification-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.notification-remove:hover {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.notification-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  margin-bottom: 12px;
+  color: #d1d5db;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: #9ca3af;
+  font-style: italic;
 }
 
 /* 프로필 드롭다운 */
@@ -678,14 +976,6 @@ onBeforeUnmount(() => {
   flex: 1;
 }
 
-.timer-label {
-  font-size: 10px;
-  font-weight: 500;
-  opacity: 0.7;
-  line-height: 1;
-  margin-bottom: 2px;
-}
-
 .timer-value {
   font-size: 12px;
   font-weight: 600;
@@ -721,42 +1011,25 @@ onBeforeUnmount(() => {
   background: #ef4444;
 }
 
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-  .timer-container {
-    min-width: 100px;
-    padding: 6px 10px;
+/* 애니메이션 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
   }
-
-  .timer-label {
-    font-size: 9px;
-  }
-
-  .timer-value {
-    font-size: 11px;
-  }
-
-  .timer-icon {
-    width: 16px;
-    height: 16px;
-  }
-
-  .timer-icon svg {
-    width: 14px;
-    height: 14px;
+  to {
+    transform: rotate(360deg);
   }
 }
 
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
 
-/* 반응형 */
+/* 반응형 디자인 */
 @media (max-width: 768px) {
   .header-container {
     padding: 0 16px;
     height: 64px;
-  }
-
-  .navigation {
-    display: none;
   }
 
   .header-actions {
@@ -777,9 +1050,33 @@ onBeforeUnmount(() => {
     display: none;
   }
 
-  .dropdown-menu {
+  .dropdown-menu,
+  .notification-dropdown {
     right: -8px;
     min-width: 240px;
+  }
+
+  .notification-dropdown {
+    min-width: 280px;
+  }
+
+  .timer-container {
+    min-width: 100px;
+    padding: 6px 10px;
+  }
+
+  .timer-value {
+    font-size: 11px;
+  }
+
+  .timer-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .timer-icon svg {
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -792,7 +1089,8 @@ onBeforeUnmount(() => {
     height: 28px;
   }
 
-  .dropdown-menu {
+  .dropdown-menu,
+  .notification-dropdown {
     right: -12px;
     left: 12px;
     min-width: auto;
