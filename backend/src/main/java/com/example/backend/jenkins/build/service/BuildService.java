@@ -7,9 +7,9 @@ import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.service.PipelineService;
-import com.example.backend.parser.XmlConfigParser;
 import com.example.backend.service.HttpClientService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +20,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -27,9 +28,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Slf4j
 @Service
@@ -38,76 +40,73 @@ public class BuildService {
 
     private final HttpClientService httpClientService;
     private final PipelineService pipelineService;
-    private final XmlConfigParser xmlConfigParser;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final ObjectMapper objectMapper;
+
+
+    private final Map<String, Future<?>> pollingTasks = new ConcurrentHashMap<>();
+
+    // ────────────────────────────────────────────────────────────────
+    // 1. 파이프라인 트리거
+    // ────────────────────────────────────────────────────────────────
 
     /**
      * Jenkins 파이프라인의 특정 스테이지 실행을 트리거한다.
-     *
-     * @param dto 실행할 스테이지 맵 및 파이프라인 ID
      */
-    public int StageJenkinsBuild(BuildRequestDto.BuildStageRequestDto dto) {
-        Pipeline pipeline = pipelineService.getPipelineById(dto.getJobId());
+    public int triggerStages(BuildRequestDto.BuildStageRequestDto dto) {
+        Pipeline pipeline = getPipeline(dto.getJobId());
         pipelineService.setStatusPending(pipeline);
         JenkinsInfo info = pipeline.getJenkinsInfo();
         String triggerUrl = info.getUri() + "/job/" + pipeline.getName() + "/buildWithParameters";
         log.info("Jenkins Trigger URL = {}", triggerUrl);
+
+        MultiValueMap<String, String> body = buildStageTriggerParams(dto);
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
-        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        for (String stage : dto.getStageBuilds()) {
-            String paramKey = "RUN_" + stage.toUpperCase().replace(" ", "_");
-            body.add(paramKey, "false");
-        }
-        body.add("ID", dto.getJobId().toString());
+
         String response = httpClientService.exchange(triggerUrl, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
         log.info("Jenkins 응답 상태: {}", response);
+
         return getBuildNumber(pipeline, info);
     }
 
+    private MultiValueMap<String, String> buildStageTriggerParams(BuildRequestDto.BuildStageRequestDto dto) {
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        dto.getStageBuilds().forEach(stage ->
+                body.add("RUN_" + stage.toUpperCase().replace(" ", "_"), "false")
+        );
+        body.add("ID", dto.getJobId().toString());
+        return body;
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // 2. 빌드 이력/상태/로그 조회
+    // ────────────────────────────────────────────────────────────────
+
     /**
      * 전체 빌드 이력을 조회한다.
-     *
-     * @param pipelineId 파이프라인 UUID
-     * @return 빌드 정보 리스트
      */
     public List<BuildResponseDto.BuildInfo> getBuildHistory(UUID pipelineId) {
-        String response = JenkinsGetResponse(pipelineId);
-        try {
-            Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
-            return BuildResponseDto.BuildInfo.listFrom(body);
-        } catch (JsonProcessingException e) {
-            log.error("빌드 이력 JSON 파싱 실패 - jobName: {}", e);
-            throw new CustomException(ErrorCode.JENKINS_BUILD_HISTORY_PARSE_ERROR);
-        }
+        String response = getJenkinsJobJson(pipelineId);
+        return parseBuildInfoList(response, pipelineId);
     }
 
     /**
      * 최신 빌드 정보 1건을 반환한다.
-     *
-     * @param pipelineId 파이프라인 UUID
-     * @return 최신 빌드 정보
      */
     public BuildResponseDto.BuildInfo getLastBuildStatus(UUID pipelineId) {
-        String response = JenkinsGetResponse(pipelineId);
-        try {
-            Map<String, Object> body = new ObjectMapper().readValue(response, Map.class);
-            return BuildResponseDto.BuildInfo.latestFrom(body);
-        } catch (JsonProcessingException e) {
-            log.error("최신 빌드 JSON 파싱 실패 - jobName: {}", e);
-            throw new CustomException(ErrorCode.JENKINS_LATEST_BUILD_PARSE_ERROR);
-        }
+        String response = getJenkinsJobJson(pipelineId);
+        return parseLatestBuildInfo(response, pipelineId);
     }
 
     /**
      * 빌드 번호 기준으로 Jenkins 콘솔 전체 로그를 조회한다.
-     *
-     * @param dto 빌드 번호, 파이프라인 UUID 포함
-     * @return 로그 응답 DTO
      */
     public BuildResponseDto.BuildLogDto getBuildLog(BuildRequestDto.GetLogRequestDto dto) {
-        Pipeline pipeline = pipelineService.getPipelineById(dto.getJobId());
+        Pipeline pipeline = getPipeline(dto.getJobId());
         JenkinsInfo info = pipeline.getJenkinsInfo();
         String url = info.getUri() + "/job/" + pipeline.getName() + "/" + dto.getBuildNumber() + "/console";
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
+
         try {
             String response = httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
             Document doc = Jsoup.parse(response);
@@ -121,21 +120,12 @@ public class BuildService {
 
     /**
      * 실시간 빌드 로그(progressiveText)를 조회한다.
-     *
-     * @param jobId 파이프라인 UUID
-     * @return 실시간 로그 DTO
      */
     public BuildResponseDto.BuildStreamLogDto getStreamLog(UUID jobId) {
-        Pipeline pipeline = pipelineService.getPipelineById(jobId);
+        Pipeline pipeline = getPipeline(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
 
-        String lastBuildUri = info.getUri() + "/job/" + pipeline.getName() + "/lastBuild/buildNumber";
-        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-        String lastBuildResponse = httpClientService.exchange(
-                lastBuildUri, HttpMethod.GET, entity, String.class
-        );
-        int lastBuildNumber = Integer.parseInt(lastBuildResponse.trim());
+        int lastBuildNumber = fetchLastBuildNumber(info, pipeline.getName());
         URI logUri = UriComponentsBuilder
                 .fromHttpUrl(info.getUri() + "/job/" + pipeline.getName() + "/" + lastBuildNumber + "/logText/progressiveText")
                 .build().toUri();
@@ -144,14 +134,16 @@ public class BuildService {
         return BuildResponseDto.BuildStreamLogDto.getStreamLog(logResponse);
     }
 
-    /**
-     * Jenkins 파이프라인 빌드 정보 API를 호출한다.
-     *
-     * @param pipelineId 파이프라인 UUID
-     * @return Jenkins JSON Raw String
-     */
-    public String JenkinsGetResponse(UUID pipelineId) {
-        Pipeline pipeline = pipelineService.getPipelineById(pipelineId);
+    // ────────────────────────────────────────────────────────────────
+    // 3. 내부 API & 변환 유틸
+    // ────────────────────────────────────────────────────────────────
+
+    private Pipeline getPipeline(UUID pipelineId) {
+        return pipelineService.getPipelineById(pipelineId);
+    }
+
+    private String getJenkinsJobJson(UUID pipelineId) {
+        Pipeline pipeline = getPipeline(pipelineId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
         String url = info.getUri() + "/job/" + pipeline.getName() + "/api/json"
                 + "?tree=builds[number,result,timestamp,duration,building,id,url,actions[causes[userId,userName]]]";
@@ -159,24 +151,48 @@ public class BuildService {
         return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
-    /**
-     * 파이프라인(Jenkins Job)에 등록된 스테이지 목록을 추출한다.
-     *
-     * @param jobId 파이프라인 UUID
-     * @return Stage DTO(스테이지 이름 리스트)
-     */
-    public BuildResponseDto.Stage getJobPipelineStage(UUID jobId) {
-        Pipeline pipeline = pipelineService.getPipelineById(jobId);
+    private List<BuildResponseDto.BuildInfo> parseBuildInfoList(String response, UUID pipelineId) {
+        try {
+            Map<String, Object> body = objectMapper.readValue(response, Map.class);
+            return BuildResponseDto.BuildInfo.listFrom(body);
+        } catch (JsonProcessingException e) {
+            log.error("빌드 이력 JSON 파싱 실패 - pipelineId: {}", pipelineId, e);
+            throw new CustomException(ErrorCode.JENKINS_BUILD_HISTORY_PARSE_ERROR);
+        }
+    }
+
+    private BuildResponseDto.BuildInfo parseLatestBuildInfo(String response, UUID pipelineId) {
+        try {
+            Map<String, Object> body = objectMapper.readValue(response, Map.class);
+            return BuildResponseDto.BuildInfo.latestFrom(body);
+        } catch (JsonProcessingException e) {
+            log.error("최신 빌드 JSON 파싱 실패 - pipelineId: {}", pipelineId, e);
+            throw new CustomException(ErrorCode.JENKINS_LATEST_BUILD_PARSE_ERROR);
+        }
+    }
+
+    private int fetchLastBuildNumber(JenkinsInfo info, String jobName) {
+        String lastBuildUri = info.getUri() + "/job/" + jobName + "/lastBuild/buildNumber";
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
+        String lastBuildResponse = httpClientService.exchange(lastBuildUri, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        return Integer.parseInt(lastBuildResponse.trim());
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // 4. 스테이지/진행률/상태 처리
+    // ────────────────────────────────────────────────────────────────
+
+    public String getJobPipelineStage(UUID jobId) {
+        Pipeline pipeline = getPipeline(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
-        String xml = httpClientService.exchange(
-                info.getUri() + "/job/" + pipeline.getName() + "/config.xml",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                String.class
-        );
-        List<String> stageNames = xmlConfigParser.getPipelineStageNamesFromXml(xml);
-        return new BuildResponseDto.Stage(stageNames);
+        String xmlBody = """
+                <jenkins>
+                    <install plugin="pipeline-rest-api@latest"/>
+                </jenkins>
+                """;
+        String url = info.getUri() + "/pluginManager/installNecessaryPlugins";
+        return httpClientService.exchange(url, HttpMethod.POST, new HttpEntity<>(xmlBody, headers), String.class);
     }
 
     public int getBuildNumber(Pipeline pipeline, JenkinsInfo info) {
@@ -191,9 +207,15 @@ public class BuildService {
         return (int) json.get("nextBuildNumber");
     }
 
-    @Transactional
+    public Integer getCurrentBuildNumber(UUID jobId) {
+        Pipeline pipeline = getPipeline(jobId);
+        JenkinsInfo info = pipeline.getJenkinsInfo();
+        return getBuildNumber(pipeline, info) - 1;
+    }
+
+    @Transactional(readOnly = true)
     public String getDuration(UUID jobId, int buildNumber) {
-        Pipeline pipeline = pipelineService.getPipelineById(jobId);
+        Pipeline pipeline = getPipeline(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
 
@@ -205,46 +227,168 @@ public class BuildService {
         );
 
         String result = (String) json.get("result");
-        // 빌드 완료된 경우 -> 100%
         if (result != null) {
             pipelineService.setState(pipeline, result);
-            return (String) json.get("result");
+            return result;
         }
 
-        // Jenkins API 값 추출
         Number estimatedNum = (Number) json.get("estimatedDuration");
         Number timestampNum = (Number) json.get("timestamp");
 
         if (estimatedNum == null || estimatedNum.longValue() <= 0 || timestampNum == null) {
-            return "0"; // 계산 불가 시 0%
+            return "0";
         }
 
         long estimated = estimatedNum.longValue();
         long timestamp = timestampNum.longValue();
         long elapsed = System.currentTimeMillis() - timestamp;
-
-        // 진행률 계산
         int progress = (int) ((elapsed / (double) estimated) * 100);
-        return String.valueOf(Math.min(progress, 99)); // 진행 중은 99%까지만
+        return String.valueOf(Math.min(progress, 99));
     }
 
-    public Integer getCurrentBuildNumber(UUID jobId) {
-        Pipeline pipeline = pipelineService.getPipelineById(jobId);
-        JenkinsInfo info = pipeline.getJenkinsInfo();
-        return getBuildNumber(pipeline, info) - 1;
-    }
+    // ────────────────────────────────────────────────────────────────
+    // 5. 빌드 상태, 중단 및 실시간 로그 전송
+    // ────────────────────────────────────────────────────────────────
 
     public void stopBuild(UUID jobId, int buildNumber) {
-        Pipeline pipeline = pipelineService.getPipelineById(jobId);
+        Pipeline pipeline = getPipeline(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
 
-        String res = httpClientService.exchange(
+        httpClientService.exchange(
                 info.getUri() + "/job/" + pipeline.getName() + "/" + buildNumber + "/stop",
                 HttpMethod.POST,
                 new HttpEntity<>(headers),
                 String.class
         );
         pipelineService.setState(pipeline, "ABORTED");
+    }
+
+    public BuildResponseDto.BuildStatusDto viewBuild(UUID jobId, int buildNumber) {
+        Pipeline pipeline = getPipeline(jobId);
+        JenkinsInfo info = pipeline.getJenkinsInfo();
+        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
+
+        String log = httpClientService.exchange(
+                info.getUri() + "/job/" + pipeline.getName() + "/" + buildNumber + "/consoleText",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class
+        );
+
+        String json = httpClientService.exchange(
+                info.getUri() + "/job/" + pipeline.getName() + "/" + buildNumber + "/wfapi/describe",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                String.class
+        );
+
+        String progress = getDuration(jobId, buildNumber);
+
+        JsonNode root = parseJson(json, jobId, buildNumber);
+        List<Map<String, String>> stageList = extractStages(root);
+
+        String status = convertJenkinsStatus(root.path("status").asText());
+
+        return BuildResponseDto.BuildStatusDto.builder()
+                .status(status)
+                .stages(stageList)
+                .log(log)
+                .progress(progress)
+                .build();
+    }
+
+    private JsonNode parseJson(String json, UUID jobId, int buildNumber) {
+        try {
+            return objectMapper.readTree(json);
+        } catch (JsonProcessingException e) {
+            log.error("Jenkins wfapi/describe JSON 파싱 실패 - jobId: {}, buildNumber: {}", jobId, buildNumber, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<Map<String, String>> extractStages(JsonNode root) {
+        List<Map<String, String>> stageList = new ArrayList<>();
+        JsonNode stagesNode = root.get("stages");
+        if (stagesNode != null && stagesNode.isArray()) {
+            for (JsonNode stage : stagesNode) {
+                Map<String, String> stageInfo = new HashMap<>();
+                stageInfo.put("name", stage.path("name").asText());
+                stageInfo.put("status", stage.path("status").asText());
+                stageList.add(stageInfo);
+            }
+        }
+        return stageList;
+    }
+
+    private String convertJenkinsStatus(String jenkinsStatus) {
+        return switch (jenkinsStatus) {
+            case "FAILED", "NOT_EXECUTED" -> "BUILD_FAILURE";
+            case "ABORTED" -> "BUILD_ABORTED";
+            case "SUCCESS" -> "BUILD_SUCCESS";
+            default -> "BUILD_RUNNING";
+        };
+    }
+
+    /**
+     * 빌드 상태를 주기적으로 프론트로 전송 (실시간 진행률).
+     */
+    public void sendLog(UUID jobId, int buildNumber, String email) {
+        String key = jobId + "_" + buildNumber;
+
+        // 이미 진행중이면 무시(또는 기존 Future에 listener 추가해서 결과만 공유할 수도 있음)
+        if (pollingTasks.containsKey(key) && !pollingTasks.get(key).isDone()) {
+            log.info("Polling already running for {} (jobId={}, buildNumber={})", key, jobId, buildNumber);
+            return;
+        }
+
+        Future<?> future = Executors.newSingleThreadExecutor().submit(() -> {
+            try {
+                boolean running = true;
+                int waitCount = 0;
+                int maxWaitCount = 10;
+                int sleepMs = 1500;
+                while (running) {
+                    BuildResponseDto.BuildStatusDto dto;
+                    try {
+                        dto = viewBuild(jobId, buildNumber);
+                    } catch (Exception e) {
+                        dto = null;
+                    }
+
+                    if (dto == null) {
+                        if (++waitCount > maxWaitCount) {
+                            messagingTemplate.convertAndSendToUser(
+                                    email, "/queue/alert",
+                                    BuildResponseDto.BuildStatusDto.builder()
+                                            .status("QUEUE_TIMEOUT")
+                                            .stages(Collections.emptyList())
+                                            .log("빌드가 너무 오래 대기 중입니다.")
+                                            .build()
+                            );
+                            break;
+                        }
+                        sleep(sleepMs);
+                        continue;
+                    }
+
+                    messagingTemplate.convertAndSendToUser(email, "/queue/alert", dto);
+                    if (dto.isFinished()) running = false;
+                    sleep(sleepMs);
+                }
+            } finally {
+                // polling 종료 후 Map에서 제거
+                pollingTasks.remove(key);
+            }
+        });
+
+        pollingTasks.put(key, future);
+    }
+
+    private void sleep(int ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException ignored) {
+        }
     }
 }

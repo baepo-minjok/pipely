@@ -182,5 +182,19 @@ export const jobApi = {
       .catch((error) => {
         throw error;
       })
+  },
+
+  viewBuild(jobId, buildNumber) {
+    console.log("start", jobId, buildNumber);
+    return instance
+      .get('/jenkins/build/test', {params: {jobId: jobId, buildNumber: buildNumber}})
+      .then((res) => {
+        return res;
+      })
+      .catch(
+        (error) => {
+          throw error;
+        }
+      )
   }
 };

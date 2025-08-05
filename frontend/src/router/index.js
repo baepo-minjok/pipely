@@ -20,62 +20,62 @@ import VersionList from '../pages/jobs/VersionList.vue';
 import JobDetail from '../pages/jobs/JobDetail.vue';
 
 const routes = [
-    {path: '/', component: Main, name: 'Main'},
-    {path: '/user/login', component: Login, name: 'Login'},
-    {path: '/user/oAuth', component: OAuth, name: 'OAuth'},
-    {path: '/user/signup', component: Signup, name: 'Signup'},
-    {path: '/user/email/verify', component: VerifyEmail},
-    {path: '/user/find/password', component: FindPassword, meta: {requiresAuth: true}},
-    {path: '/user/reset/password', component: ResetPassword, name: 'ResetPassword'},
-    {path: '/user/withdraw', component: Withdraw, name: 'Withdraw'},
-    {path: '/user/reactivate', component: ReactivateUser, name: 'ReactivateUser'},
-    {path: '/mypage', component: Mypage, name: 'Mypage', meta: {requiresAuth: true}},
-    {path: '/mypage/cicd/create', component: CreateCicdInfo, meta: {requiresAuth: true}},
-    {path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: {requiresAuth: true}},
-    {path: '/job', component: JobList, name: 'JobList', meta: {requiresAuth: true}},
-    {path: '/job/create', component: CreateJob, name: 'CreateJob', meta: {requiresAuth: true}},
-    {path: '/job/:name', component: JobDetail, meta: {requiresAuth: true}},
-    {path: '/job/snapshots/:jobId', component: VersionList, name: 'Snapshots', meta: {requiresAuth: true}, props: true},
-    {path: '/ai/chat', component: Chat},
-    {path: '/:catchAll(.*)', redirect: '/'},
+  {path: '/', component: Main, name: 'Main'},
+  {path: '/user/login', component: Login, name: 'Login'},
+  {path: '/user/oAuth', component: OAuth, name: 'OAuth'},
+  {path: '/user/signup', component: Signup, name: 'Signup'},
+  {path: '/user/email/verify', component: VerifyEmail},
+  {path: '/user/find/password', component: FindPassword},
+  {path: '/user/reset/password', component: ResetPassword, name: 'ResetPassword'},
+  {path: '/user/withdraw', component: Withdraw, name: 'Withdraw'},
+  {path: '/user/reactivate', component: ReactivateUser, name: 'ReactivateUser'},
+  {path: '/mypage', component: Mypage, name: 'Mypage', meta: {requiresAuth: true}},
+  {path: '/mypage/cicd/create', component: CreateCicdInfo, meta: {requiresAuth: true}},
+  {path: '/mypage/cicd/:id', component: CicdInfoDetail, meta: {requiresAuth: true}},
+  {path: '/job', component: JobList, name: 'JobList', meta: {requiresAuth: true}},
+  {path: '/job/create', component: CreateJob, name: 'CreateJob', meta: {requiresAuth: true}},
+  {path: '/job/:name', component: JobDetail, meta: {requiresAuth: true}},
+  {path: '/job/snapshots/:jobId', component: VersionList, name: 'Snapshots', meta: {requiresAuth: true}, props: true},
+  {path: '/ai/chat', component: Chat},
+  {path: '/:catchAll(.*)', redirect: '/'},
 ];
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes,
+  history: createWebHistory(),
+  routes,
 });
 
 router.beforeEach(async (to, from, next) => {
-    const isLoggedIn = await userApi.isLoggedIn();
-    const userStore = useUserStore();
+  const isLoggedIn = await userApi.isLoggedIn();
+  const userStore = useUserStore();
 
-    if (isLoggedIn && !userStore.isFetched) {
-        await userStore.fetchUserInfo();
-    }
+  if (isLoggedIn && !userStore.isFetched) {
+    await userStore.fetchUserInfo();
+  }
 
-    // 로그인된 사용자가 로그인/회원가입 페이지로 가면 메인으로
-    if (
-        ['/user/login', '/user/signup', '/user/oAuth'].includes(to.path) &&
-        isLoggedIn
-    ) {
-        next('/');
-        return;
-    }
-    if (to.meta.requiresAuth && !isLoggedIn) {
-        localStorage.removeItem('chatHistory');
-        userStore.reset();
-        if (to.name !== 'Login') {
-            next('/user/login');
-        } else {
-            next();
-        }
+  // 로그인된 사용자가 로그인/회원가입 페이지로 가면 메인으로
+  if (
+    ['/user/login', '/user/signup', '/user/oAuth'].includes(to.path) &&
+    isLoggedIn
+  ) {
+    next('/');
+    return;
+  }
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    localStorage.removeItem('chatHistory');
+    userStore.reset();
+    if (to.name !== 'Login') {
+      next('/user/login');
     } else {
-        if (!isLoggedIn) {
-            localStorage.removeItem('chatHistory');
-            userStore.reset();
-        }
-        next();
+      next();
     }
+  } else {
+    if (!isLoggedIn) {
+      localStorage.removeItem('chatHistory');
+      userStore.reset();
+    }
+    next();
+  }
 });
 
 export default router;

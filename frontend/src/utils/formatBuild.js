@@ -1,11 +1,11 @@
 // 빌드 상태 텍스트 반환
 export const getStatusText = (status) => {
-  return status === 'SUCCESS' ? '성공' : status === 'FAILURE' ? '실패' : '대기';
+  return status === 'SUCCESS' ? '성공' : status === 'FAILURE' ? '실패' : '중단';
 };
 
 // 빌드 상태에 따른 CSS 클래스 반환
 export const getStatusClass = (status) => {
-  return status === 'SUCCESS' ? 'success' : status === 'FAILURE' ? 'fail' : '';
+  return status === 'SUCCESS' ? 'success' : status === 'FAILURE' ? 'fail' : 'pending';
 };
 
 // 트리거한 사용자 이름 포맷
@@ -36,14 +36,16 @@ export const formatStageName = (stageName) => {
   return map[stageName] || stageName;
 };
 
-// 단계별 상태 클래스 (ex: GIT_CLONE → 'success')
-export const getStageStatusClass = (stageName) => {
-  return (
-    {
-      GIT_CLONE: 'success',
-      BUILD: 'success',
-      TEST: 'success',
-      DEPLOY: 'fail',
-    }[stageName] || ''
-  );
+export const getStageStatusClass = (stageName, stages) => {
+  const normalizedTarget = normalizeStageName(stageName);
+  for (const stage of stages) {
+    if (normalizeStageName(stage.name) === normalizedTarget) {
+      return stage.status || "PENDING";
+    }
+  }
+  return "PENDING";
 };
+
+function normalizeStageName(name) {
+  return name.replace(/[\s_]+/g, '').toLowerCase();
+}

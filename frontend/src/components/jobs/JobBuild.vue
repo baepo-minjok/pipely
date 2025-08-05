@@ -1,5 +1,5 @@
 <script setup>
-import {onMounted, onUnmounted, ref} from 'vue';
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import {buildApi} from '@/api/BuildApi';
 import {
   formatDate,
@@ -13,21 +13,41 @@ import {
 import {useJobStore} from "@/stores/useJobStore.js";
 import {jobApi} from "@/api/JobApi.js";
 
-
 const jobStore = useJobStore();
 const jobDetail = jobStore.jobDetail;
 const jobId = jobDetail.pipelineId;
-
 const streamLogText = ref('');
 const buildHistory = ref([]);
-const isFetchingHistory = ref(false);
+const isLogExpanded = ref(false);
 let intervalId = null;
 
-const getBuildStreamLog = async () => {
-  const response = await buildApi.getJobBuildStreamLog(jobId);
-  if (response.status === 200) {
-    streamLogText.value = response.data.log.join('\n');
+const props = defineProps({
+  buildProgress: Object
+});
+
+// 현재 빌드 상태 계산
+const currentBuildStatus = computed(() => {
+  return props.buildProgress?.status || 'BUILD_PENDING';
+});
+
+// 현재 진행률 계산
+const buildProgressPercentage = computed(() => {
+  if (props.buildProgress?.isBuilding && props.buildProgress?.status === 'BUILD_RUNNING') {
+    return Math.min(Math.max(props.buildProgress?.progress || 0, 0), 100);
   }
+  return 0;
+});
+
+// 스테이지별 상태 계산
+const getEnhancedStageStatus = (stageName) => {
+  const baseStatus = getStageStatusClass(stageName, props.buildProgress?.stages);
+
+  // 현재 실행 중인 스테이지 확인
+  if (props.buildProgress?.currentStage === stageName && props.buildProgress?.isBuilding) {
+    return 'running';
+  }
+
+  return baseStatus;
 };
 
 const getBuildAllHistory = async () => {
@@ -39,18 +59,14 @@ const getBuildAllHistory = async () => {
 };
 
 const getBuildLatestHistory = async () => {
-
   try {
     const buildNumber = await jobApi.getCurrentBuildNumber(jobId);
-
     const data = {
       jobId: jobId,
       buildNumber: buildNumber,
     };
-
     const response = await buildApi.getBuildLatestLog(data);
     console.log(response);
-
     streamLogText.value = response.data?.data.log.join('\n');
   } catch (error) {
     streamLogText.value = "실행로그 로딩에 실패했습니다.."
@@ -59,13 +75,16 @@ const getBuildLatestHistory = async () => {
 
 const handleBuildRestartClick = async (excludedStageName) => {
   if (!jobDetail?.stageList) return;
+
   const includedStages = jobDetail.stageList
     .filter((stage) => stage.stageName !== excludedStageName)
     .map((stage) => stage.stageName);
+
   const requestBody = {
     jobId: jobId,
     stageBuilds: includedStages,
   };
+
   const response = await buildApi.triggerBuildStages(requestBody);
   if (response.status === 200) {
     console.log('✅ 특정 스테이지 실행 요청 성공', response.data);
@@ -73,6 +92,22 @@ const handleBuildRestartClick = async (excludedStageName) => {
     console.error('❌ 특정 스테이지 실행 요청 실패');
   }
 };
+
+watch(
+  () => props.buildProgress?.log,
+  (newVal) => {
+    if (newVal) {
+      streamLogText.value = newVal;
+      // 로그가 업데이트되면 자동으로 스크롤
+      setTimeout(() => {
+        const logContainer = document.querySelector('.log-content');
+        if (logContainer) {
+          logContainer.scrollTop = logContainer.scrollHeight;
+        }
+      }, 100);
+    }
+  }
+);
 
 onMounted(async () => {
   await getBuildAllHistory();
@@ -88,7 +123,78 @@ onUnmounted(() => {
 
 <template>
   <div class="container">
-    <!-- 파이프라인 흐름 -->
+    <!-- 빌드 상태 오버뷰 -->
+    <div class="section build-overview">
+      <h3 class="section-title">
+        <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+        빌드 상태
+      </h3>
+
+      <!-- 전체 빌드 상태 카드 -->
+      <div :class="['build-status-card', currentBuildStatus.toLowerCase()]">
+        <div class="build-status-header">
+          <div class="status-icon-container">
+            <svg v-if="currentBuildStatus === 'BUILD_RUNNING'" class="status-icon animate-spin" fill="none" height="24"
+                 stroke="#d97706" stroke-width="2" viewBox="0 0 24 24" width="24">
+              <path d="M21 12a9 9 0 11-6.219-8.56"/>
+            </svg>
+            <svg v-else-if="currentBuildStatus === 'BUILD_SUCCESS'" class="status-icon" fill="none" height="24"
+                 stroke="#059669" stroke-width="4" viewBox="0 0 24 24" width="24">
+              <polyline points="20,6 9,17 4,12"/>
+            </svg>
+            <svg v-else-if="currentBuildStatus === 'BUILD_FAILURE'" class="status-icon" fill="none" height="24"
+                 stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24" width="24">
+              <line x1="18" x2="6" y1="6" y2="18"/>
+              <line x1="6" x2="18" y1="6" y2="18"/>
+            </svg>
+            <svg v-else-if="currentBuildStatus === 'BUILD_STOPPING'" class="status-icon animate-pulse" fill="none"
+                 height="24" stroke="#c2410c" stroke-width="2" viewBox="0 0 24 24" width="24">
+              <circle cx="12" cy="12" r="10"/>
+              <rect height="6" rx="1" ry="1" width="6" x="9" y="9"/>
+            </svg>
+            <svg v-else class="status-icon" fill="none" height="24" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24" width="24">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+          </div>
+          <div class="status-info">
+            <div class="status-title">
+              {{
+                currentBuildStatus === 'BUILD_RUNNING' ? '빌드 실행 중' :
+                  currentBuildStatus === 'BUILD_SUCCESS' ? '빌드 성공' :
+                    currentBuildStatus === 'BUILD_FAILURE' ? '빌드 실패' :
+                      currentBuildStatus === 'BUILD_STOPPING' ? '빌드 중단 중' :
+                        currentBuildStatus === 'BUILD_ABORTED' ? '빌드 중단됨' : '대기 중'
+              }}
+            </div>
+            <div class="status-subtitle">
+              {{ buildProgress?.currentStage || '상태 정보 없음' }}
+            </div>
+          </div>
+        </div>
+
+        <!-- 진행률 바 (실행 중일 때만 표시) -->
+        <div v-if="buildProgress?.isBuilding && currentBuildStatus === 'BUILD_RUNNING'" class="build-progress">
+          <div class="progress-bar">
+            <div
+              :style="{ width: `${buildProgressPercentage}%` }"
+              class="progress-fill"
+            ></div>
+            <div class="progress-shimmer"></div>
+          </div>
+          <div class="progress-info">
+            <span class="progress-percentage">{{ Math.round(buildProgressPercentage) }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 파이프라인 스테이지 -->
     <div class="section">
       <h3 class="section-title">
         <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
@@ -96,124 +202,102 @@ onUnmounted(() => {
           <path d="M2 17l10 5 10-5"/>
           <path d="M2 12l10 5 10-5"/>
         </svg>
-        파이프라인 흐름
+        파이프라인 단계
       </h3>
-      <div class="pipeline-flow">
-        <div
-          v-for="(stage, index) in jobDetail.stageList"
-          :key="stage.stageName"
-          class="pipeline-stage"
-        >
-          <div
-            :class="getStageStatusClass(stage.stageName)"
-            class="stage-box"
-          >
-            <div class="stage-icon">
-              <svg v-if="getStageStatusClass(stage.stageName) === 'success'" fill="none" height="16"
-                   stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                <polyline points="20,6 9,17 4,12"/>
-              </svg>
-              <svg v-else-if="getStageStatusClass(stage.stageName) === 'fail'" fill="none" height="16"
-                   stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                <line x1="18" x2="6" y1="6" y2="18"/>
-                <line x1="6" x2="18" y1="6" y2="18"/>
-              </svg>
-              <svg v-else fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12,6 12,12 16,14"/>
-              </svg>
-            </div>
-            <span class="stage-name">{{ formatStageName(stage.stageName) }}</span>
-          </div>
-          <div v-if="index < jobDetail.stageList.length - 1" class="stage-connector"></div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Stage 상세 정보 -->
-    <div class="section">
-      <h3 class="section-title">
-        <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-          <rect height="14" rx="2" ry="2" width="20" x="2" y="3"/>
-          <line x1="8" x2="16" y1="21" y2="21"/>
-          <line x1="12" x2="12" y1="17" y2="21"/>
-        </svg>
-        Job 상세 정보
-      </h3>
-      <div class="stage-grid">
-        <div v-for="stage in jobDetail.stageList" :key="stage.stageName" class="stage-card">
-          <div class="stage-card-header">
-            <div class="stage-card-title">
-              <span>{{ formatStageName(stage.stageName) }}</span>
-            </div>
-            <div :class="getStageStatusClass(stage.stageName)" class="stage-status">
-              <svg v-if="getStageStatusClass(stage.stageName) === 'success'" fill="none" height="20"
-                   stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-                <polyline points="20,6 9,17 4,12"/>
-              </svg>
-              <svg v-else-if="getStageStatusClass(stage.stageName) === 'fail'" fill="none" height="20"
-                   stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-                <line x1="18" x2="6" y1="6" y2="18"/>
-                <line x1="6" x2="18" y1="6" y2="18"/>
-              </svg>
-              <svg v-else fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-                <circle cx="12" cy="12" r="10"/>
-              </svg>
-            </div>
-          </div>
-          <div class="stage-card-body">
-            <div class="stage-info">
-              <p class="info-item">
-                <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
-                </svg>
-                실행자: admin
-              </p>
-              <p class="info-item">
-                <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12,6 12,12 16,14"/>
-                </svg>
-                시간: 15:42:01
-              </p>
-              <p class="info-item">
-                <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12,6 12,12 16,14"/>
-                </svg>
-                소요: 30초
-              </p>
-            </div>
-            <button
-              v-if="getStageStatusClass(stage.stageName) === 'fail'"
-              class="retry-btn"
-              @click="handleBuildRestartClick(stage.stageName)"
+      <div class="pipeline-container">
+        <div class="pipeline-flow">
+          <div
+            v-for="(stage, index) in jobDetail.stageList"
+            :key="stage.stageName"
+            class="pipeline-stage"
+          >
+            <div
+              :class="[
+                'stage-box',
+                getEnhancedStageStatus(stage.stageName),
+                { 'current': buildProgress?.currentStage === formatStageName(stage.stageName) }
+              ]"
             >
-              <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-                <polyline points="23,4 23,10 17,10"/>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-              </svg>
-              재시도
-            </button>
+              <div class="stage-icon">
+                <svg v-if="getEnhancedStageStatus(stage.stageName) === 'SUCCESS'" fill="#059669" height="16"
+                     stroke-width="2" viewBox="0 0 24 24" width="16">
+                  <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                </svg>
+                <svg v-else-if="getEnhancedStageStatus(stage.stageName) === 'FAILED'" fill="none" height="16"
+                     stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24" width="16">
+                  <line x1="18" x2="6" y1="6" y2="18"/>
+                  <line x1="6" x2="18" y1="6" y2="18"/>
+                </svg>
+                <svg v-else-if="getEnhancedStageStatus(stage.stageName) === 'IN_PROGRESS'" class="animate-spin"
+                     fill="none"
+                     height="16" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24" width="16">
+                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+                <svg v-else fill="none" height="16" stroke="#000000" stroke-width="2" viewBox="0 0 24 24"
+                     width="16">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12,6 12,12 16,14"/>
+                </svg>
+              </div>
+              <span class="stage-name">{{ formatStageName(stage.stageName) }}</span>
+              <div v-if="getEnhancedStageStatus(stage.stageName) === 'IN_PROGRESS'" class="stage-pulse"></div>
+            </div>
+            <div v-if="index < jobDetail.stageList.length - 1"
+                 :class="['stage-connector', { 'active': getEnhancedStageStatus(stage.stageName) === 'SUCCESS' }]"></div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- 실행 로그 -->
-    <div class="section">
-      <h3 class="section-title">
-        <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14,2 14,8 20,8"/>
-          <line x1="16" x2="8" y1="13" y2="13"/>
-          <line x1="16" x2="8" y1="17" y2="17"/>
-        </svg>
-        최신 실행 로그
-      </h3>
-      <div class="log-container">
+    <div class="section log-section">
+      <div class="log-header">
+        <h3 class="section-title">
+          <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="16" x2="8" y1="13" y2="13"/>
+            <line x1="16" x2="8" y1="17" y2="17"/>
+          </svg>
+          실시간 실행 로그
+        </h3>
+        <div :class="['log-controls',{'expanded':isLogExpanded}]">
+          <button
+            class="log-control-btn"
+            @click="isLogExpanded = !isLogExpanded"
+          >
+            <svg v-if="isLogExpanded" fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                 width="16">
+              <polyline points="4,14 10,14 10,20"/>
+              <polyline points="20,10 14,10 14,4"/>
+              <polyline points="14,10 21,3"/>
+              <polyline points="3,21 10,14"/>
+            </svg>
+            <svg v-else fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+              <polyline points="15,3 21,3 21,9"/>
+              <polyline points="9,21 3,21 3,15"/>
+              <polyline points="21,3 14,10"/>
+              <polyline points="3,21 10,14"/>
+            </svg>
+            {{ isLogExpanded ? '축소' : '확대' }}
+          </button>
+          <div v-if="buildProgress?.isBuilding" class="live-indicator">
+            <div class="live-dot"></div>
+            <span>실시간</span>
+          </div>
+        </div>
+      </div>
+
+      <div :class="['log-container', { 'expanded': isLogExpanded }]">
         <pre class="log-content">{{ streamLogText || '로그가 없습니다.' }}</pre>
+        <div v-if="buildProgress?.isBuilding" class="log-loading">
+          <div class="loading-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -226,6 +310,7 @@ onUnmounted(() => {
         </svg>
         실행 히스토리
       </h3>
+
       <div class="table-container">
         <table class="history-table">
           <thead>
@@ -238,19 +323,64 @@ onUnmounted(() => {
           </tr>
           </thead>
           <tbody>
-          <tr v-for="(build, index) in buildHistory" :key="index">
+          <tr v-for="(build, index) in buildHistory" :key="index" class="history-row">
             <td>{{ formatDate(build.startedAt) }}</td>
-            <td>{{ getUser(build.triggeredBy) }}</td>
             <td>
-                <span :class="getStatusClass(build.status)" class="status-badge">
+              <div class="user-info">
+                <div class="user-avatar">
+                  <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </div>
+                {{ getUser(build.triggeredBy) }}
+              </div>
+            </td>
+            <td>
+                <span :class="['status-badge', getStatusClass(build.status)]">
+                  <svg v-if="build.status === 'SUCCESS'" class="status-icon" fill="none" height="12"
+                       stroke="#059669" stroke-width="2" viewBox="0 0 24 24" width="12">
+                    <polyline points="20,6 9,17 4,12"/>
+                  </svg>
+                  <svg v-else-if="build.status === 'FAILURE'" class="status-icon" fill="none" height="12"
+                       stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24" width="12">
+                    <line x1="18" x2="6" y1="6" y2="18"/>
+                    <line x1="6" x2="18" y1="6" y2="18"/>
+                  </svg>
+                  <svg v-else class="status-icon" fill="none" height="12" stroke="#1F1F1F" stroke-width="2"
+                       viewBox="0 0 24 24" width="12">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12,6 12,12 16,14"/>
+                  </svg>
                   {{ getStatusText(build.status) }}
                 </span>
             </td>
-            <td>{{ build.durationStr }}</td>
-            <td>{{ getTriggerText(build.triggeredBy) }}</td>
+            <td>
+              <div class="duration-info">
+                <svg class="duration-icon" fill="none" height="14" stroke="currentColor" stroke-width="2"
+                     viewBox="0 0 24 24" width="14">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12,6 12,12 16,14"/>
+                </svg>
+                {{ build.durationStr }}
+              </div>
+            </td>
+            <td>
+              <div class="trigger-info">
+                {{ getTriggerText(build.triggeredBy) }}
+              </div>
+            </td>
           </tr>
           <tr v-if="buildHistory.length === 0">
-            <td class="no-data" colspan="5">실행 히스토리가 없습니다.</td>
+            <td class="no-data" colspan="5">
+              <div class="empty-state">
+                <svg fill="none" height="48" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24" width="48">
+                  <path
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p>실행 히스토리가 없습니다.</p>
+              </div>
+            </td>
           </tr>
           </tbody>
         </table>
@@ -270,7 +400,7 @@ onUnmounted(() => {
   background: white;
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   border: 1px solid #e2e8f0;
 }
 
@@ -288,16 +418,125 @@ onUnmounted(() => {
   color: #2563eb;
 }
 
-/* 파이프라인 흐름 */
+/* 빌드 상태 오버뷰 */
+.build-overview {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.build-overview .section-title {
+  color: white;
+}
+
+.build-overview .section-title svg {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.build-status-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.build-status-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.status-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.status-icon {
+  color: white;
+}
+
+.status-info {
+  flex: 1;
+}
+
+.status-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.status-subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 빌드 진행률 */
+.build-progress {
+  margin-top: 16px;
+}
+
+.progress-bar {
+  position: relative;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffffff, #f0f9ff);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progress-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: shimmer 2s infinite;
+}
+
+.progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.progress-percentage {
+  font-weight: 600;
+  color: white;
+}
+
+/* 파이프라인 */
+.pipeline-container {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #f1f5f9;
+}
+
 .pipeline-flow {
-  max-width: 740px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 16px 0;
-  flex-wrap: nowrap;
+  gap: 12px;
   overflow-x: auto;
+  padding: 16px 0;
 }
 
 .pipeline-stage {
@@ -307,35 +546,46 @@ onUnmounted(() => {
 }
 
 .stage-box {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   padding: 16px 20px;
-  border-radius: 8px;
-  background: #f8fafc;
+  border-radius: 12px;
+  background: white;
   border: 2px solid #e2e8f0;
   min-width: 120px;
-  max-width: 120px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
-.stage-box.success {
+.stage-box.current {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.stage-box.SUCCESS {
   border-color: #10b981;
   background: #ecfdf5;
   color: #059669;
 }
 
-.stage-box.fail {
+.stage-box.FAILED {
   border-color: #ef4444;
   background: #fef2f2;
   color: #dc2626;
 }
 
-.stage-box.pending {
+.stage-box.IN_PROGRESS {
   border-color: #f59e0b;
   background: #fffbeb;
   color: #d97706;
+}
+
+.stage-box.PENDING {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
 }
 
 .stage-icon {
@@ -349,132 +599,111 @@ onUnmounted(() => {
   color: white;
 }
 
-.stage-icon svg {
-  color: #059669;
-}
-
 .stage-name {
   font-size: 14px;
   font-weight: 500;
   text-align: center;
 }
 
+.stage-pulse {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 14px;
+}
+
 .stage-connector {
   width: 40px;
-  height: 2px;
+  height: 3px;
   background: #e2e8f0;
   margin: 0 8px;
+  border-radius: 2px;
+  transition: background 0.3s ease;
 }
 
-/* Stage 카드 */
-.stage-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.stage-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 20px;
-  transition: all 0.2s ease;
-}
-
-.stage-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.stage-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.stage-card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.stage-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #e2e8f0;
-  color: #64748b;
-}
-
-.stage-status.success {
+.stage-connector.active {
   background: #10b981;
-  color: white;
 }
 
-.stage-status.fail {
-  background: #ef4444;
-  color: white;
+/* 로그 섹션 */
+.log-section {
+  min-height: 400px;
 }
 
-.stage-status.pending {
-  background: #f59e0b;
-  color: white;
-}
-
-.stage-card-body {
+.log-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
-.stage-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.info-item {
+.log-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #64748b;
-  margin: 0;
+  gap: 12px;
 }
 
-.info-item svg {
-  color: #9ca3af;
-}
-
-.retry-btn {
+.log-control-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  background: #ef4444;
-  color: white;
-  border: none;
+  padding: 8px 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   border-radius: 6px;
   font-size: 14px;
-  font-weight: 500;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.retry-btn:hover {
-  background: #dc2626;
-  transform: translateY(-1px);
+.log-controls.expanded {
+  position: fixed;
+  top: 30px;
+  right: 50px;
+  z-index: 1001;
 }
 
-/* 로그 */
+.log-control-btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.live-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: #dc2626;
+  border-radius: 50%;
+  animation: pulse-dot 1s infinite;
+}
+
 .log-container {
+  position: relative;
   background: #1e293b;
   border-radius: 8px;
   overflow: hidden;
-  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.log-container.expanded {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1000;
+  border-radius: 12px;
 }
 
 .log-content {
@@ -488,16 +717,52 @@ onUnmounted(() => {
   overflow-wrap: break-word;
   word-break: break-all;
   max-width: 100%;
-  max-height: 400px;
+  height: 400px;
   overflow-y: auto;
+  transition: height 0.3s ease;
 }
 
+.log-container.expanded .log-content {
+  height: calc(100vh - 120px);
+}
+
+.log-loading {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.loading-dots .dot {
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: loading-bounce 1.4s infinite ease-in-out both;
+}
+
+.loading-dots .dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dots .dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
 
 /* 히스토리 테이블 */
 .table-container {
-  overflow-x: auto;
+  overflow: hidden;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+  overflow-y: auto;
+  max-height: 500px;
 }
 
 .history-table {
@@ -507,8 +772,11 @@ onUnmounted(() => {
 }
 
 .history-table th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background: #f8fafc;
-  padding: 12px 16px;
+  padding: 16px;
   text-align: left;
   font-size: 14px;
   font-weight: 600;
@@ -516,26 +784,54 @@ onUnmounted(() => {
   border-bottom: 1px solid #e2e8f0;
 }
 
+.history-table tbody td {
+
+  overflow-y: auto;
+  max-height: 500px;
+}
+
 .history-table td {
-  padding: 12px 16px;
+  padding: 16px;
   font-size: 14px;
   color: #1f2937;
   border-bottom: 1px solid #f1f5f9;
 }
 
-.history-table tr:last-child td {
+.history-row {
+  transition: background-color 0.2s ease;
+}
+
+.history-row:hover {
+  background: #f8fafc;
+}
+
+.history-row:last-child td {
   border-bottom: none;
 }
 
-.history-table tr:hover {
-  background: #f8fafc;
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #f1f5f9;
+  border-radius: 50%;
+  color: #64748b;
 }
 
 .status-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 8px;
-  border-radius: 4px;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
@@ -556,13 +852,105 @@ onUnmounted(() => {
   color: #92400e;
 }
 
-.no-data {
-  text-align: center;
+.status-badge .status-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.duration-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+}
+
+.duration-icon {
   color: #9ca3af;
+}
+
+.trigger-info {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: #9ca3af;
+}
+
+.empty-state svg {
+  color: #d1d5db;
+}
+
+.empty-state p {
+  margin: 0;
   font-style: italic;
 }
 
+.no-data {
+  text-align: center;
+}
 
+/* 애니메이션 */
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes loading-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 반응형 */
 @media (max-width: 768px) {
   .container {
     gap: 16px;
@@ -574,30 +962,47 @@ onUnmounted(() => {
 
   .pipeline-flow {
     justify-content: flex-start;
-  }
-
-  .stage-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .stage-card-body {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .retry-btn {
-    align-self: flex-end;
-  }
-
-  .pipeline-flow {
-    flex-wrap: nowrap;
     overflow-x: auto;
+  }
+
+  .stage-box {
+    min-width: 100px;
+    padding: 12px 16px;
+  }
+
+  .log-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .log-controls {
+    justify-content: space-between;
+  }
+
+  .log-container.expanded {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+
+  .build-status-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .progress-info {
+    flex-direction: column;
+    gap: 4px;
+    text-align: center;
   }
 }
 </style>

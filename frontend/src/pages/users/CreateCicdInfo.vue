@@ -733,12 +733,12 @@ const clearError = (field) => {
 }
 
 .btn-primary {
-  background: #2563eb;
+  background: var(--main-color);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--main-color-hover);
 }
 
 .btn-secondary {

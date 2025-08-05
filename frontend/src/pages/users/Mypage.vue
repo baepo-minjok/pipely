@@ -259,13 +259,6 @@ const goToJobList = (id) => {
           </div>
           <h4 class="empty-title">등록된 CI/CD 서버가 없습니다</h4>
           <p class="empty-description">새로운 Jenkins 서버를 추가하여 CI/CD 파이프라인을 시작해보세요.</p>
-          <button class="btn btn-primary" @click="router.push('/mypage/cicd/create')">
-            <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-              <line x1="12" x2="12" y1="5" y2="19"/>
-              <line x1="5" x2="19" y1="12" y2="12"/>
-            </svg>
-            첫 번째 서버 추가하기
-          </button>
         </div>
 
         <div v-else class="cicd-grid">
@@ -303,12 +296,10 @@ const goToJobList = (id) => {
           </div>
         </div>
       </div>
-<!--      <Calendar />-->
+      <!--      <Calendar />-->
       <div class="calendar-section">
-        <BuildCalendar />
+        <BuildCalendar/>
       </div>
-
-
 
 
       <!-- 계정 관리 섹션 -->
@@ -894,6 +885,7 @@ const goToJobList = (id) => {
   margin: 0;
   line-height: 1.5;
 }
+
 .calendar-section {
   margin-bottom: 24px;
 }
