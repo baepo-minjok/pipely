@@ -210,7 +210,7 @@ watch(selectedJenkins, async (id) => {
   if (id) {
     isLoadingJobs.value = true;
     try {
-      await jobApi.fetchJobList(id);
+      await jobStore.fetchJobList(id);
     } finally {
       isLoadingJobs.value = false;
     }
