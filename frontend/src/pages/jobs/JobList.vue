@@ -7,8 +7,10 @@ import {jobApi} from "@/api/JobApi.js";
 import {versionApi} from "@/api/VersionApi.js";
 import VersionList from "@/pages/jobs/VersionList.vue";
 import DeletedJobList from "@/pages/jobs/DeletedJobList.vue";
+import {useUserStore} from "@/stores/useUserStore.js";
 
 const jobStore = useJobStore();
+const userStore = useUserStore();
 
 const router = useRouter();
 const route = useRoute();
@@ -46,10 +48,11 @@ const closeDeletedJobsModal = () => {
 };
 
 const selected = computed(() =>
-  jobStore.jobList.find((j) => j.id === selectedJenkins.value));
+  userStore.userInfo.infoList.find((info) => info.id === selectedJenkins.value));
 
 const handleCreateClick = () => {
-  if (selected.value) {
+  console.log(selected);
+  if (selectedJenkins.value) {
     router.push({
       name: 'CreateJob',
       query: {
