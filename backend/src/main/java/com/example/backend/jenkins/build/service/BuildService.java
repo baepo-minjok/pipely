@@ -7,6 +7,7 @@ import com.example.backend.jenkins.build.model.dto.BuildResponseDto;
 import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.job.service.PipelineService;
+import com.example.backend.service.BuildPollingService;
 import com.example.backend.service.HttpClientService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,18 +21,12 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URI;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 @Slf4j
 @Service
@@ -40,11 +35,8 @@ public class BuildService {
 
     private final HttpClientService httpClientService;
     private final PipelineService pipelineService;
-    private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
-
-
-    private final Map<String, Future<?>> pollingTasks = new ConcurrentHashMap<>();
+    private final BuildPollingService pollingManager;
 
     // ────────────────────────────────────────────────────────────────
     // 1. 파이프라인 트리거
@@ -116,22 +108,6 @@ public class BuildService {
             log.error("콘솔 로그 조회 실패 - jobName: {}", pipeline.getName(), e);
             throw new CustomException(ErrorCode.JENKINS_CONSOLE_LOG_PARSE_ERROR);
         }
-    }
-
-    /**
-     * 실시간 빌드 로그(progressiveText)를 조회한다.
-     */
-    public BuildResponseDto.BuildStreamLogDto getStreamLog(UUID jobId) {
-        Pipeline pipeline = getPipeline(jobId);
-        JenkinsInfo info = pipeline.getJenkinsInfo();
-
-        int lastBuildNumber = fetchLastBuildNumber(info, pipeline.getName());
-        URI logUri = UriComponentsBuilder
-                .fromHttpUrl(info.getUri() + "/job/" + pipeline.getName() + "/" + lastBuildNumber + "/logText/progressiveText")
-                .build().toUri();
-        HttpHeaders logHeaders = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
-        String logResponse = httpClientService.exchange(logUri.toString(), HttpMethod.GET, new HttpEntity<>(logHeaders), String.class);
-        return BuildResponseDto.BuildStreamLogDto.getStreamLog(logResponse);
     }
 
     // ────────────────────────────────────────────────────────────────
@@ -250,10 +226,12 @@ public class BuildService {
     // 5. 빌드 상태, 중단 및 실시간 로그 전송
     // ────────────────────────────────────────────────────────────────
 
-    public void stopBuild(UUID jobId, int buildNumber) {
+    public void stopBuild(UUID jobId) {
         Pipeline pipeline = getPipeline(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
+
+        int buildNumber = fetchLastBuildNumber(info, pipeline.getName());
 
         httpClientService.exchange(
                 info.getUri() + "/job/" + pipeline.getName() + "/" + buildNumber + "/stop",
@@ -291,6 +269,7 @@ public class BuildService {
         String status = convertJenkinsStatus(root.path("status").asText());
 
         return BuildResponseDto.BuildStatusDto.builder()
+                .id(jobId)
                 .status(status)
                 .stages(stageList)
                 .log(log)
@@ -334,59 +313,9 @@ public class BuildService {
      * 빌드 상태를 주기적으로 프론트로 전송 (실시간 진행률).
      */
     public void sendLog(UUID jobId, int buildNumber, String email) {
-        String key = jobId.toString();
-
-        if (pollingTasks.containsKey(key) && !pollingTasks.get(key).isDone()) {
-            log.info("Polling already running for {} (jobId={}, buildNumber={})", key, jobId, buildNumber);
-            return;
-        }
-
-        Future<?> future = Executors.newSingleThreadExecutor().submit(() -> {
-            try {
-                boolean running = true;
-                int waitCount = 0;
-                int maxWaitCount = 10;
-                int sleepMs = 1500;
-                while (running) {
-                    BuildResponseDto.BuildStatusDto dto;
-                    try {
-                        dto = viewBuild(jobId, buildNumber);
-                    } catch (Exception e) {
-                        dto = null;
-                    }
-
-                    if (dto == null) {
-                        if (++waitCount > maxWaitCount) {
-                            messagingTemplate.convertAndSendToUser(
-                                    email, "/queue/build",
-                                    BuildResponseDto.BuildStatusDto.builder()
-                                            .status("QUEUE_TIMEOUT")
-                                            .stages(Collections.emptyList())
-                                            .log("빌드가 너무 오래 대기 중입니다.")
-                                            .build()
-                            );
-                            break;
-                        }
-                        sleep(sleepMs);
-                        continue;
-                    }
-
-                    messagingTemplate.convertAndSendToUser(email, "/queue/build", dto);
-                    if (dto.isFinished()) running = false;
-                    sleep(sleepMs);
-                }
-            } finally {
-                pollingTasks.remove(key);
-            }
-        });
-
-        pollingTasks.put(key, future);
-    }
-
-    private void sleep(int ms) {
-        try {
-            Thread.sleep(ms);
-        } catch (InterruptedException ignored) {
-        }
+        pollingManager.sendLog(
+                jobId, buildNumber, email,
+                this::viewBuild // 기존 viewBuild()를 람다로 넘김
+        );
     }
 }

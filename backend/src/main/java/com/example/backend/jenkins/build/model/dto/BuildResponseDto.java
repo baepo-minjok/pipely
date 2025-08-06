@@ -162,6 +162,7 @@ public class BuildResponseDto {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class BuildStatusDto {
+        private UUID id;
         private String status;
         private List<Map<String, String>> stages;
         private String log;

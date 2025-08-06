@@ -1,5 +1,5 @@
 <script setup>
-import {computed, onMounted, onUnmounted, ref} from 'vue';
+import {computed, defineProps, onMounted, onUnmounted, ref, toRefs} from 'vue';
 import {buildApi} from '@/api/BuildApi';
 import {
   formatDate,
@@ -11,61 +11,75 @@ import {
   getUser,
 } from '@/utils/formatBuild';
 import {useJobStore} from "@/stores/useJobStore.js";
-import {useBuildStore} from "@/stores/useBuildStore.js";
 
-const buildStore = useBuildStore();
 const jobStore = useJobStore();
-const jobDetail = jobStore.jobDetail;
-const jobId = jobDetail.pipelineId;
+// const jobDetail = jobStore.jobDetail;
+// const jobId = jobDetail.pipelineId;
 const buildHistory = ref([]);
 const isLogExpanded = ref(false);
 let intervalId = null;
 
-// 현재 빌드 상태 계산
-const currentBuildStatus = computed(() => {
-  return buildStore.buildProgress.status || 'BUILD_PENDING';
+const props = defineProps({
+  job: {
+    type: Object,
+    required: true
+  },
+  jobDetail: {
+    type: Object,
+    required: true
+  }
 });
 
-// 현재 진행률 계산
+const {job, jobDetail} = toRefs(props);
+
+// jobStore에서 실시간 상태 가져오기
+const currentJobState = computed(() => {
+  return jobStore.getJobBuildState(jobDetail.value.pipelineId);
+});
+
+// 현재 빌드 상태 계산 수정
+const currentBuildStatus = computed(() => {
+  return currentJobState.value.buildState || 'BUILD_PENDING';
+});
+
+// 현재 진행률 계산 수정
 const buildProgressPercentage = computed(() => {
-  if (buildStore.buildProgress.isBuilding && buildStore.buildProgress.status === 'BUILD_RUNNING') {
-    return Math.min(Math.max(buildStore.buildProgress.progress || 0, 0), 100);
+  if (jobStore.isBuilding && currentBuildStatus.value === 'BUILD_RUNNING') {
+    return Math.min(Math.max(currentJobState.value.buildProgress.progress || 0, 0), 100);
   }
   return 0;
 });
 
-// 스테이지별 상태 계산
+// 스테이지별 상태 계산 수정
 const getEnhancedStageStatus = (stageName) => {
-  const baseStatus = getStageStatusClass(stageName, buildStore.buildProgress.stages);
-
+  const baseStatus = getStageStatusClass(stageName, currentJobState.value.buildProgress.stages);
   // 현재 실행 중인 스테이지 확인
-  if (buildStore.buildProgress.currentStage === stageName && buildStore.buildProgress.isBuilding) {
+  if (currentJobState.value.buildProgress.currentStage === stageName && jobStore.isBuilding) {
     return 'running';
   }
-
+  // BUILD_WAITING 상태 처리
+  if (currentBuildStatus.value === 'BUILD_WAITING') {
+    return 'WAITING';
+  }
   return baseStatus;
 };
 
 const getBuildAllHistory = async () => {
-  const response = await buildApi.getBuildAllHistory(jobId);
+  const response = await buildApi.getBuildAllHistory(jobDetail.value.pipelineId);
   if (response.status === 200) {
     buildHistory.value = [...response.data.data];
   }
-  console.log(buildHistory.value);
 };
 
 const handleBuildRestartClick = async (excludedStageName) => {
-  if (!jobDetail?.stageList) return;
-
-  const includedStages = jobDetail.stageList
+  if (!jobDetail.value?.stageList) return;
+  const includedStages = jobDetail.value.stageList
     .filter((stage) => stage.stageName !== excludedStageName)
     .map((stage) => stage.stageName);
-
   const requestBody = {
-    jobId: jobId,
+    jobId: jobDetail.value.pipelineId,
     stageBuilds: includedStages,
   };
-
   const response = await buildApi.triggerBuildStages(requestBody);
   if (response.status === 200) {
     console.log('✅ 특정 스테이지 실행 요청 성공', response.data);
@@ -73,7 +87,6 @@ const handleBuildRestartClick = async (excludedStageName) => {
     console.error('❌ 특정 스테이지 실행 요청 실패');
   }
 };
-
 
 onMounted(async () => {
   await getBuildAllHistory();
@@ -107,6 +120,12 @@ onUnmounted(() => {
                  stroke="#d97706" stroke-width="2" viewBox="0 0 24 24" width="24">
               <path d="M21 12a9 9 0 11-6.219-8.56"/>
             </svg>
+            <svg v-else-if="currentBuildStatus === 'BUILD_WAITING'" class="status-icon animate-waiting" fill="none"
+                 height="24"
+                 stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24" width="24">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
             <svg v-else-if="currentBuildStatus === 'BUILD_SUCCESS'" class="status-icon" fill="none" height="24"
                  stroke="#059669" stroke-width="4" viewBox="0 0 24 24" width="24">
               <polyline points="20,6 9,17 4,12"/>
@@ -131,20 +150,24 @@ onUnmounted(() => {
             <div class="status-title">
               {{
                 currentBuildStatus === 'BUILD_RUNNING' ? '빌드 실행 중' :
-                  currentBuildStatus === 'BUILD_SUCCESS' ? '빌드 성공' :
-                    currentBuildStatus === 'BUILD_FAILURE' ? '빌드 실패' :
-                      currentBuildStatus === 'BUILD_STOPPING' ? '빌드 중단 중' :
-                        currentBuildStatus === 'BUILD_ABORTED' ? '빌드 중단됨' : '대기 중'
+                  currentBuildStatus === 'BUILD_WAITING' ? '빌드 대기 중' :
+                    currentBuildStatus === 'BUILD_SUCCESS' ? '빌드 성공' :
+                      currentBuildStatus === 'BUILD_FAILURE' ? '빌드 실패' :
+                        currentBuildStatus === 'BUILD_STOPPING' ? '빌드 중단 중' :
+                          currentBuildStatus === 'BUILD_ABORTED' ? '빌드 중단됨' : '대기 중'
               }}
             </div>
             <div class="status-subtitle">
-              {{ buildStore.buildProgress.currentStage || '상태 정보 없음' }}
+              {{
+                currentBuildStatus === 'BUILD_WAITING' ? '빌드 시작을 기다리고 있습니다...' :
+                  currentJobState.buildProgress.currentStage || '상태 정보 없음'
+              }}
             </div>
           </div>
         </div>
 
         <!-- 진행률 바 (실행 중일 때만 표시) -->
-        <div v-if="buildStore.buildProgress.isBuilding && currentBuildStatus === 'BUILD_RUNNING'"
+        <div v-if="jobStore.isBuilding && currentBuildStatus === 'BUILD_RUNNING'"
              class="build-progress">
           <div class="progress-bar">
             <div
@@ -170,7 +193,6 @@ onUnmounted(() => {
         </svg>
         파이프라인 단계
       </h3>
-
       <div class="pipeline-container">
         <div class="pipeline-flow">
           <div
@@ -182,7 +204,7 @@ onUnmounted(() => {
               :class="[
                 'stage-box',
                 getEnhancedStageStatus(stage.stageName),
-                { 'current': buildStore.buildProgress.currentStage === formatStageName(stage.stageName) }
+                { 'current': currentJobState.buildProgress.currentStage === formatStageName(stage.stageName) }
               ]"
             >
               <div class="stage-icon">
@@ -200,6 +222,11 @@ onUnmounted(() => {
                      height="16" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24" width="16">
                   <path d="M21 12a9 9 0 11-6.219-8.56"/>
                 </svg>
+                <svg v-else-if="getEnhancedStageStatus(stage.stageName) === 'WAITING'" class="animate-waiting"
+                     fill="none" height="16" stroke="#2563eb" stroke-width="2" viewBox="0 0 24 24" width="16">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12,6 12,12 16,14"/>
+                </svg>
                 <svg v-else fill="none" height="16" stroke="#000000" stroke-width="2" viewBox="0 0 24 24"
                      width="16">
                   <circle cx="12" cy="12" r="10"/>
@@ -208,6 +235,7 @@ onUnmounted(() => {
               </div>
               <span class="stage-name">{{ formatStageName(stage.stageName) }}</span>
               <div v-if="getEnhancedStageStatus(stage.stageName) === 'IN_PROGRESS'" class="stage-pulse"></div>
+              <div v-if="getEnhancedStageStatus(stage.stageName) === 'WAITING'" class="stage-waiting-pulse"></div>
             </div>
             <div v-if="index < jobDetail.stageList.length - 1"
                  :class="['stage-connector', { 'active': getEnhancedStageStatus(stage.stageName) === 'SUCCESS' }]"></div>
@@ -248,16 +276,19 @@ onUnmounted(() => {
             </svg>
             {{ isLogExpanded ? '축소' : '확대' }}
           </button>
-          <div v-if="buildStore.buildProgress.isBuilding" class="live-indicator">
+          <div v-if="jobStore.isBuilding || currentBuildStatus === 'BUILD_WAITING'" class="live-indicator">
             <div class="live-dot"></div>
-            <span>실시간</span>
+            <span>{{ currentBuildStatus === 'BUILD_WAITING' ? '대기 중' : '실시간' }}</span>
           </div>
         </div>
       </div>
-
       <div :class="['log-container', { 'expanded': isLogExpanded }]">
-        <pre class="log-content">{{ buildStore.buildProgress.log || '로그가 없습니다.' }}</pre>
-        <div v-if="buildStore.buildProgress.isBuilding" class="log-loading">
+        <pre class="log-content">{{
+            currentBuildStatus === 'BUILD_WAITING' ?
+              '빌드 시작을 기다리고 있습니다...\n시스템에서 빌드 큐를 처리 중입니다.' :
+              currentJobState.buildProgress.log || '로그가 없습니다.'
+          }}</pre>
+        <div v-if="jobStore.isBuilding || currentBuildStatus === 'BUILD_WAITING'" class="log-loading">
           <div class="loading-dots">
             <div class="dot"></div>
             <div class="dot"></div>
@@ -276,7 +307,6 @@ onUnmounted(() => {
         </svg>
         실행 히스토리
       </h3>
-
       <div class="table-container">
         <table class="history-table">
           <thead>
@@ -405,6 +435,11 @@ onUnmounted(() => {
   padding: 20px;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.build-status-card.build_waiting {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(147, 197, 253, 0.3);
 }
 
 .build-status-header {
@@ -548,6 +583,12 @@ onUnmounted(() => {
   color: #d97706;
 }
 
+.stage-box.WAITING {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
 .stage-box.PENDING {
   border-color: #e2e8f0;
   background: #f8fafc;
@@ -572,6 +613,15 @@ onUnmounted(() => {
 }
 
 .stage-pulse {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 14px;
+}
+
+.stage-waiting-pulse {
   position: absolute;
   top: -4px;
   left: -4px;
@@ -644,6 +694,10 @@ onUnmounted(() => {
   font-size: 12px;
   color: #dc2626;
   font-weight: 500;
+}
+
+.live-indicator:has(.live-dot) {
+  color: #2563eb;
 }
 
 .live-dot {
@@ -751,7 +805,6 @@ onUnmounted(() => {
 }
 
 .history-table tbody td {
-
   overflow-y: auto;
   max-height: 500px;
 }
@@ -871,7 +924,6 @@ onUnmounted(() => {
   }
 }
 
-
 @keyframes pulse-dot {
   0%, 100% {
     opacity: 1;
@@ -887,6 +939,28 @@ onUnmounted(() => {
   }
   40% {
     transform: scale(1);
+  }
+}
+
+@keyframes waiting-stage-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes animate-waiting {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
   }
 }
 
@@ -914,6 +988,10 @@ onUnmounted(() => {
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-waiting {
+  animation: animate-waiting 2s ease-in-out infinite;
 }
 
 /* 반응형 */

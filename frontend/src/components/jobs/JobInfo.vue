@@ -1,5 +1,5 @@
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
+import {computed, onMounted, reactive, ref, toRefs} from 'vue';
 import KubernetesInput from '@/components/jobs/KubernetesInput.vue';
 import EC2Input from '@/components/jobs/EC2Input.vue';
 import {formatSchedule} from '@/utils/formatSchedule.js';
@@ -7,22 +7,37 @@ import {jobApi} from "@/api/JobApi.js";
 import {useJobStore} from '@/stores/useJobStore';
 
 const emit = defineEmits(['update:jobDetail']);
+
 const props = defineProps({
-  buildProgress: Object
+  job: {
+    type: Object,
+    required: true
+  },
+  jobDetail: {
+    type: Object,
+    required: true
+  }
 });
 
+const {job, jobDetail} = toRefs(props);
+
 const jobStore = useJobStore();
-const jobDetail = jobStore.jobDetail;
-const jobId = jobDetail.pipelineId;
-const scriptText = jobStore.scriptText;
-const selectedItem = jobStore.selectedItem;
+const scriptText = computed(() => jobStore.scriptText);
+const selectedItem = computed(() => jobStore.selectedItem);
 
 const isEditing = ref(false);
 const isLoading = ref(false);
 
-// 현재 빌드 상태 계산
+// jobStore에서 실시간 빌드 상태 가져오기
+const currentJobState = computed(() => {
+  return jobStore.getJobBuildState(jobDetail.value.pipelineId);
+});
+
+// 현재 빌드 상태 계산 수정
 const isJobRunning = computed(() => {
-  return props.buildProgress?.status === 'BUILD_RUNNING';
+  return currentJobState.value.buildState === 'BUILD_RUNNING' ||
+    currentJobState.value.buildState === 'BUILD_WAITING' ||
+    currentJobState.value.buildState === 'BUILD_STOPPING';
 });
 
 // 폼 유효성 검사
@@ -154,7 +169,7 @@ const weekdays = [
 ];
 
 const hasDeploy = computed(() => {
-  const dto = jobDetail.lightScriptDto;
+  const dto = jobDetail.value.lightScriptDto;
   return dto?.isK8sDeploy || dto?.isEc2Deploy;
 });
 
@@ -216,25 +231,29 @@ const toggleDay = (day) => {
 
 // 변수 초기화
 const init = () => {
-  editableData.name = jobDetail.name || '';
-  editableData.description = jobDetail.description || '';
-  editableData.trigger = jobDetail.trigger || false;
-  editableData.notifications.isDiscordChecked = !!jobDetail.notificationList?.discord;
-  editableData.notifications.isSlackChecked = !!jobDetail.notificationList?.slack;
-  if (jobDetail.notificationList?.discord) {
-    editableData.notifications.discord = {...jobDetail.notificationList.discord};
+  editableData.name = jobDetail.value.name || '';
+  editableData.description = jobDetail.value.description || '';
+  editableData.trigger = jobDetail.value.trigger || false;
+  editableData.notifications.isDiscordChecked = !!jobDetail.value.notificationList?.discord;
+  editableData.notifications.isSlackChecked = !!jobDetail.value.notificationList?.slack;
+
+  if (jobDetail.value.notificationList?.discord) {
+    editableData.notifications.discord = {...jobDetail.value.notificationList.discord};
   }
-  if (jobDetail.notificationList?.slack) {
-    editableData.notifications.slack = {...jobDetail.notificationList.slack};
+  if (jobDetail.value.notificationList?.slack) {
+    editableData.notifications.slack = {...jobDetail.value.notificationList.slack};
   }
-  if (jobDetail.lightScriptDto) {
-    Object.assign(editableData.scriptData, jobDetail.lightScriptDto);
-    editableData.scriptData.isDeploySelected = jobDetail.lightScriptDto.isK8sDeploy || jobDetail.lightScriptDto.isEc2Deploy;
+
+  if (jobDetail.value.lightScriptDto) {
+    Object.assign(editableData.scriptData, jobDetail.value.lightScriptDto);
+    editableData.scriptData.isDeploySelected = jobDetail.value.lightScriptDto.isK8sDeploy || jobDetail.value.lightScriptDto.isEc2Deploy;
   }
-  editableData.scriptText = scriptText || '';
-  editableData.schedule = parseSchedule(jobDetail.schedule);
-  if (selectedItem) {
-    editableData.selectedItem = selectedItem;
+
+  editableData.scriptText = scriptText.value || '';
+  editableData.schedule = parseSchedule(jobDetail.value.schedule);
+
+  if (selectedItem.value) {
+    editableData.selectedItem = selectedItem.value;
   }
 };
 
@@ -253,7 +272,7 @@ const cancelEditing = () => {
 const saveWithProgress = async () => {
   isLoading.value = true;
   const jobData = {
-    pipelineId: jobId,
+    pipelineId: jobDetail.value.pipelineId,
     scriptId: editableData.scriptData.scriptId,
     name: editableData.name,
     description: editableData.description,
@@ -264,9 +283,8 @@ const saveWithProgress = async () => {
 
   try {
     const response = await jobApi.updateJob(jobData);
-    Object.assign(jobDetail, {...jobDetail, ...jobData});
-    jobStore.resetJobDetail();
-    await jobStore.fetchJobDetail(jobId);
+    Object.assign(jobDetail.value, {...jobDetail.value, ...jobData});
+    await jobStore.fetchJobDetail(jobDetail.value.pipelineId);
     init();
     isEditing.value = false;
     // 성공 토스트 메시지 (실제 구현에서는 toast 라이브러리 사용)
@@ -310,14 +328,35 @@ onMounted(() => {
     <div v-if="isJobRunning" class="running-banner">
       <div class="banner-content">
         <div class="banner-icon">
-          <svg class="animate-spin" fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-               width="20">
+          <svg v-if="currentJobState.buildState === 'BUILD_RUNNING'" class="animate-spin" fill="none" height="20"
+               stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
             <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          </svg>
+          <svg v-else-if="currentJobState.buildState === 'BUILD_WAITING'" class="animate-waiting" fill="none"
+               height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12,6 12,12 16,14"/>
+          </svg>
+          <svg v-else-if="currentJobState.buildState === 'BUILD_STOPPING'" class="animate-pulse" fill="none" height="20"
+               stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
+            <circle cx="12" cy="12" r="10"/>
+            <rect height="6" rx="1" ry="1" width="6" x="9" y="9"/>
           </svg>
         </div>
         <div class="banner-text">
-          <div class="banner-title">Job 실행 중</div>
-          <div class="banner-subtitle">현재 이 Job이 실행 중입니다. 편집이 제한될 수 있습니다.</div>
+          <div class="banner-title">
+            {{
+              currentJobState.buildState === 'BUILD_RUNNING' ? 'Job 실행 중' :
+                currentJobState.buildState === 'BUILD_WAITING' ? 'Job 대기 중' :
+                  currentJobState.buildState === 'BUILD_STOPPING' ? 'Job 중단 중' : 'Job 실행 중'
+            }}
+          </div>
+          <div class="banner-subtitle">
+            {{
+              currentJobState.buildState === 'BUILD_WAITING' ? '빌드 시작을 기다리고 있습니다. 편집이 제한됩니다.' :
+                '현재 이 Job이 실행 중입니다. 편집이 제한될 수 있습니다.'
+            }}
+          </div>
         </div>
       </div>
     </div>
@@ -335,7 +374,6 @@ onMounted(() => {
           Job 기본 정보
         </h3>
       </div>
-
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">
@@ -363,7 +401,6 @@ onMounted(() => {
             </div>
           </div>
         </div>
-
         <div class="form-group full-width">
           <label class="form-label">설명</label>
           <div class="input-wrapper">
@@ -401,7 +438,6 @@ onMounted(() => {
           {{ jobDetail.trigger ? '활성화' : '비활성화' }}
         </div>
       </div>
-
       <div class="toggle-group">
         <label class="enhanced-toggle">
           <input
@@ -426,6 +462,7 @@ onMounted(() => {
         </label>
       </div>
     </div>
+
     <!-- 알림 설정 -->
     <div class="section">
       <h3 class="section-title">
@@ -581,7 +618,6 @@ onMounted(() => {
           <span class="slider"></span>
         </label>
       </h3>
-
       <div v-if="!isEditing" class="form-group">
         <label class="form-label">현재 스케줄</label>
         <div class="schedule-display">
@@ -592,7 +628,6 @@ onMounted(() => {
           <span>{{ jobDetail.schedule || '스케줄이 설정되지 않았습니다' }}</span>
         </div>
       </div>
-
       <div v-else-if="editableData.schedule.enabled" class="schedule-config">
         <!-- 반복 유형 -->
         <div class="form-row">
@@ -602,7 +637,6 @@ onMounted(() => {
             <option value="weekly">매주</option>
           </select>
         </div>
-
         <!-- 요일 선택 (매주일 때만 표시) -->
         <div v-if="editableData.schedule.repeatType === 'weekly'" class="form-row">
           <label class="form-label">요일</label>
@@ -618,13 +652,11 @@ onMounted(() => {
             </button>
           </div>
         </div>
-
         <!-- 시간 선택 -->
         <div class="form-row">
           <label class="form-label">시간</label>
           <input v-model="editableData.schedule.time" class="form-input" type="time"/>
         </div>
-
         <!-- 미리보기 -->
         <div class="schedule-preview">
           <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
@@ -634,7 +666,6 @@ onMounted(() => {
           <span>현재 설정: {{ schedulePreview }}</span>
         </div>
       </div>
-
       <div v-else-if="isEditing" class="schedule-disabled">
         <p class="disabled-text">스케줄이 비활성화되어 있습니다. 위의 토글을 활성화하여 스케줄을 설정하세요.</p>
       </div>
@@ -794,7 +825,6 @@ onMounted(() => {
             spellcheck="false"
           ></textarea>
         </div>
-
         <button
           v-if="isEditing"
           :disabled="isScriptGenerating"
@@ -857,7 +887,6 @@ onMounted(() => {
           </button>
         </template>
       </div>
-
       <!-- 유효성 검사 메시지 -->
       <div v-if="isEditing && !isFormValid" class="validation-message">
         <svg fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
@@ -940,6 +969,21 @@ onMounted(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+@keyframes animate-waiting {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+.animate-waiting {
+  animation: animate-waiting 2s ease-in-out infinite;
 }
 
 .section {
@@ -1458,6 +1502,16 @@ onMounted(() => {
   padding: 16px 20px;
   margin-bottom: 24px;
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.running-banner.waiting {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.running-banner.stopping {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
 }
 
 .banner-content {

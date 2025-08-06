@@ -9,6 +9,7 @@ import VersionList from "@/pages/jobs/VersionList.vue";
 import DeletedJobList from "@/pages/jobs/DeletedJobList.vue";
 
 const jobStore = useJobStore();
+
 const router = useRouter();
 const route = useRoute();
 const selectedJenkins = ref(route.query.id || '');
@@ -17,8 +18,8 @@ const openDropdownJob = ref(null);
 // 로딩 상태 추가
 const isLoadingJobs = ref(false);
 
-// polling Map
-const pollingMap = new Map();
+// polling list
+const pollingList = ref([]);
 
 // 모달 상태들
 const showSnapshotListModal = ref(false);
@@ -45,7 +46,7 @@ const closeDeletedJobsModal = () => {
 };
 
 const selected = computed(() =>
-  jobStore.jenkinsInfo.find((j) => j.id === selectedJenkins.value));
+  jobStore.jobList.find((j) => j.id === selectedJenkins.value));
 
 const handleCreateClick = () => {
   if (selected.value) {
@@ -65,91 +66,31 @@ const handleViewDeletedJobs = () => {
   showDeletedJobsModal.value = true;
 };
 
-// 공통 polling 함수
-const startPolling = (job, buildNumber) => {
-  let retryCount = 0;
-  const maxRetries = 20;
-  let progressSimulation = job.progress || 0;
 
-  const intervalId = setInterval(async () => {
-    try {
-      const res = await jobApi.getBuildStatus(job.pipelineId, buildNumber);
-      const status = res.data?.data;
-
-      if (status !== "SUCCESS" && status !== "FAILURE" && status !== "ABORTED") {
-        progressSimulation += Number(status);
-        job.progress = Math.min(progressSimulation, 99);
-      }
-
-      if (status === "SUCCESS" || status === "FAILURE" || status === "ABORTED") {
-        clearInterval(intervalId);
-        pollingMap.delete(job.pipelineId);
-        job.progress = status === "SUCCESS" ? 100 : 0;
-
-        if (status === "SUCCESS") {
-          job.buildState = "BUILD_SUCCESS";
-        } else if (status === "FAILURE") {
-          job.buildState = "BUILD_FAILURE";
-        } else if (status === "ABORTED") {
-          job.buildState = "BUILD_ABORTED";
-        }
-      }
-
-      retryCount = 0;
-    } catch (err) {
-      retryCount++;
-      if (retryCount >= maxRetries) {
-        clearInterval(intervalId);
-        pollingMap.delete(job.pipelineId);
-        job.buildState = "BUILD_FAILURE";
-        job.progress = 0;
-      }
-    }
-  }, 3000);
-
-  pollingMap.set(job.pipelineId, {intervalId, buildNumber});
-};
-
-// 빌드 실행 후 polling 시작
 const handleJobAction = async (job) => {
-  try {
-    const response = await jobApi.buildJob({
-      stageBuilds: [],
-      jobId: job.pipelineId
-    });
 
-    job.buildState = "BUILD_RUNNING";
-    job.progress = 0;
-    const buildNumber = response.data?.data;
-    startPolling(job, buildNumber);
+  try {
+    await jobStore.fetchJobDetail(job.pipelineId);
+    await jobStore.getBuildInfo(job.pipelineId, true);
   } catch (error) {
+    console.error('Job action failed:', error);
     alert("빌드 트리거 요청에 실패했습니다.\n다시 시도해주세요.");
   }
 };
 
+function removePollingId(pipelineId) {
+  const idx = pollingList.value.indexOf(pipelineId);
+  if (idx > -1) pollingList.value.splice(idx, 1);
+}
+
 const handleJobStop = async (job) => {
-  const pollingData = pollingMap.get(job.pipelineId);
-  if (!pollingData) {
-    console.log(`No polling found for job ${job.name}`);
-    return;
-  }
-
-  const {intervalId, buildNumber} = pollingData;
-
-  // 중단 중 상태로 변경
-  job.buildState = "BUILD_STOPPING";
 
   try {
-    await jobApi.stopBuild(job.pipelineId, buildNumber);
-    clearInterval(intervalId);
-    pollingMap.delete(job.pipelineId);
-    job.buildState = "BUILD_ABORTED";
-    job.progress = 0;
-    alert("중단되었습니다.")
+    await jobStore.stopBuild(job.pipelineId);
+    alert("빌드가 중단되었습니다.");
   } catch (err) {
-    // 중단 실패 시 다시 실행 중으로 되돌림
-    job.buildState = "BUILD_RUNNING";
-    alert("서버에서 빌드 중단에 실패했습니다.");
+    console.error('Build stop failed:', err);
+    alert("빌드 중단에 실패했습니다.");
   }
 };
 
@@ -214,7 +155,6 @@ const confirmSaveSnapshot = async () => {
 };
 
 const handleViewSnapshots = (job) => {
-  console.log('View snapshots for job:', job.pipelineId);
   openDropdownJob.value = null;
   snapshotListTargetJobId.value = job.pipelineId;
   showSnapshotListModal.value = true;
@@ -268,15 +208,6 @@ watch(selectedJenkins, async (id) => {
     isLoadingJobs.value = true;
     try {
       await jobApi.fetchJobList(id);
-      // 빌드 진행중인 Job 감지 후 polling 재시작
-      for (const job of jobStore.jobList) {
-        console.log(job);
-        if (job.buildState === "BUILD_RUNNING") {
-          console.log(job.buildState);
-          const buildNumber = await jobApi.getCurrentBuildNumber(job.pipelineId);
-          startPolling(job, buildNumber);
-        }
-      }
     } finally {
       isLoadingJobs.value = false;
     }
@@ -285,7 +216,6 @@ watch(selectedJenkins, async (id) => {
 });
 
 const onRollback = async (snap) => {
-  console.log('onRollback:', snap);
   const response = await versionApi.rollbackSnapshot(snap.versionId);
   if (response) {
     alert("해당 버전으로 복구되었습니다!");
@@ -324,7 +254,6 @@ const confirmRename = async () => {
     return;
   }
 
-  console.log(renameTargetSnapshot);
   isRenaming.value = true;
   try {
     await versionApi.renameVersion({
@@ -339,7 +268,6 @@ const confirmRename = async () => {
     closeRenameModal();
   }
 };
-
 const onJobRestored = async () => {
   if (selectedJenkins.value) {
     await jobApi.fetchJobList(selectedJenkins.value);
@@ -356,17 +284,7 @@ onMounted(async () => {
     selectedJenkins.value = route.query.id;
     isLoadingJobs.value = true;
     try {
-      await jobApi.fetchJobList(selectedJenkins.value);
-
-      // 빌드 진행중인 Job 감지 후 polling 재시작
-      for (const job of jobStore.jobList) {
-        console.log(job);
-        if (job.buildState === "BUILD_RUNNING") {
-          console.log(job.buildState);
-          const buildNumber = await jobApi.getCurrentBuildNumber(job.pipelineId);
-          startPolling(job, buildNumber);
-        }
-      }
+      await jobStore.fetchJobList(selectedJenkins.value);
     } finally {
       isLoadingJobs.value = false;
     }

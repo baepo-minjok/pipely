@@ -4,7 +4,7 @@ import {useRouter} from 'vue-router';
 import {userApi} from "@/api/UserApi.js";
 import {useUserStore} from "@/stores/useUserStore.js"
 import SessionWarningModal from "@/components/modal/SessionWarningModal.vue";
-import {useBuildStore} from "@/stores/useBuildStore.js";
+import {useJobStore} from "@/stores/useJobStore.js";
 
 const router = useRouter();
 const showMenu = ref(false);
@@ -19,10 +19,10 @@ let timer = null;
 const email = ref("");
 const name = ref("");
 const isLoggedIn = ref(false);
-const buildStore = useBuildStore();
+const jobStore = useJobStore();
 
 // 알림 관리 변수
-const noti = computed(() => buildStore.alertMessage.length);
+const noti = computed(() => jobStore.alertMessage.length);
 
 // 모달 상태 관리
 const showSessionWarning = ref(false);
@@ -124,12 +124,12 @@ const handleNotificationClick = () => {
 
 // 개별 알림 삭제
 const removeNotification = (index) => {
-  buildStore.removeAlert(index);
+  jobStore.removeAlert(index);
 };
 
 // 모든 알림 삭제
 const clearAllNotifications = () => {
-  buildStore.clearAllAlerts();
+  jobStore.clearAllAlerts();
   showNotifications.value = false;
 };
 
@@ -220,13 +220,14 @@ onMounted(() => {
     isLoggedIn.value = true;
     fetchUser();
   }
-  buildStore.connect();
+  jobStore.connect();
 });
 
 onBeforeUnmount(() => {
   clearInterval(timer);
   document.removeEventListener('click', handleClickOutside);
   document.removeEventListener('keydown', handleKeydown);
+  jobStore.disconnect();
 });
 </script>
 
@@ -276,7 +277,7 @@ onBeforeUnmount(() => {
                 <!-- 알림이 있을 때 -->
                 <div v-if="noti > 0" class="notification-list">
                   <div
-                    v-for="(alert, index) in buildStore.alertMessage"
+                    v-for="(alert, index) in jobStore.alertMessage"
                     :key="index"
                     :class="['notification-item', getNotificationStyle(alert.state).class]"
                   >
