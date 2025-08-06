@@ -126,8 +126,10 @@ export const useJobStore = defineStore('job', () => {
 
     try {
       const response = await jobApi.getJobDetail(jobId);
+      console.log("fetchJobDetail", response);
       const data = response.data;
       if (data.success && data.data) {
+        console.log("fetch...");
         const detail = {
           ...initialJobDetail(),
           ...data.data,
@@ -149,7 +151,7 @@ export const useJobStore = defineStore('job', () => {
 
         jobDetails.value[jobId] = detail;
         id.value = jobId;
-
+        console.log(detail);
         return detail;
       }
     } catch (e) {
