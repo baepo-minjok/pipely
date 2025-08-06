@@ -48,7 +48,6 @@ export const jobApi = {
   },
 
   fetchJobList(jenkinsInfoId) {
-    const store = useJobStore();
     return instance
       .get('/jenkins/job', {params: {jenkinsInfoId: jenkinsInfoId}})
       .then((res) => {
@@ -56,8 +55,7 @@ export const jobApi = {
         if (!data) {
           throw new Error('서버 응답에 jobList 데이터가 없습니다.');
         }
-        store.jobList = data;
-        console.log(store.jobList);
+        return data;
       })
       .catch((error) => {
         console.error('API Error(getJobList):', error.response?.status, error.response?.data || error.message);
@@ -111,7 +109,7 @@ export const jobApi = {
 
   stopBuild(jobId, buildNumber) {
     return instance
-      .post("/jenkins/build/stop", null, {params: {jobId: jobId, buildNumber: buildNumber}})
+      .post("/jenkins/build/stop", null, {params: {jobId: jobId}})
       .then((res) => {
         return res;
       })
@@ -176,7 +174,6 @@ export const jobApi = {
     return instance
       .put('/jenkins/job', jobData)
       .then((res) => {
-        console.log(res);
         return true;
       })
       .catch((error) => {
@@ -185,7 +182,6 @@ export const jobApi = {
   },
 
   viewBuild(jobId, buildNumber) {
-    console.log("start", jobId, buildNumber);
     return instance
       .get('/jenkins/build/test', {params: {jobId: jobId, buildNumber: buildNumber}})
       .then((res) => {

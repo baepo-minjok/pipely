@@ -53,7 +53,7 @@ public class BuildController {
 
     @Operation(
             summary = "빌드 이력 조회",
-            description = "특정 Job의 빌드 이력 전체 혹은 조건별(LATEST 등) 목록을 반환합니다."
+            description = "특정 Job의 최신 빌드 이력을 반환합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
@@ -71,7 +71,7 @@ public class BuildController {
 
     @Operation(
             summary = "빌드 이력 조회",
-            description = "특정 Job의 빌드 이력 전체 혹은 조건별(LATEST 등) 목록을 반환합니다."
+            description = "특정 Job의 빌드 이력 전체 목록을 반환합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
@@ -104,23 +104,6 @@ public class BuildController {
         return ResponseEntity.ok(BaseResponse.success(buildService.getBuildLog(dto)));
     }
 
-    @Operation(
-            summary = "빌드 실시간 로그 스트림 조회",
-            description = "Jenkins에서 빌드 진행 상황을 실시간으로 스트리밍 방식으로 받아옵니다. (예: 콘솔 로그 라인별 실시간 응답)"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "성공")
-            , @ApiResponse(responseCode = "403", description = "권한 없음"),
-            @ApiResponse(responseCode = "404", description = "실시간 로그를 찾을 수 없음")
-    })
-    @PreAuthorize("@pipelineService.isOwner(#user, #jobId)")
-    @GetMapping(value = "/streamlog")
-    public ResponseEntity<BaseResponse<BuildResponseDto.BuildStreamLogDto>> streamLog(
-            @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestParam UUID jobId) {
-        return ResponseEntity.ok(BaseResponse.success(buildService.getStreamLog(jobId)));
-    }
-
     @PostMapping("/status")
     public ResponseEntity<BaseResponse<Boolean>> setStatus(
             @RequestBody @Valid RequestDto.StatusDto dto
@@ -148,10 +131,9 @@ public class BuildController {
 
     @PostMapping("/stop")
     public ResponseEntity<BaseResponse<Boolean>> stop(
-            @RequestParam UUID jobId,
-            @RequestParam Integer buildNumber
+            @RequestParam UUID jobId
     ) {
-        buildService.stopBuild(jobId, buildNumber);
+        buildService.stopBuild(jobId);
         return ResponseEntity.ok()
                 .body(BaseResponse.success(true));
     }

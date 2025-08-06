@@ -4,76 +4,56 @@ import {useRoute} from 'vue-router';
 import JobInfo from '@/components/jobs/JobInfo.vue';
 import JobBuild from '@/components/jobs/JobBuild.vue';
 import {useJobStore} from '@/stores/useJobStore';
-import {useBuildStore} from "@/stores/useBuildStore.js";
-import {jobApi} from "@/api/JobApi.js";
 
 const route = useRoute();
 const jobId = ref(route.query.id);
-
 const selectedTab = ref('detail');
 const selectedTabComponent = computed(() => (selectedTab.value === 'detail' ? JobInfo : JobBuild));
 const jobStore = useJobStore();
-const buildStore = useBuildStore();
+
+// 다음으로 변경
+const currentJob = computed(() => {
+  return jobStore.getJobBuildState(jobId.value);
+});
+
+const jobDetail = computed(() => {
+  return jobStore.jobDetails[jobId.value] || {};
+});
 
 const handleBuildRunClick = async () => {
   selectedTab.value = 'build';
-  buildStore.gettingStart();
-  const requestBody = {
-    jobId: jobId.value,
-    stageBuilds: [],
-  };
-
   try {
-    const response = await jobApi.buildJob(requestBody);
-    if (response.status === 200) {
-      console.log('✅ 수동 실행 요청 성공');
-      buildStore.buildNumber = response.data.data;
-      await buildStore.getBuildInfo(jobId.value);
-    } else {
-      console.error('❌ 수동 실행 요청 실패');
-      buildStore.buildProgress.isBuilding = false;
-      buildStore.buildProgress.status = 'BUILD_FAILURE';
-      buildStore.isBuilding.value = false;
-    }
+    await jobStore.getBuildInfo(jobId.value, true);
   } catch (error) {
     console.error('Build error:', error);
-    buildStore.buildProgress.isBuilding = false;
-    buildStore.buildProgress.status = 'BUILD_FAILURE';
-    buildStore.isBuilding = false;
   }
 };
 
 const handleStopBuild = async () => {
   try {
-    buildStore.buildProgress.status = 'BUILD_STOPPING';
-    buildStore.buildProgress.currentStage = 'Stopping build...';
-
-    await jobApi.stopBuild(jobId.value, buildStore.buildNumber);
-    setTimeout(() => {
-      buildStore.buildProgress.status = 'BUILD_ABORTED';
-      buildStore.buildProgress.isBuilding = false;
-      buildStore.buildProgress.currentStage = 'Build stopped';
-      buildStore.isBuilding = false;
-    }, 2000);
+    await jobStore.stopBuild(jobId.value);
   } catch (error) {
     console.error('Stop build error:', error);
   }
 };
 
-// 진행률 계산
+// 진행률 계산 수정
 const progressPercentage = computed(() => {
-  if (buildStore.buildProgress.isBuilding && buildStore.buildProgress.status === 'BUILD_RUNNING') {
-    return Math.min(Math.max(buildStore.buildProgress.progress || 0, 0), 100);
+  if (jobStore.isBuilding && currentJob.value.buildProgress.status === 'BUILD_RUNNING') {
+    return Math.min(Math.max(currentJob.value.buildProgress.progress || 0, 0), 100);
   }
   return 0;
 });
 
-const getButtonText = () => {
-  switch (buildStore.buildProgress.status) {
+// 버튼 텍스트와 클래스 함수들을 computed로 변경
+const buttonText = computed(() => {
+  switch (currentJob.value.buildProgress.status) {
     case 'BUILD_RUNNING':
       return '실행 중';
     case 'BUILD_STOPPING':
       return '중단 중';
+    case 'BUILD_WAITING':
+      return '빌드 준비 중..';
     case 'BUILD_SUCCESS':
       return '재실행';
     case 'BUILD_FAILURE':
@@ -83,14 +63,16 @@ const getButtonText = () => {
     default:
       return '실행하기';
   }
-};
+});
 
-const getButtonClass = () => {
-  switch (buildStore.buildProgress.status) {
+const buttonClass = computed(() => {
+  switch (currentJob.value.buildProgress.status) {
     case 'BUILD_RUNNING':
       return 'btn-running';
     case 'BUILD_STOPPING':
       return 'btn-stopping';
+    case 'BUILD_WAITING':
+      return 'btn-waiting';
     case 'BUILD_SUCCESS':
       return 'btn-success';
     case 'BUILD_FAILURE':
@@ -100,7 +82,7 @@ const getButtonClass = () => {
     default:
       return 'btn-primary';
   }
-};
+});
 
 watch(
   () => jobId.value,
@@ -109,13 +91,7 @@ watch(
 );
 
 onMounted(async () => {
-  const buildNumber = await jobApi.getCurrentBuildNumber(jobId.value);
-  if (buildNumber === buildStore.buildNumber && buildStore.id === jobId.value) {
-
-  } else {
-    buildStore.buildNumber = buildNumber;
-    await buildStore.getBuildInfo(jobId.value);
-  }
+  await jobStore.getBuildInfo(jobId.value, false);
 });
 </script>
 
@@ -131,7 +107,7 @@ onMounted(async () => {
                  viewBox="0 0 24 24" width="14">
               <polyline points="9,18 15,12 9,6"/>
             </svg>
-            <span class="breadcrumb-item">{{ jobStore.jobDetail.name || 'Job' }}</span>
+            <span class="breadcrumb-item">{{ jobDetail.name || 'Job' }}</span>
             <svg class="breadcrumb-separator" fill="none" height="14" stroke="currentColor" stroke-width="2"
                  viewBox="0 0 24 24" width="14">
               <polyline points="9,18 15,12 9,6"/>
@@ -173,32 +149,38 @@ onMounted(async () => {
 
           <div class="action-section">
             <button
-              :class="['action-btn', getButtonClass(), { 'has-progress': buildStore.buildProgress.isBuilding }]"
-              :disabled="buildStore.buildProgress.status === 'BUILD_STOPPING'"
-              :style="buildStore.buildProgress.isBuilding ? { '--progress': `${progressPercentage}%` } : {}"
-              @click="buildStore.buildProgress.status === 'BUILD_RUNNING' ? handleStopBuild() : handleBuildRunClick()"
+              :class="['action-btn', buttonClass, { 'has-progress': jobStore.isBuilding }]"
+              :disabled="currentJob.buildProgress.status === 'BUILD_STOPPING' || currentJob.buildProgress.status === 'BUILD_WAITING'"
+              :style="jobStore.isBuilding ? { '--progress': `${progressPercentage}%` } : {}"
+              @click="currentJob.buildProgress.status === 'BUILD_RUNNING' ? handleStopBuild() : handleBuildRunClick()"
             >
               <!-- 진행률 배경 -->
-              <div v-if="buildStore.buildProgress.isBuilding" class="btn-progress-bg">
+              <div v-if="jobStore.buildProgress.isBuilding" class="btn-progress-bg">
                 <div :style="{ width: `${progressPercentage}%` }" class="btn-progress-fill"></div>
                 <div class="btn-wave-effect"></div>
               </div>
 
               <!-- 버튼 내용 -->
               <div class="btn-content">
-                <svg v-if="buildStore.buildProgress.status === 'BUILD_RUNNING'" class="btn-icon animate-pulse"
+                <svg v-if="currentJob.buildProgress.status === 'BUILD_RUNNING'" class="btn-icon animate-pulse"
                      fill="none"
                      height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
                   <rect height="10" rx="1" ry="1" width="4" x="6" y="7"/>
                   <rect height="10" rx="1" ry="1" width="4" x="14" y="7"/>
                 </svg>
-                <svg v-else-if="buildStore.buildProgress.status === 'BUILD_SUCCESS'" class="btn-icon"
+                <svg v-else-if="currentJob.buildProgress.status === 'BUILD_WAITING'"
+                     class="btn-icon animate-waiting"
+                     fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12,6 12,12 16,14"/>
+                </svg>
+                <svg v-else-if="jobStore.buildProgress.status === 'BUILD_SUCCESS'" class="btn-icon"
                      fill="currentColor"
                      height="16" viewBox="0 0 24 24" width="16">
                   <path
                     d="M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"/>
                 </svg>
-                <svg v-else-if="buildStore.buildProgress.status === 'BUILD_FAILURE'" class="btn-icon"
+                <svg v-else-if="jobStore.buildProgress.status === 'BUILD_FAILURE'" class="btn-icon"
                      fill="currentColor"
                      height="16" viewBox="0 0 24 24" width="16">
                   <path
@@ -208,8 +190,8 @@ onMounted(async () => {
                      viewBox="0 0 24 24" width="16">
                   <polygon points="5,3 19,12 5,21"/>
                 </svg>
-                <span class="btn-text">{{ getButtonText() }}</span>
-                <span v-if="buildStore.buildProgress.isBuilding" class="progress-percentage">{{
+                <span class="btn-text">{{ buttonText }}</span>
+                <span v-if="jobStore.buildProgress.isBuilding" class="progress-percentage">{{
                     Math.round(progressPercentage)
                   }}%</span>
               </div>
@@ -220,7 +202,8 @@ onMounted(async () => {
         <main class="content">
           <component
             :is="selectedTabComponent"
-            :build-progress="buildStore.buildProgress"
+            :job="currentJob"
+            :job-detail="jobDetail"
           />
         </main>
       </div>
@@ -525,6 +508,45 @@ onMounted(async () => {
   animation: stopping-pulse 1s ease-in-out infinite;
 }
 
+.btn-waiting {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-waiting::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg,
+  rgba(147, 197, 253, 0.3),
+  rgba(59, 130, 246, 0.3)
+  );
+  border-radius: 8px;
+  animation: waiting-pulse 2s ease-in-out infinite;
+}
+
+.btn-waiting::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: waiting-shimmer 2.5s infinite;
+}
+
 .btn-success {
   background: #10b981;
   color: white;
@@ -574,6 +596,35 @@ onMounted(async () => {
   }
 }
 
+@keyframes waiting-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes waiting-shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes animate-waiting {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -598,6 +649,10 @@ onMounted(async () => {
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-waiting {
+  animation: animate-waiting 2s ease-in-out infinite;
 }
 
 /* 반응형 */

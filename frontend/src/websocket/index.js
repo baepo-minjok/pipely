@@ -4,7 +4,7 @@ import SockJS from "sockjs-client";
 let stompClient = null;
 
 export function connectWebSocket(onBuildMessage, onAlertMessage) {
-  const wsUrl = "https://www.pipely.kro.kr/ws-endpoint";
+  const wsUrl = "http://localhost:8080/ws-endpoint";
   stompClient = new Client({
     webSocketFactory: () => new SockJS(wsUrl),
     reconnectDelay: 5000,
