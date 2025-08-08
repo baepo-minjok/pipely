@@ -180,7 +180,7 @@
 
           <!-- 하단 링크 -->
           <div class="form-footer">
-            <a class="footer-link primary" href="/login">
+            <a class="footer-link primary" href="/user/login">
               이미 계정이 있으신가요? 로그인
             </a>
           </div>
@@ -254,6 +254,7 @@
 
 <script setup>
 import {ref, watch} from 'vue';
+import {userApi} from "@/api/UserApi.js";
 
 // Form 데이터
 const name = ref("");
@@ -355,13 +356,10 @@ const checkDuplicate = async () => {
 
   isCheckingEmail.value = true;
 
-  // 실제 API 호출 시뮬레이션
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // 랜덤하게 성공/실패 결정 (실제로는 API 응답에 따라)
-    const isAvailable = Math.random() > 0.3;
-
+    console.log("rer");
+    const isAvailable = await userApi.checkDuplicate(email.value);
+    console.log(isAvailable);
     if (isAvailable) {
       emailSuccess.value = true;
       emailSuccessMsg.value = "사용가능한 이메일입니다.";
@@ -369,7 +367,7 @@ const checkDuplicate = async () => {
       emailError.value = "이미 사용중인 이메일입니다.";
     }
   } catch (error) {
-    emailError.value = "이메일 확인 중 오류가 발생했습니다.";
+    emailError.value = "이미 사용중인 이메일입니다.";
   } finally {
     isCheckingEmail.value = false;
   }
@@ -439,13 +437,10 @@ const signUp = async () => {
   };
 
   try {
-    // 실제 API 호출 시뮬레이션
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await userApi.signup(signUpRequest);
 
-    // 성공 시뮬레이션
     alert("회원가입 성공!\n인증 이메일이 발송되었습니다!");
 
-    // 폼 초기화
     name.value = "";
     email.value = "";
     password.value = "";
@@ -463,13 +458,11 @@ const signUp = async () => {
 
 // 소셜 회원가입
 const googleSignUp = () => {
-  console.log("Google 회원가입");
-  // 실제 구현에서는 OAuth 리다이렉트
+  window.location.href = "https://www.pipely.kro.kr/oauth2/authorization/google";
 };
 
 const githubSignUp = () => {
-  console.log("GitHub 회원가입");
-  // 실제 구현에서는 OAuth 리다이렉트
+  window.location.href = "https://www.pipely.kro.kr/oauth2/authorization/github";
 };
 </script>
 
