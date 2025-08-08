@@ -209,4 +209,13 @@ public class UserController {
         userService.reactivation(req.getEmail());
         return ResponseEntity.ok().body(BaseResponse.success("reactivation success"));
     }
+
+    @GetMapping("/check-email")
+    public ResponseEntity<BaseResponse<Boolean>> check(
+            @RequestParam @NotBlank String email
+    ) {
+        userService.checkDuplicate(email);
+        return ResponseEntity.ok()
+                .body(BaseResponse.success(true));
+    }
 }
