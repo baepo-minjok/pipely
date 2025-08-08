@@ -118,17 +118,6 @@ export const jobApi = {
       })
   },
 
-  getBuildStatus(jobId, buildNumber) {
-    return instance
-      .get("/jenkins/build/state", {params: {jobId: jobId, buildNumber: buildNumber}})
-      .then((res) => {
-        return res;
-      })
-      .catch((error) => {
-        throw error;
-      })
-  },
-
   getJenkinsInfo() {
     const store = useJobStore();
     return instance
@@ -183,7 +172,7 @@ export const jobApi = {
 
   viewBuild(jobId, buildNumber) {
     return instance
-      .get('/jenkins/build/test', {params: {jobId: jobId, buildNumber: buildNumber}})
+      .get('/jenkins/build/sendLog', {params: {jobId: jobId, buildNumber: buildNumber}})
       .then((res) => {
         return res;
       })

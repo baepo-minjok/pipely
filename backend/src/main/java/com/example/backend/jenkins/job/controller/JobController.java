@@ -37,6 +37,7 @@ public class JobController {
             summary = "새 Job 생성",
             description = """
                         사용자가 지정한 설정에 맞게 Jenkins에 새 Job을 생성합니다.
+                        script는 script 생성 api로 먼저 생성해 id를 보내야합니다.
                     """
     )
     @ApiResponses({

@@ -35,7 +35,7 @@ public class BuildController {
 
     @PreAuthorize("@pipelineService.isOwner(#user, #dto.jobId)")
     @Operation(
-            summary = "특정 스테이지 실행 (Stage Trigger)",
+            summary = "Job 빌드",
             description = "파라미터로 받은 스테이지는 실행에서 제외합니다."
     )
     @ApiResponses({
@@ -104,6 +104,10 @@ public class BuildController {
         return ResponseEntity.ok(BaseResponse.success(buildService.getBuildLog(dto)));
     }
 
+    @Operation(
+            summary = "Job 빌드상태 변경",
+            description = "StatusDto에 따라 빌드 상태를 BUILD_SUCCESS, BUILD_FAILURE로 변경합니다."
+    )
     @PostMapping("/status")
     public ResponseEntity<BaseResponse<Boolean>> setStatus(
             @RequestBody @Valid RequestDto.StatusDto dto
@@ -113,14 +117,10 @@ public class BuildController {
                 .body(BaseResponse.success(true));
     }
 
-    @GetMapping("/state")
-    public ResponseEntity<BaseResponse<String>> getBuildState(
-            @RequestParam UUID jobId,
-            @RequestParam Integer buildNumber
-    ) {
-        return ResponseEntity.ok(BaseResponse.success(buildService.getDuration(jobId, buildNumber)));
-    }
-
+    @Operation(
+            summary = "최신 빌드번호 조회",
+            description = "해당 job의 최신 빌드번호를 조회합니다."
+    )
     @GetMapping("/buildNumber")
     public ResponseEntity<BaseResponse<Integer>> getBuildNumber(
             @RequestParam UUID jobId
@@ -129,6 +129,10 @@ public class BuildController {
                 .body(BaseResponse.success(buildService.getCurrentBuildNumber(jobId)));
     }
 
+    @Operation(
+            summary = "빌드 중단",
+            description = "해당 job이 빌드중이라면 빌드를 중단합니다."
+    )
     @PostMapping("/stop")
     public ResponseEntity<BaseResponse<Boolean>> stop(
             @RequestParam UUID jobId
@@ -138,7 +142,11 @@ public class BuildController {
                 .body(BaseResponse.success(true));
     }
 
-    @GetMapping("/test")
+    @Operation(
+            summary = "현재 빌드상황 조회",
+            description = "해당 job이 현재 빌드중이라면 빌드 현황(로그, 남은시간, 빌드상태)를 조회합니다."
+    )
+    @GetMapping("/sendLog")
     public ResponseEntity<Void> test(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
             @RequestParam UUID jobId,
