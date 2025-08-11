@@ -57,6 +57,7 @@ dependencies {
     testImplementation 'org.mockito:mockito-junit-jupiter'
 
     implementation 'org.eclipse.jgit:org.eclipse.jgit:7.3.0.202506031305-r'
+    implementation 'com.vladmihalcea:hibernate-types-60:2.21.1'
 
 }
 
