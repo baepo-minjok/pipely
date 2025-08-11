@@ -1,11 +1,11 @@
 <script setup>
-import {useAgenticaRpc} from "@/agentica/agentica.js";
-import {nextTick, onMounted, ref, watch} from "vue";
-import MarkdownIt from 'markdown-it';
-import {userApi} from "@/api/UserApi.js";
+import { useAgenticaRpc } from "@/agentica/agentica.js";
+import { nextTick, onMounted, ref, watch } from "vue";
+import MarkdownIt from "markdown-it";
+import { userApi } from "@/api/UserApi.js";
 
 const md = new MarkdownIt();
-const {messages, conversate, isConnected, isError, tryConnect} = useAgenticaRpc();
+const { messages, conversate, isConnected, isError, tryConnect } = useAgenticaRpc();
 const input = ref("");
 const chatHistoryRef = ref(null);
 const isLoggedIn = ref(false);
@@ -13,87 +13,63 @@ const isLoggedIn = ref(false);
 tryConnect();
 
 function renderMarkdown(text) {
-  return md.render(text);
+  return md.render(text || "");
 }
 
 function send() {
-  if (input.value.trim()) {
-    // 사용자 메시지를 먼저 추가
-    const userMessage = {
-      id: Date.now() + '_user',
-      type: 'userMessage',
-      contents: [{text: input.value}],
-      created_at: new Date().toISOString()
-    };
+  if (!input.value.trim()) return;
 
-    // 로그인 상태 확인
-    if (!isLoggedIn.value) {
-      // 로그인하지 않은 경우 로컬에서 안내 메시지 생성
-      messages.value.push(userMessage);
-
-      setTimeout(() => {
-        const botMessage = {
-          id: Date.now() + '_bot',
-          type: 'assistantMessage',
-          text: '죄송합니다. 채팅 서비스를 이용하시려면 먼저 **로그인**해 주세요.\n\n로그인 후 다양한 CI/CD 어시스턴트 기능을 사용하실 수 있습니다.',
-          created_at: new Date().toISOString()
-        };
-        messages.value.push(botMessage);
-      }, 500);
-
-      input.value = "";
-      return;
-    }
-
-    // 로그인된 경우 실제 웹소켓으로 메시지 전송
-    conversate(input.value);
+  if (!isLoggedIn.value) {
+    setTimeout(() => {
+      const botMessage = {
+        id: Date.now() + "_bot",
+        type: "assistantMessage",
+        text:
+            "죄송합니다. 채팅 서비스를 이용하시려면 먼저 **로그인**해 주세요.\n\n" +
+            "로그인 후 다양한 CI/CD 어시스턴트 기능을 사용하실 수 있습니다.",
+        created_at: new Date().toISOString(),
+      };
+      messages.value.push(botMessage);
+    }, 500);
     input.value = "";
+    return;
   }
+
+  // ✅ 서버에 conversate 요청 (처리중 메시지는 서버에서 내려줌)
+  conversate(input.value);
+  input.value = "";
 }
 
+
 // Auto scroll to bottom
-watch(messages, () => {
-  nextTick(() => {
-    if (chatHistoryRef.value) {
-      chatHistoryRef.value.scrollTop = chatHistoryRef.value.scrollHeight;
-    }
-  });
-}, {deep: true});
-
-watch(messages, (newMessages) => {
-  if (isLoggedIn.value) {
-    localStorage.setItem('chatHistory', JSON.stringify(newMessages));
-  }
-}, {deep: true});
-
+watch(
+    messages,
+    () => {
+      nextTick(() => {
+        if (chatHistoryRef.value) {
+          chatHistoryRef.value.scrollTop = chatHistoryRef.value.scrollHeight;
+        }
+      });
+    },
+    { deep: true }
+);
 
 onMounted(async () => {
-
   messages.value = [];
 
-  const inputEl = document.querySelector('.chat-input');
+  const inputEl = document.querySelector(".chat-input");
   if (inputEl) inputEl.focus();
 
   isLoggedIn.value = await userApi.isLoggedIn();
 
   if (isLoggedIn.value) {
-    const savedChat = localStorage.getItem('chatHistory');
-    if (savedChat) {
-      try {
-        messages.value = JSON.parse(savedChat);
-      } catch {
-        messages.value = [];
-      }
-    } else {
-      messages.value = [];
-    }
-    // 연결이 완료된 후 메시지 전송
-    const initialMessage = sessionStorage.getItem('initialMessage');
+    // 연결이 완료된 후 초기 메시지 전송
+    const initialMessage = sessionStorage.getItem("initialMessage");
     if (initialMessage) {
       const checkConnection = setInterval(() => {
         if (isConnected.value) {
           conversate(initialMessage);
-          sessionStorage.removeItem('initialMessage');
+          sessionStorage.removeItem("initialMessage");
           clearInterval(checkConnection);
         }
       }, 100);
@@ -102,10 +78,12 @@ onMounted(async () => {
     // 로그인하지 않은 경우 환영 메시지 표시
     setTimeout(() => {
       const welcomeMessage = {
-        id: 'welcome_' + Date.now(),
-        type: 'assistantMessage',
-        text: '안녕하세요! 👋\n\nAI 어시스턴트와 대화하시려면 **로그인**이 필요합니다.\n\n로그인 후 다음과 같은 기능을 이용하실 수 있습니다:\n- CI/CD 어시스턴트\n- 배포 자동화',
-        created_at: new Date().toISOString()
+        id: "welcome_" + Date.now(),
+        type: "assistantMessage",
+        text:
+            "안녕하세요! 👋\n\nAI 어시스턴트와 대화하시려면 **로그인**이 필요합니다.\n\n" +
+            "로그인 후 다음과 같은 기능을 이용하실 수 있습니다:\n- CI/CD 어시스턴트\n- 배포 자동화",
+        created_at: new Date().toISOString(),
       };
       messages.value.push(welcomeMessage);
     }, 1000);
@@ -120,14 +98,17 @@ onMounted(async () => {
       <div class="header-content">
         <div class="bot-avatar">
           <div class="avatar-circle">
-            <svg fill="none" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <svg fill="none" height="24" width="24" xmlns="http://www.w3.org/2000/svg">
               <path
                   d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V7H9V9H21ZM3 19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V11H3V19Z"
-                  fill="currentColor"/>
+                  fill="currentColor"
+              />
             </svg>
           </div>
-          <div :class="{ 'connected': isConnected && isLoggedIn, 'error': isError || !isLoggedIn }"
-               class="status-indicator"></div>
+          <div
+              :class="{ connected: isConnected && isLoggedIn, error: isError || !isLoggedIn }"
+              class="status-indicator"
+          ></div>
         </div>
         <div class="header-info">
           <h3 class="bot-name">AI CI/CD Assistant</h3>
@@ -139,11 +120,12 @@ onMounted(async () => {
           </p>
         </div>
         <div v-if="!isLoggedIn" class="header-actions">
-          <button class="login-btn" title="로그인" @click="$router.push('/user/login')">
-            <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+          <button class="login-btn" @click="$router.push('/user/login')" title="로그인">
+            <svg fill="none" height="20" width="20" xmlns="http://www.w3.org/2000/svg">
               <path
                   d="M11 7L9.6 8.4L12.2 11H2V13H12.2L9.6 15.6L11 17L16 12L11 7ZM20 19H12V21H20C21.1 21 22 20.1 22 19V5C22 3.9 21.1 3 20 3H12V5H20V19Z"
-                  fill="currentColor"/>
+                  fill="currentColor"
+              />
             </svg>
           </button>
         </div>
@@ -162,17 +144,19 @@ onMounted(async () => {
             <div class="message-content">
               <div class="avatar">
                 <div v-if="msg.type === 'userMessage'" class="user-avatar">
-                  <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+                  <svg fill="none" height="20" width="20" xmlns="http://www.w3.org/2000/svg">
                     <path
                         d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z"
-                        fill="currentColor"/>
+                        fill="currentColor"
+                    />
                   </svg>
                 </div>
                 <div v-else class="bot-avatar-small">
-                  <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+                  <svg fill="none" height="20" width="20" xmlns="http://www.w3.org/2000/svg">
                     <path
                         d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V7H9V9H21ZM3 19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V11H3V19Z"
-                        fill="currentColor"/>
+                        fill="currentColor"
+                    />
                   </svg>
                 </div>
               </div>
@@ -183,10 +167,12 @@ onMounted(async () => {
                 <div v-else class="message-text" v-html="renderMarkdown(msg.text)"></div>
                 <div class="message-time">
                   {{
-                    msg.created_at ? new Date(msg.created_at).toLocaleTimeString('ko-KR', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    }) : ''
+                    msg.created_at
+                        ? new Date(msg.created_at).toLocaleTimeString("ko-KR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                        : ""
                   }}
                 </div>
               </div>
@@ -202,19 +188,14 @@ onMounted(async () => {
         <div class="input-wrapper">
           <input
               v-model="input"
-              :disabled="false"
               :placeholder="isLoggedIn ? '메시지를 입력하세요...' : '로그인 후 채팅을 시작하세요...'"
               autocomplete="off"
               class="chat-input"
               @keyup.enter="send"
           />
-          <button
-              :disabled="!input.trim()"
-              class="send-button"
-              type="submit"
-          >
-            <svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
+          <button :disabled="!input.trim()" class="send-button" type="submit">
+            <svg fill="none" height="20" width="20" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor" />
             </svg>
           </button>
         </div>
@@ -236,6 +217,7 @@ onMounted(async () => {
     </div>
   </div>
 </template>
+
 
 <style scoped>
 .chat-container {

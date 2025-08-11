@@ -11,9 +11,30 @@ export function provideAgenticaRpc() {
     const driver = ref();
     const isConnected = ref(false);
 
-    async function pushMessage(message) {
-        messages.value.push(message);
-    }
+     async function pushMessage(message) {
+           console.debug("[WS 수신]", message?.type, message);
+
+               // 1) Swagger 실행 로그(describe) 처리
+                   if (message?.type === "describe") {
+                 // 진행 중 로그는 숨김
+                     if (!message?.done) return;
+
+                     // 2)  최종 로그(done:true)는 assistantMessage로 변환해서 노출
+                         //    (일부 구현에선 최종 결과가 describe.text에만 담겨 옵니다)
+                             if (message?.text) {
+                       messages.value.push({
+                             id: message.id || `tool_${Date.now()}`,
+                             type: "assistantMessage",
+                            text: message.text,
+                             created_at: message.created_at || new Date().toISOString(),
+                           });
+                     }
+                 return;
+               }
+
+               // 일반 메시지는 그대로
+                   messages.value.push(message);
+         }
 
     async function tryConnect() {
         try {
