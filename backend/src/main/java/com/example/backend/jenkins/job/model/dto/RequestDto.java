@@ -89,50 +89,59 @@ public class RequestDto {
     @Schema(name = "ScriptBaseDto", description = "Jenkins Script 생성/수정에 필요한 파라미터")
     public static class ScriptBaseDto {
 
+
+        @Schema(
+                description = "스크립트 제공 방식(MANUAL 또는 GENERATED)",
+                example = "GENERATED",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private ScriptMode mode;
 
+        @Schema(
+                description = "MANUAL 모드: Jenkinsfile 원문",
+                example = "pipeline { agent any ... }",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
+        )
         private String manualScript;
 
         @Schema(
-                description = "Script 고유 식별자 (UUID)",
+                description = "기존 스크립트 참조용 UUID(선택). 업데이트 시 기존 스크립트를 가리킬 때 사용",
                 example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private UUID scriptId;
 
         @NotBlank
-        @Size(max = 200)
         @Schema(
-                description = "연동된 git 저장소 주소",
+                description = "공통: 사용할 Git 저장소 URL",
                 example = "https://github.com/org/repo.git",
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
         private String githubUrl;
 
-        @Size(max = 50)
         @Schema(
-                description = "빌드 시 clone할 git 브랜치명",
+                description = "GENERATED 모드: clone할 브랜치",
                 example = "main",
-                requiredMode = Schema.RequiredMode.REQUIRED
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String branch;
 
         @Schema(
-                description = "빌드 스테이지 선택 여부",
+                description = "GENERATED 모드: 빌드 스테이지 포함 여부",
                 example = "true",
-                requiredMode = Schema.RequiredMode.REQUIRED
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private Boolean isBuildSelected;
 
         @Schema(
-                description = "테스트 스테이지 선택 여부",
+                description = "GENERATED 모드: 테스트 스테이지 포함 여부",
                 example = "false",
-                requiredMode = Schema.RequiredMode.REQUIRED
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private Boolean isTestSelected;
 
         @Schema(
-                description = "Kubernetes 배포 여부",
+                description = "GENERATED 모드: Kubernetes 배포 포함 여부(선택)",
                 example = "true",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -140,7 +149,7 @@ public class RequestDto {
 
         @Size(max = 50)
         @Schema(
-                description = "이미지 태그 (ex: latest, 1.0.0)",
+                description = "GENERATED 모드: 이미지 태그 (ex: latest, 1.0.0)",
                 example = "latest",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -148,7 +157,7 @@ public class RequestDto {
 
         @Size(max = 200)
         @Schema(
-                description = "원격 서버에 복사할 yaml 파일 경로",
+                description = "GENERATED 모드: 원격 서버에 복사할 yaml 파일 경로",
                 example = "/home/ubuntu/app/deploy.yaml",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -156,7 +165,7 @@ public class RequestDto {
 
         @Size(max = 100)
         @Schema(
-                description = "Kubernetes Deployment 명",
+                description = "GENERATED 모드: Kubernetes Deployment 명",
                 example = "my-app-deployment",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -164,7 +173,7 @@ public class RequestDto {
 
         @Size(max = 100)
         @Schema(
-                description = "Kubernetes 네임스페이스",
+                description = "GENERATED 모드: Kubernetes 네임스페이스",
                 example = "default",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -172,7 +181,7 @@ public class RequestDto {
 
         @Size(max = 100)
         @Schema(
-                description = "app 라벨명 (K8s용)",
+                description = "GENERATED 모드: app 라벨명 (K8s용)",
                 example = "my-app",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -180,7 +189,7 @@ public class RequestDto {
 
         @Size(max = 100)
         @Schema(
-                description = "컨테이너 이름",
+                description = "GENERATED 모드: 컨테이너 이름",
                 example = "my-container",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -188,7 +197,7 @@ public class RequestDto {
 
         @Size(max = 200)
         @Schema(
-                description = "이미지 저장소 경로",
+                description = "GENERATED 모드: 이미지 저장소 경로",
                 example = "ghcr.io/org/project",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -196,7 +205,7 @@ public class RequestDto {
 
         @Size(max = 10)
         @Schema(
-                description = "컨테이너 내부 포트",
+                description = "GENERATED 모드: 컨테이너 내부 포트",
                 example = "8080",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -204,14 +213,14 @@ public class RequestDto {
 
         @Size(max = 10)
         @Schema(
-                description = "디플로이먼트 복제 수",
+                description = "GENERATED 모드: 디플로이먼트 복제 수",
                 example = "2",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String replicas;
 
         @Schema(
-                description = "EC2 배포 여부",
+                description = "GENERATED 모드: EC2 배포 여부",
                 example = "false",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -219,7 +228,7 @@ public class RequestDto {
 
         @Size(max = 200)
         @Schema(
-                description = "EC2 내 jar 저장 경로",
+                description = "GENERATED 모드: EC2 내 jar 저장 경로",
                 example = "/home/ec2-user/app",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -227,7 +236,7 @@ public class RequestDto {
 
         @Size(max = 200)
         @Schema(
-                description = "SSH 키 경로 (ex: ~/.ssh/id_rsa)",
+                description = "GENERATED 모드: SSH 키 경로 (ex: ~/.ssh/id_rsa)",
                 example = "~/.ssh/id_rsa",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -235,7 +244,7 @@ public class RequestDto {
 
         @Size(max = 10)
         @Schema(
-                description = "SSH 포트 (기본: 22)",
+                description = "GENERATED 모드: SSH 포트 (기본: 22)",
                 example = "22",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -243,7 +252,7 @@ public class RequestDto {
 
         @Size(max = 100)
         @Schema(
-                description = "배포 대상 서버 (ex: user@ip)",
+                description = "GENERATED 모드: 배포 대상 서버 (ex: user@ip)",
                 example = "ubuntu@1.2.3.4",
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
@@ -304,14 +313,16 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String script;
-
-        private String manualScript;
     }
 
     @Data
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(
+            name = "StatusDto",
+            description = "job의 상태를 바꾸기 위한 dto"
+    )
     public static class StatusDto {
         @Schema(
                 description = "job의 ID",
@@ -319,33 +330,65 @@ public class RequestDto {
         )
         private UUID jobId;
 
+        @Schema(
+                description = "성공 여부",
+                example = "true"
+        )
         private boolean success;
     }
 
     @Data
+    @Schema(
+            name = "RenameDto",
+            description = "특정 job 버전의 이름 변경, pipeline(job)Id, newName 반드시 필요"
+    )
     public static class RenameDto {
+        @Schema(
+                description = "pipeline(job)의 ID",
+                example = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        )
         private UUID pipelineId;
 
+        @Schema(
+                description = "새로운 이름",
+                example = "new job"
+        )
         private String newName;
     }
 
     @Data
+    @Schema(
+            name = "CreateJobRequest",
+            description = "Job 생성 요청. job + script가 반드시 필요",
+            requiredProperties = {"job", "script"}
+    )
     public static class CreateJobRequest {
         @NotNull
         @Valid
+        @Schema(description = "생성할 Job 본문", implementation = RequestDto.CreateDto.class)
         private RequestDto.CreateDto job;
+
         @NotNull
         @Valid
+        @Schema(description = "생성할 Script 본문", implementation = RequestDto.ScriptBaseDto.class)
         private RequestDto.ScriptBaseDto script;
     }
 
     @Data
+    @Schema(
+            name = "UpdateJobRequest",
+            description = "Job 수정 요청. job + script가 반드시 필요",
+            requiredProperties = {"job", "script"}
+    )
     public static class UpdateJobRequest {
         @NotNull
         @Valid
+        @Schema(description = "수정 대상 Job 본문", implementation = RequestDto.UpdateDto.class)
         private RequestDto.UpdateDto job;
+
         @NotNull
         @Valid
+        @Schema(description = "수정할 Script 본문", implementation = RequestDto.ScriptBaseDto.class)
         private RequestDto.ScriptBaseDto script;
     }
 
