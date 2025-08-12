@@ -51,11 +51,8 @@ public class ScriptService {
 
     public void validateScript(RequestDto.ScriptValidateDto requestDto) {
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
-        String candidate = requestDto.getManualScript() != null
-                ? requestDto.getManualScript()
-                : requestDto.getScript();
 
-        if (!scriptEditUtil.validateJenkinsfile(info, candidate)) {
+        if (!scriptEditUtil.validateJenkinsfile(info, requestDto.getScript())) {
             throw new CustomException(ErrorCode.JENKINS_SCRIPT_INVALID);
         }
     }

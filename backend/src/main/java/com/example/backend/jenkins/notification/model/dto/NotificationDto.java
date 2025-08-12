@@ -15,13 +15,36 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "NotificationDto", description = "Job 알림 생성/수정 DTO")
+@Schema(
+        name = "NotificationDto",
+        description = """
+                  Job 알림 채널 설정 DTO.
+                  - key는 채널명(slack, discord 등), 값은 알림 설정
+                  - checkSuccess: 빌드 성공 시 알림 보낼지
+                  - checkFailure: 빌드 실패 시 알림 보낼지
+                  - webhookUrl: 채널이 Webhook을 사용할 때만 필요(예: Discord), Slack App 사용 시 토큰 기반이면 생략 가능
+                """
+)
 public class NotificationDto {
-    @Schema(description = "Webhook URL", example = "https://discord.com/api/webhooks/...")
+    @Schema(
+            description = "Webhook URL (Discord 등 Webhook형 채널에 사용)",
+            example = "https://discord.com/api/webhooks/xxxxx/yyyyy",
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
     private String webhookUrl;
 
+    @Schema(
+            description = "빌드 성공 이벤트 알림 여부",
+            example = "true",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private boolean checkSuccess;
 
+    @Schema(
+            description = "빌드 실패 이벤트 알림 여부",
+            example = "true",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private boolean checkFailure;
 
     public static Map<String, NotificationDto> toNotificationMap(List<JobNotification> jobNotifications) {
