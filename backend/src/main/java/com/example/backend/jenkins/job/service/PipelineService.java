@@ -35,7 +35,6 @@ public class PipelineService {
     private final HttpClientService httpClientService;
     private final JenkinsInfoService jenkinsInfoService;
     private final ConfigService configService;
-    private final ScriptService scriptService;
     private final PipelineRepository pipelineRepository;
     private final CompensationService compensationService;
     private final StageService stageService;
@@ -47,15 +46,13 @@ public class PipelineService {
      * Create a new Jenkins job and persist the pipeline.
      */
     @Transactional
-    public void createJob(RequestDto.CreateDto dto) {
+    public void createJob(RequestDto.CreateDto dto, Script script) {
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(dto.getInfoId());
         ensureUniqueName(info.getId(), dto.getName());
 
-        Script script = loadScript(dto.getScriptId());
         String config = buildConfig(dto, script);
         String name = "Initial Version";
 
-        //파이프라인 & 파이프라인 버전 저장
         Pipeline pipeline = savePipeline(dto, info, script, config, name);
 
         httpClientService.callJenkins(info.getUri() + "/createItem?name=" + dto.getName(),
@@ -67,7 +64,7 @@ public class PipelineService {
      * Update an existing Jenkins job or recreate if renamed.
      */
     @Transactional
-    public void updateJob(RequestDto.UpdateDto dto) {
+    public void updateJob(RequestDto.UpdateDto dto, Script script) {
         Pipeline pipeline = getPipelineById(dto.getPipelineId());
         PipelineVersion version = getPipelineVersionById(pipeline.getLatestVersionId());
 
@@ -75,12 +72,10 @@ public class PipelineService {
         String preName = pipeline.getName();
         boolean isRenamed = isRenamed(preName, dto);
 
-        Script script = loadScript(dto.getScriptId());
         String config = buildConfig(dto, script);
         applyPipelineChanges(pipeline, dto, script, config);
 
-        if (isRenamed) {    // 수정할 Job 이름이 다를 때
-            // 이미 존재하는 이름인지 검사
+        if (isRenamed) {
             ensureUniqueName(info.getId(), dto.getName(), pipeline);
 
             // 기존 job 삭제 요청
@@ -156,10 +151,6 @@ public class PipelineService {
 
     private boolean isRenamed(String previousName, RequestDto.UpdateDto dto) {
         return !previousName.equals(dto.getName());
-    }
-
-    private Script loadScript(UUID scriptId) {
-        return scriptId != null ? scriptService.getScriptById(scriptId) : null;
     }
 
     private String buildConfig(RequestDto.BaseDto dto, Script script) {

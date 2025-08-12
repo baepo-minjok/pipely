@@ -1,5 +1,7 @@
 package com.example.backend.jenkins.job.model;
 
+import com.example.backend.jenkins.job.model.dto.RequestDto;
+import com.example.backend.jenkins.job.model.dto.ScriptMode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,6 +31,10 @@ public class Script {
     @Column(name = "id", updatable = false, nullable = false)
     @Schema(description = "Script 고유 식별자 (UUID)", example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e")
     private UUID id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ScriptMode mode = ScriptMode.GENERATED;
 
     @Column(name = "github_url", length = 200, nullable = false)
     @Schema(description = "연동된 git 저장소 주소", example = "https://github.com/org/repo.git")
@@ -119,18 +125,20 @@ public class Script {
     )
     private List<PipelineVersion> pipelineVersionList = new ArrayList<>();
 
-    public static Script toEntity(com.example.backend.jenkins.job.model.dto.RequestDto.ScriptBaseDto requestDto, String script) {
+    public static Script toEntity(RequestDto.ScriptBaseDto requestDto, String script) {
         return Script.builder()
+                .mode(requestDto.getMode() == null ? ScriptMode.GENERATED : requestDto.getMode())
                 .githubUrl(requestDto.getGithubUrl())
-                .branch(requestDto.getBranch())
-                .isTestSelected(requestDto.getIsTestSelected())
-                .isBuildSelected(requestDto.getIsBuildSelected())
+                .branch(requestDto.getBranch() == null ? "main" : requestDto.getBranch())
+                .isTestSelected(requestDto.getIsTestSelected() != null && requestDto.getIsTestSelected())
+                .isBuildSelected(requestDto.getIsBuildSelected() != null && requestDto.getIsBuildSelected())
                 .script(script)
                 .build();
     }
 
     public static Script replicateEntity(Script entity) {
         return Script.builder()
+                .mode(entity.getMode())
                 .githubUrl(entity.getGithubUrl())
                 .branch(entity.getBranch())
                 .isBuildSelected(entity.getIsBuildSelected())

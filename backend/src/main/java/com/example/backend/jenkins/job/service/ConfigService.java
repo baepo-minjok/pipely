@@ -163,7 +163,10 @@ public class ConfigService {
                 ? createNotificationFailureScript(dto)
                 : "";
         injectedScript = scriptEditUtil.injectToSuccessFailureBlocks(injectedScript, notificationSuccessScript, notificationFailureScript);
+        injectedScript = scriptEditUtil.ensureStatusCallbackPost(injectedScript);
 
+        // (C) 보기 좋게 포맷팅
+        injectedScript = scriptEditUtil.prettyFormat(injectedScript);
         if (dto.getSchedule() != null && !dto.getSchedule().isBlank()) {
             context.put("cronExpression", CronExpressionUtil.toCron(dto.getSchedule()));
         }

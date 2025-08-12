@@ -4,6 +4,7 @@ import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.job.model.Pipeline;
 import com.example.backend.jenkins.notification.model.dto.NotificationDto;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -28,7 +29,7 @@ public class RequestDto {
                 .build();
     }
 
-    @SuperBuilder //Test에서 생성하기 위함
+    @SuperBuilder
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -87,6 +88,11 @@ public class RequestDto {
     @NoArgsConstructor
     @Schema(name = "ScriptBaseDto", description = "Jenkins Script 생성/수정에 필요한 파라미터")
     public static class ScriptBaseDto {
+
+        private ScriptMode mode;
+
+        private String manualScript;
+
         @Schema(
                 description = "Script 고유 식별자 (UUID)",
                 example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e",
@@ -103,7 +109,6 @@ public class RequestDto {
         )
         private String githubUrl;
 
-        @NotBlank
         @Size(max = 50)
         @Schema(
                 description = "빌드 시 clone할 git 브랜치명",
@@ -112,7 +117,6 @@ public class RequestDto {
         )
         private String branch;
 
-        @NotNull
         @Schema(
                 description = "빌드 스테이지 선택 여부",
                 example = "true",
@@ -120,7 +124,6 @@ public class RequestDto {
         )
         private Boolean isBuildSelected;
 
-        @NotNull
         @Schema(
                 description = "테스트 스테이지 선택 여부",
                 example = "false",
@@ -301,6 +304,8 @@ public class RequestDto {
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED
         )
         private String script;
+
+        private String manualScript;
     }
 
     @Data
@@ -322,6 +327,26 @@ public class RequestDto {
         private UUID pipelineId;
 
         private String newName;
+    }
+
+    @Data
+    public static class CreateJobRequest {
+        @NotNull
+        @Valid
+        private RequestDto.CreateDto job;
+        @NotNull
+        @Valid
+        private RequestDto.ScriptBaseDto script;
+    }
+
+    @Data
+    public static class UpdateJobRequest {
+        @NotNull
+        @Valid
+        private RequestDto.UpdateDto job;
+        @NotNull
+        @Valid
+        private RequestDto.ScriptBaseDto script;
     }
 
 }

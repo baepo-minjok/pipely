@@ -3,10 +3,11 @@ package com.example.backend.jenkins.job.controller;
 import com.example.backend.auth.user.model.Users;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
-import com.example.backend.jenkins.job.model.dto.RequestDto.CreateDto;
-import com.example.backend.jenkins.job.model.dto.RequestDto.UpdateDto;
+import com.example.backend.jenkins.job.model.Script;
+import com.example.backend.jenkins.job.model.dto.RequestDto;
 import com.example.backend.jenkins.job.model.dto.ResponseDto;
 import com.example.backend.jenkins.job.service.PipelineService;
+import com.example.backend.jenkins.job.service.ScriptService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -32,12 +33,12 @@ public class JobController {
 
     private final PipelineService pipelineService;
     private final JenkinsInfoService jenkinsInfoService;
+    private final ScriptService scriptService;
 
     @Operation(
             summary = "새 Job 생성",
             description = """
                         사용자가 지정한 설정에 맞게 Jenkins에 새 Job을 생성합니다.
-                        script는 script 생성 api로 먼저 생성해 id를 보내야합니다.
                     """
     )
     @ApiResponses({
@@ -48,13 +49,14 @@ public class JobController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 JenkinsInfo Id"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #requestDto.infoId)")
+    @PreAuthorize("@jenkinsInfoService.isOwner(#user, #req.job.infoId)")
     @PostMapping("/create")
     public ResponseEntity<BaseResponse<String>> create(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid CreateDto requestDto
+            @RequestBody @Valid RequestDto.CreateJobRequest req
     ) {
-        pipelineService.createJob(requestDto);
+        Script script = scriptService.generateScript(req.getScript());
+        pipelineService.createJob(req.getJob(), script);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("create job success"));
     }
@@ -74,13 +76,14 @@ public class JobController {
             @ApiResponse(responseCode = "404", description = "존재하지 않는 Job Id"),
             @ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    @PreAuthorize("@pipelineService.isOwner(#user, #requestDto.pipelineId)")
+    @PreAuthorize("@pipelineService.isOwner(#user, #req.job.pipelineId)")
     @PutMapping
     public ResponseEntity<BaseResponse<String>> update(
             @AuthenticationPrincipal(expression = "userEntity") Users user,
-            @RequestBody @Valid UpdateDto requestDto
+            @RequestBody @Valid RequestDto.UpdateJobRequest req
     ) {
-        pipelineService.updateJob(requestDto);
+        Script script = scriptService.generateScript(req.getScript());
+        pipelineService.updateJob(req.getJob(), script);
         return ResponseEntity.ok()
                 .body(BaseResponse.success("update job success"));
     }

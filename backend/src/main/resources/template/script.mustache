@@ -1,7 +1,4 @@
 pipeline {
-  parameters {
-      string(name: 'ID', defaultValue: '', description: 'Job 식별자 (서버에 전달할 ID)')
-  }
   agent any
 
   stages {
@@ -112,28 +109,4 @@ spec:
     }
     {{/isEc2Deploy}}
   }
-    post {
-        success {
-            sh """
-            curl -X POST \\
-                 -H "Content-Type: application/json" \\
-                 -d '{
-                        "success": true,
-                        "jobId": "${params.ID}"
-                      }' \\
-                 https://www.pipely.kro.kr/api/jenkins/build/status
-            """
-        }
-        failure {
-            sh """
-            curl -X POST \\
-                 -H "Content-Type: application/json" \\
-                 -d '{
-                        "success": false,
-                        "jobId": "${params.ID}"
-                      }' \\
-                 https://www.pipely.kro.kr/api/jenkins/build/status
-            """
-        }
-    }
 }

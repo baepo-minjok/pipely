@@ -37,7 +37,6 @@ public class JobNotificationService {
             String key = entry.getKey();
             NotificationDto dto = entry.getValue();
 
-            // checkSuccess가 true → BUILD_SUCCESS 이벤트 저장
             if (dto.isCheckSuccess()) {
                 entities.add(
                         JobNotification.builder()
@@ -49,7 +48,6 @@ public class JobNotificationService {
                 );
             }
 
-            // checkFailure가 true → BUILD_FAIL 이벤트 저장
             if (dto.isCheckFailure()) {
                 entities.add(
                         JobNotification.builder()
