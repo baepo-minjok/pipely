@@ -23,6 +23,7 @@ const isDiscordChecked = ref(false);
 const isSlackChecked = ref(false);
 const openDropdown = ref(false);
 const isScheduleSelected = ref(false);
+const isManualSelected = ref(false);
 
 const weekdays = [
   {label: '월', value: 'mon'},
@@ -122,7 +123,8 @@ const jobData = reactive({
 });
 
 const scriptData = reactive({
-  infoId: jenkinsInfo.id,
+  mode: '',
+  manualScript: '',
   scriptId: '',
   githubUrl: '',
   branch: 'main',
@@ -183,7 +185,7 @@ const handleCreateScriptClick = async () => {
 const handleCreateJobClick = async () => {
   isJobCreating.value = true;
   try {
-    const validateData = {
+    /*const validateData = {
       infoId: jenkinsInfo.id,
       script: scriptText.value,
     };
@@ -193,7 +195,7 @@ const handleCreateJobClick = async () => {
       if (!isOk) {
         return;
       }
-    }
+    }*/
     await createJob();
   } catch (error) {
     alert("오류가 발생했습니다. 다시 시도해주세요");
@@ -205,7 +207,17 @@ const handleCreateJobClick = async () => {
 const createJob = async () => {
   jobData.schedule = formatSchedule(scheduleData);
   jobData.notificationMap = buildNotificationMap();
-  const response = await jobApi.createJob(jobData);
+  if (isManualSelected.value) {
+    scriptData.mode = 'MANUAL';
+    scriptData.manualScript = scriptText.value;
+  } else {
+    scriptData.mode = 'GENERATED';
+  }
+  const data = {
+    job: jobData,
+    script: scriptData
+  }
+  const response = await jobApi.createJob(data);
   if (response.status === 200) {
     alert('Job이 생성되었습니다!');
   } else {
@@ -465,8 +477,15 @@ watch(scriptText, (newVal) => {
                 <polyline points="8,6 2,12 8,18"/>
               </svg>
               스크립트
+
+              <label class="toggle-switch">
+                <input id="webhook_check" v-model="isManualSelected" type="checkbox"/>
+                <span class="slider"></span>
+                <span class="toggle-label"></span>
+              </label>
             </h3>
-            <div class="script-config">
+
+            <div v-if="!isManualSelected" class="script-config">
               <div class="form-group">
                 <label class="form-label" for="github_url">Github 주소</label>
                 <input
@@ -533,30 +552,25 @@ watch(scriptText, (newVal) => {
                   <EC2Input v-if="scriptData.isEc2Deploy" :form="scriptData"/>
                 </div>
               </div>
-              <button
-                :disabled="isScriptGenerating"
-                class="generate-script-btn"
-                @click="handleCreateScriptClick"
-              >
-                <svg v-if="isScriptGenerating" class="animate-spin" fill="none" height="16" stroke="currentColor"
-                     stroke-width="2" viewBox="0 0 24 24" width="16">
-                  <path d="M21 12a9 9 0 11-6.219-8.56"/>
-                </svg>
-                <svg v-else fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
-                     width="16">
-                  <polyline points="16,18 22,12 16,6"/>
-                  <polyline points="8,6 2,12 8,18"/>
-                </svg>
-                {{ isScriptGenerating ? '생성 중...' : '스크립트 생성' }}
-              </button>
+            </div>
+            <div v-else class="script-config">
+              <div class="form-group">
+                <label class="form-label" for="github_url">Github 주소</label>
+                <input
+                  id="github_url"
+                  v-model="scriptData.githubUrl"
+                  class="form-input"
+                  placeholder="Github 프로젝트 주소를 입력해주세요."
+                  type="text"
+                />
+              </div>
               <div class="script-editor">
                 <label class="form-label">생성된 스크립트</label>
                 <textarea
                   id="script"
                   v-model="scriptText"
                   class="script-textarea"
-                  disabled="true"
-                  placeholder="스크립트가 여기에 생성됩니다..."
+                  placeholder="스크립트를 입력해주세요"
                   spellcheck="false"
                 ></textarea>
               </div>
@@ -637,7 +651,7 @@ watch(scriptText, (newVal) => {
           취소
         </button>
         <button
-          :disabled="isJobCreating || !jobData.name || !scriptText"
+          :disabled="isJobCreating || !jobData.name || !scriptData.githubUrl"
           class="btn btn-primary"
           @click="handleCreateJobClick"
         >

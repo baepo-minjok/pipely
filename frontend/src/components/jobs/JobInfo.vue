@@ -27,6 +27,7 @@ const selectedItem = computed(() => jobStore.selectedItem);
 
 const isEditing = ref(false);
 const isLoading = ref(false);
+const isManualSelected = ref(false);
 
 // jobStore에서 실시간 빌드 상태 가져오기
 const currentJobState = computed(() => {
@@ -71,7 +72,9 @@ const editableData = reactive({
     }
   },
   scriptData: {
+    mode: '',
     scriptId: '',
+    manualScript: '',
     githubUrl: '',
     branch: 'main',
     isBuildSelected: false,
@@ -167,7 +170,7 @@ const weekdays = [
   {label: '토', value: 'sat'},
   {label: '일', value: 'sun'},
 ];
-
+console.log(editableData.scriptData);
 const hasDeploy = computed(() => {
   const dto = jobDetail.value.lightScriptDto;
   return dto?.isK8sDeploy || dto?.isEc2Deploy;
@@ -245,12 +248,15 @@ const init = () => {
   }
 
   if (jobDetail.value.lightScriptDto) {
+    console.log(jobDetail.value.lightScriptDto);
     Object.assign(editableData.scriptData, jobDetail.value.lightScriptDto);
     editableData.scriptData.isDeploySelected = jobDetail.value.lightScriptDto.isK8sDeploy || jobDetail.value.lightScriptDto.isEc2Deploy;
+    isManualSelected.value = editableData.scriptData.mode === 'MANUAL';
   }
 
   editableData.scriptText = scriptText.value || '';
   editableData.schedule = parseSchedule(jobDetail.value.schedule);
+
 
   if (selectedItem.value) {
     editableData.selectedItem = selectedItem.value;
@@ -281,16 +287,19 @@ const saveWithProgress = async () => {
     schedule: editableData.schedule.enabled ? formatSchedule(editableData.schedule) : ''
   };
 
+  const data = {
+    job: jobData,
+    script: editableData.scriptData,
+  }
+
   try {
-    const response = await jobApi.updateJob(jobData);
+    const response = await jobApi.updateJob(data);
     Object.assign(jobDetail.value, {...jobDetail.value, ...jobData});
     await jobStore.fetchJobDetail(jobDetail.value.pipelineId);
     init();
     isEditing.value = false;
-    // 성공 토스트 메시지 (실제 구현에서는 toast 라이브러리 사용)
     alert('설정이 성공적으로 저장되었습니다.');
   } catch (error) {
-    // 에러 토스트 메시지
     alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
     console.error('Save error:', error);
   } finally {
@@ -298,22 +307,32 @@ const saveWithProgress = async () => {
   }
 };
 
+const toggleManual = () => {
+  if (isManualSelected.value) {
+    editableData.scriptData.mode = 'GENERATED';
+  } else {
+    editableData.scriptData.mode = 'MANUAL';
+  }
+  console.log(isManualSelected.value);
+}
+
 const buildNotificationMap = () => {
   const map = {};
   if (editableData.notifications.isDiscordChecked) {
     map.discord = {
-      webhookUrl: editableData.notifications.discord.discordUrl,
+      webhookUrl: editableData.notifications.discord.webhookUrl,
       checkSuccess: editableData.notifications.discord.checkSuccess,
       checkFailure: editableData.notifications.discord.checkFailure,
     };
   }
   if (editableData.notifications.isSlackChecked) {
     map.slack = {
-      webhookUrl: editableData.notifications.slack.slackUrl,
+      webhookUrl: editableData.notifications.slack.webhookUrl,
       checkSuccess: editableData.notifications.slack.checkSuccess,
       checkFailure: editableData.notifications.slack.checkFailure,
     };
   }
+  console.log(map);
   return map;
 };
 
@@ -671,7 +690,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 스크립트 설정 -->
     <div class="section">
       <h3 class="section-title">
         <svg fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="20">
@@ -679,6 +697,12 @@ onMounted(() => {
           <polyline points="8,6 2,12 8,18"/>
         </svg>
         스크립트
+        <label class="toggle-switch">
+          <input id="webhook_check" v-model="isManualSelected" :disabled="!isEditing" type="checkbox"
+                 @click="toggleManual"/>
+          <span class="slider"></span>
+          <span class="toggle-label"></span>
+        </label>
       </h3>
       <div class="script-config">
         <div class="form-group">
@@ -699,7 +723,7 @@ onMounted(() => {
             placeholder="Github URL이 설정되지 않았습니다"
           />
         </div>
-        <div class="form-group">
+        <div v-if="!isManualSelected" class="form-group">
           <label class="form-label" for="branch">Git Branch</label>
           <input
             v-if="isEditing"
@@ -715,7 +739,7 @@ onMounted(() => {
             disabled
           />
         </div>
-        <div class="stage-selection">
+        <div v-if="!isManualSelected" class="stage-selection">
           <label class="form-label">스테이지 선택</label>
           <div class="stage-options">
             <label class="toggle-switch">
@@ -806,18 +830,20 @@ onMounted(() => {
             />
           </div>
         </div>
-        <div class="script-editor">
-          <label class="form-label">생성된 스크립트</label>
+        <div v-if="isEditing && isManualSelected" class="script-editor">
+          <label class="form-label">스크립트</label>
           <textarea
-            v-if="isEditing"
             id="script"
-            v-model="editableData.scriptText"
+            v-model="editableData.scriptData.manualScript"
             class="script-textarea"
             placeholder="스크립트가 여기에 생성됩니다..."
             spellcheck="false"
           ></textarea>
+        </div>
+        <div
+          v-else-if="!isEditing" class="script-editor">
+          <label class="form-label">스크립트</label>
           <textarea
-            v-else
             :value="scriptText"
             class="script-textarea"
             disabled
@@ -825,22 +851,6 @@ onMounted(() => {
             spellcheck="false"
           ></textarea>
         </div>
-        <button
-          v-if="isEditing"
-          :disabled="isScriptGenerating"
-          class="generate-script-btn"
-          @click="handleCreateScriptClick"
-        >
-          <svg v-if="isScriptGenerating" class="animate-spin" fill="none" height="16" stroke="currentColor"
-               stroke-width="2" viewBox="0 0 24 24" width="16">
-            <path d="M21 12a9 9 0 11-6.219-8.56"/>
-          </svg>
-          <svg v-else fill="none" height="16" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="16">
-            <polyline points="16,18 22,12 16,6"/>
-            <polyline points="8,6 2,12 8,18"/>
-          </svg>
-          {{ isScriptGenerating ? '생성 중...' : '스크립트 생성' }}
-        </button>
       </div>
     </div>
 

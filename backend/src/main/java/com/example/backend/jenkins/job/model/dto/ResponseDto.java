@@ -76,6 +76,7 @@ public class ResponseDto {
             return null;
         }
         return LightScriptDto.builder()
+                .mode(script.getMode())
                 .scriptId(script.getId())
                 .githubUrl(script.getGithubUrl())
                 .branch(script.getBranch())
@@ -202,6 +203,8 @@ public class ResponseDto {
     @AllArgsConstructor
     @Schema(name = "LightScriptDto", description = "Script 주요 정보 (Job 상세 응답에 포함)")
     public static class LightScriptDto {
+
+        private ScriptMode mode;
 
         @Schema(description = "Script UUID", example = "0c6fd9ad-991c-4e62-abe7-723b4be4a57e")
         private UUID scriptId;

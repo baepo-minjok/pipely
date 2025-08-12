@@ -13,12 +13,11 @@ import com.example.backend.jenkins.job.repository.PipelineVersionRepository;
 import com.example.backend.jenkins.notification.repository.JobNotificationRepository;
 import com.example.backend.jenkins.notification.service.JobNotificationService;
 import com.example.backend.service.HttpClientService;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
-
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 
@@ -54,20 +53,18 @@ class PipelineServiceTest {
     private JobNotificationRepository jobNotificationRepository;
 
 
-
-
     //1. createJob
-            /*
-             * [createJob() 동작 흐름 요약]
-             * 1. JenkinsInfo 조회 → jenkinsInfoService.getJenkinsInfo()
-             * 2. Job 이름 중복 검사 → ensureUniqueName()
-             * 3. Script 조회 → scriptService.getScriptById()
-             * 4. (조건) 알림 리스트가 있으면 알림 생성 및 script 수정
-             * 5. config XML 생성 → configService.buildConfigContext() + createConfig()
-             * 6. Pipeline + Version 저장 → pipelineRepository.save()
-             * 7. 알림에 pipelineId 주입 후 저장 (조건부)
-             * 8. Jenkins HTTP 호출 → httpClientService.callJenkins()
-             */
+    /*
+     * [createJob() 동작 흐름 요약]
+     * 1. JenkinsInfo 조회 → jenkinsInfoService.getJenkinsInfo()
+     * 2. Job 이름 중복 검사 → ensureUniqueName()
+     * 3. Script 조회 → scriptService.getScriptById()
+     * 4. (조건) 알림 리스트가 있으면 알림 생성 및 script 수정
+     * 5. config XML 생성 → configService.buildConfigContext() + createConfig()
+     * 6. Pipeline + Version 저장 → pipelineRepository.save()
+     * 7. 알림에 pipelineId 주입 후 저장 (조건부)
+     * 8. Jenkins HTTP 호출 → httpClientService.callJenkins()
+     */
     @Test
     @DisplayName("[성공] Jenkins Job 생성 성공 - pipeline + version + Jenkins 호출 정상 동작")
     void createJob_success() {
@@ -112,7 +109,7 @@ class PipelineServiceTest {
         );
 
         // 실제 서비스 호출
-        pipelineService.createJob(dto);
+        pipelineService.createJob(dto, any());
 
         // 예상되는 동작이 일어났는지 검증
         verify(configService).createConfig(any());
@@ -159,7 +156,7 @@ class PipelineServiceTest {
                 .thenReturn(Optional.of(pipeline));
 
         assertThrows(CustomException.class, () -> {
-            pipelineService.createJob(dto);
+            pipelineService.createJob(dto, any());
         });
 
         verify(pipelineRepository, never()).save(any());
@@ -239,7 +236,7 @@ class PipelineServiceTest {
         when(pipelineRepository.save(any())).thenReturn(pipeline);
 
 
-        pipelineService.updateJob(dto);
+        pipelineService.updateJob(dto, any());
 
         verify(httpClientService).callJenkins(
                 eq(info.getUri() + "/job/" + jobName + "/config.xml"),
@@ -308,7 +305,7 @@ class PipelineServiceTest {
         when(configService.createConfig(any())).thenReturn("<xml/>");
 
 
-        pipelineService.updateJob(dto);
+        pipelineService.updateJob(dto, any());
 
 
         verify(httpClientService).deleteJobOnJenkins(

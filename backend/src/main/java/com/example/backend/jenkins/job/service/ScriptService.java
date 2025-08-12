@@ -6,7 +6,7 @@ import com.example.backend.jenkins.info.model.JenkinsInfo;
 import com.example.backend.jenkins.info.service.JenkinsInfoService;
 import com.example.backend.jenkins.job.model.Script;
 import com.example.backend.jenkins.job.model.dto.RequestDto;
-import com.example.backend.jenkins.job.model.dto.ResponseDto;
+import com.example.backend.jenkins.job.model.dto.ScriptMode;
 import com.example.backend.jenkins.job.repository.ScriptRepository;
 import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
@@ -36,17 +36,12 @@ public class ScriptService {
      * @param requestDto SCriptBaseDto 타입
      * @return
      */
-    public ResponseDto.LightScriptDto generateScript(RequestDto.ScriptBaseDto requestDto) {
-        Script script;
+    public Script generateScript(RequestDto.ScriptBaseDto requestDto) {
+        Script script = (requestDto.getScriptId() != null)
+                ? updateExistingScript(requestDto)
+                : createNewScript(requestDto);
 
-        if (requestDto.getScriptId() != null) {
-            script = updateExistingScript(requestDto);
-        } else {
-            script = createNewScript(requestDto);
-        }
-
-        script = scriptRepository.save(script);
-        return ResponseDto.entityToLightScriptDto(script);
+        return scriptRepository.save(script);
     }
 
     @Transactional
@@ -55,37 +50,50 @@ public class ScriptService {
     }
 
     public void validateScript(RequestDto.ScriptValidateDto requestDto) {
-
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
+        String candidate = requestDto.getManualScript() != null
+                ? requestDto.getManualScript()
+                : requestDto.getScript();
 
-        if (!scriptEditUtil.validateJenkinsfile(info, requestDto.getScript())) {
-            throw new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND);
+        if (!scriptEditUtil.validateJenkinsfile(info, candidate)) {
+            throw new CustomException(ErrorCode.JENKINS_SCRIPT_INVALID);
         }
-
     }
 
+
     private Script createNewScript(RequestDto.ScriptBaseDto dto) {
-        String scriptContent = configService.createScript(configService.buildScriptContext(dto));
-        String injectedScript = scriptEditUtil.injectBooleanParams(scriptContent);
-        return Script.toEntity(dto, injectedScript);
+        ScriptMode mode = dto.getMode() == null ? ScriptMode.GENERATED : dto.getMode();
+        String content = switch (mode) {
+            case MANUAL -> dto.getManualScript();
+            case GENERATED -> configService.createScript(configService.buildScriptContext(dto));
+        };
+
+        content = scriptEditUtil.injectBooleanParams(content);
+        return Script.toEntity(dto, content);
     }
 
     private Script updateExistingScript(RequestDto.ScriptBaseDto dto) {
-        UUID scriptId = dto.getScriptId();
-        Script existingScript = getScriptById(scriptId);
-        if (!scriptRepository.existsById(scriptId)) {
+        Script existing = getScriptById(dto.getScriptId());
+        if (!scriptRepository.existsById(dto.getScriptId())) {
             throw new CustomException(ErrorCode.JENKINS_SCRIPT_NOT_FOUND);
         }
 
-        String scriptContent = configService.createScript(configService.buildScriptContext(dto));
-        String injectedScript = scriptEditUtil.injectBooleanParams(scriptContent);
-        
-        applyDtoToScript(existingScript, dto, injectedScript);
-        return existingScript;
+        ScriptMode mode = dto.getMode() == null ? existing.getMode() : dto.getMode();
+        String content = switch (mode) {
+            case MANUAL -> dto.getManualScript();
+            case GENERATED -> configService.createScript(configService.buildScriptContext(dto));
+        };
+
+        content = scriptEditUtil.injectBooleanParams(content);
+
+        applyDtoToScript(existing, dto, content);
+
+        return existing;
     }
 
     private void applyDtoToScript(Script script, RequestDto.ScriptBaseDto dto, String injectedScript) {
         // 기본 필드
+        script.setMode(dto.getMode());
         script.setGithubUrl(dto.getGithubUrl());
         script.setBranch(dto.getBranch());
         script.setIsBuildSelected(dto.getIsBuildSelected());
