@@ -33,7 +33,7 @@ export const errorApi = {
                 return {
                     jobName: data.jobName,
                     buildNumber: data.buildNumber,
-                    summary: data.naturalResponse ?? "",   // ← 서버 필드명: naturalResponse
+                    summary: data.naturalResponse ?? "",  
                     solution: null,
                     recommendations: [],
                 };
