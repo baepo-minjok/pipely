@@ -3,12 +3,24 @@ import {computed, onMounted, ref, watch} from 'vue';
 import {useRoute} from 'vue-router';
 import JobInfo from '@/components/jobs/JobInfo.vue';
 import JobBuild from '@/components/jobs/JobBuild.vue';
+import ErrorAnalysis from "@/pages/jobs/ErrorAnalysis.vue";
 import {useJobStore} from '@/stores/useJobStore';
 
 const route = useRoute();
 const jobId = ref(route.query.id);
 const selectedTab = ref('detail');
-const selectedTabComponent = computed(() => (selectedTab.value === 'detail' ? JobInfo : JobBuild));
+const selectedTabComponent = computed(() => {
+  switch (selectedTab.value) {
+    case 'detail':
+      return JobInfo;
+    case 'build':
+      return JobBuild;
+    case 'errors':
+      return ErrorAnalysis;
+    default:
+      return JobInfo;
+  }
+});
 const jobStore = useJobStore();
 
 // 다음으로 변경
@@ -144,6 +156,16 @@ onMounted(async () => {
                 <path d="M2 12l10 5 10-5"/>
               </svg>
               <span>빌드</span>
+            </button>
+            <button
+                :class="['nav-item', { active: selectedTab === 'errors' }]"
+                @click="selectedTab = 'errors'"
+            >
+              <svg class="nav-icon" fill="none" height="20" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                   width="20">
+                <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+              </svg>
+              <span>에러 분석</span>
             </button>
           </nav>
 
