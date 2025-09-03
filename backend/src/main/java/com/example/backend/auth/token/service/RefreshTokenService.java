@@ -27,9 +27,11 @@ public class RefreshTokenService {
     private long refreshTokenDurationMs;
 
     /**
-     * 새 Refresh Token 생성 및 저장.
-     * - 기존에 동일 사용자에 대해 저장된 토큰이 있다면 삭제하거나 만료 처리(rotate 방식 선택).
-     * - 보통 로그인 시 호출.
+     * Generate and store a new refresh token.
+     * - If a token is already stored for the same user, delete it or expire it (rotate method selected).
+     * - Typically called upon login.
+     *
+     * @param authentication user authentication info
      */
     @Transactional
     public String createRefreshToken(Authentication authentication) {
@@ -40,10 +42,8 @@ public class RefreshTokenService {
         } else {
             throw new CustomException(ErrorCode.USER_NOT_FOUND);
         }
-        // 기존 토큰 삭제: 한 사용자당 하나의 활성 Refresh Token만 허용하는 경우
         refreshTokenRepository.deleteByUser(user);
 
-        // 토큰 문자열 생성
         String token = jwtTokenProvider.createRefreshToken(authentication);
 
         RefreshToken refreshToken = RefreshToken.builder()
@@ -56,31 +56,32 @@ public class RefreshTokenService {
     }
 
     /**
-     * Refresh Token 유효성 검사 후, Users 반환.
-     * - 토큰이 존재하지 않거나 만료됐거나 revoked=true면 예외 발생 혹은 Optional.empty 처리
+     * After validating the refresh token, return Users.
+     * - If the token does not exist, has expired, or is revoked=true, an exception is raised or Optional. Empty is processed.
+     *
+     * @param token Token to Verify
      */
     public void validateRefreshTokenAndGetUser(String token) {
 
         if (token == null) {
-            // Cookie에 refresh 토큰이 없는 경우
             throw new CustomException(ErrorCode.USER_REFRESH_TOKEN_INVALID);
         }
         Optional<RefreshToken> optionalRT = refreshTokenRepository.findById(token);
         if (optionalRT.isEmpty()) {
-            // DB에 token이 없는 경우
             throw new CustomException(ErrorCode.USER_REFRESH_TOKEN_INVALID);
         }
         RefreshToken refreshToken = optionalRT.get();
 
         if (refreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            // 만료된 경우
             refreshTokenRepository.delete(refreshToken);
             throw new CustomException(ErrorCode.USER_REFRESH_TOKEN_EXPIRED);
         }
     }
 
     /**
-     * 로그아웃 또는 재발급 시 기존 Refresh Token 삭제
+     * Delete existing refresh token when logging out or reissuing
+     *
+     * @param user Delete existing refresh token when logging out or reissuing
      */
     @Transactional
     public void deleteByUser(Users user) {

@@ -35,8 +35,13 @@ public class VersionService {
     private final PipelineVersionRepository pipelineVersionRepository;
     private final ScriptRepository scriptRepository;
 
-    // 특정 파이프라인버전 삭제
-    // 조건: 가장 최신 버전은 삭제 할 수 없음
+    /**
+     * Deletes a specific PipelineVersion.
+     * Condition: The latest version cannot be deleted.
+     *
+     * @param pipelineVersionId the UUID of the PipelineVersion to delete
+     * @throws CustomException if attempting to delete the latest version
+     */
     @Transactional
     public void deletePipelineVersion(UUID pipelineVersionId) {
 
@@ -54,6 +59,11 @@ public class VersionService {
 
     }
 
+    /**
+     * Rolls back the latest PipelineVersion to a specified snapshot version.
+     *
+     * @param snapshotVersionId the UUID of the snapshot PipelineVersion
+     */
     @Transactional
     public void rollbackToSnapshot(UUID snapshotVersionId) {
         PipelineVersion target = getPipelineVersionById(snapshotVersionId);
@@ -83,6 +93,13 @@ public class VersionService {
 
     }
 
+    /**
+     * Creates a snapshot of the latest PipelineVersion.
+     * A new PipelineVersion entity is created along with a replicated Script and Stage list.
+     *
+     * @param pipelineId   the UUID of the Pipeline to snapshot
+     * @param snapshotName the name for the new snapshot version
+     */
     @Transactional
     public void snapshotVersion(UUID pipelineId, String snapshotName) {
         Pipeline pipeline = pipelineService.getPipelineById(pipelineId);
@@ -105,18 +122,32 @@ public class VersionService {
             copiedStages.add(copied);
         }
         snapshot.setStageList(copiedStages);
-    
+
         pipelineVersionRepository.save(snapshot);
 
         pipeline.getVersionList().add(snapshot);
         pipelineRepository.save(pipeline);
     }
 
+    /**
+     * Retrieves a PipelineVersion by its ID.
+     *
+     * @param pipelineVersionId the UUID of the PipelineVersion
+     * @return the PipelineVersion entity
+     * @throws CustomException if the version is not found
+     */
     public PipelineVersion getPipelineVersionById(UUID pipelineVersionId) {
         return pipelineVersionRepository.findWithPipelineById(pipelineVersionId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));
     }
 
+    /**
+     * Checks whether a given user is the owner of a PipelineVersion.
+     *
+     * @param user              the Users entity
+     * @param pipelineVersionId the UUID of the PipelineVersion
+     * @return true if the user is the owner, false otherwise
+     */
     public boolean isOwner(Users user, UUID pipelineVersionId) {
         PipelineVersion pipelineVersion = pipelineVersionRepository.findWithPipelineAndJenkinsInfoAndUserById(pipelineVersionId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_JOB_VERSION_NOT_FOUND));

@@ -34,7 +34,11 @@ public class JenkinsInfoService {
     private final JenkinsInfoRepository jenkinsInfoRepository;
 
     /**
-     * 새로운 JenkinsInfo 생성
+     * Create a new JenkinsInfo entity for a given user.
+     *
+     * @param user      the user who owns the JenkinsInfo
+     * @param createDto DTO containing Jenkins connection details
+     * @return the saved JenkinsInfo entity
      */
     @Transactional
     public JenkinsInfo createJenkinsInfo(Users user, CreateDto createDto) {
@@ -57,7 +61,12 @@ public class JenkinsInfoService {
     }
 
     /**
-     * JenkinsInfo 수정 (예: URI나 secretKey 업데이트)
+     * Update an existing JenkinsInfo entity.
+     * Example: update URI, description, or API token.
+     *
+     * @param updateDto DTO containing updated JenkinsInfo details
+     * @return the updated JenkinsInfo entity
+     * @throws CustomException if the JenkinsInfo with given ID is not found
      */
     @Transactional
     public JenkinsInfo updateJenkinsInfo(UpdateDto updateDto) {
@@ -78,9 +87,10 @@ public class JenkinsInfoService {
     }
 
     /**
-     * JenkinsInfo 삭제
+     * Delete a JenkinsInfo by ID.
      *
-     * @param infoId JenkinsInfo 엔티티의 private key
+     * @param infoId the unique ID (primary key) of the JenkinsInfo entity
+     * @throws CustomException if the JenkinsInfo with given ID is not found
      */
     @Transactional
     public void deleteJenkinsInfo(UUID infoId) {
@@ -90,7 +100,10 @@ public class JenkinsInfoService {
     }
 
     /**
-     * 특정 사용자의 모든 JenkinsInfo 조회
+     * Retrieve all JenkinsInfo entities for a given user in lightweight form.
+     *
+     * @param user the user whose JenkinsInfo list should be retrieved
+     * @return list of LightInfoDto objects containing basic Jenkins info
      */
     public List<LightInfoDto> getAllLightDtoByUser(Users user) {
         return jenkinsInfoRepository.findByUser(user).stream()
@@ -99,10 +112,11 @@ public class JenkinsInfoService {
     }
 
     /**
-     * id로 하나의 JenkinsInfo 조회
+     * Retrieve detailed information about a JenkinsInfo by ID.
      *
-     * @param infoId JenkinsInfo 엔티티의 private key
-     * @return 조회된 JenkinsInfo를 DetailInfoDto로 변환해서 반환, 없으면 JENKINS_INFO_NOT_FOUND 에러 반환
+     * @param infoId the unique ID of the JenkinsInfo entity
+     * @return DetailInfoDto containing full information about the JenkinsInfo
+     * @throws CustomException if the JenkinsInfo with given ID is not found
      */
     public DetailInfoDto getDetailInfoById(UUID infoId) {
         return jenkinsInfoRepository.findById(infoId).map(DetailInfoDto::fromEntity)
@@ -110,9 +124,12 @@ public class JenkinsInfoService {
     }
 
     /**
-     * jenkins 정보가 정확한 지 검증
+     * Verify that stored Jenkins connection information is valid
+     * by sending a request to the Jenkins API.
      *
-     * @param infoId JenkinsInfo 엔티티의 private key
+     * @param infoId the unique ID of the JenkinsInfo entity
+     * @throws CustomException if the JenkinsInfo with given ID is not found
+     * @throws CustomException if Jenkins API call fails (connection or authentication error)
      */
     @Transactional
     public void verificationJenkinsInfo(UUID infoId) {
@@ -156,9 +173,11 @@ public class JenkinsInfoService {
     }
 
     /**
-     * jenkins 정보가 정확한 지 검증
+     * Verify Jenkins connection information provided directly via DTO
+     * without persisting it to the database.
      *
-     * @param dto uri, id, apiToken이 담긴 dto
+     * @param dto DTO containing Jenkins URI, jenkinsId, and apiToken
+     * @throws CustomException if Jenkins API call fails (connection or authentication error)
      */
     @Transactional
     public void verificationJenkinsInfo(InfoRequestDto.InfoDto dto) {
@@ -191,11 +210,25 @@ public class JenkinsInfoService {
 
     }
 
+    /**
+     * Retrieve a JenkinsInfo entity with its associated user.
+     *
+     * @param infoId the unique ID of the JenkinsInfo entity
+     * @return the JenkinsInfo entity including user reference
+     * @throws CustomException if the JenkinsInfo with given ID is not found
+     */
     public JenkinsInfo getJenkinsInfo(UUID infoId) {
         return jenkinsInfoRepository.findWithUserById(infoId)
                 .orElseThrow(() -> new CustomException(ErrorCode.JENKINS_INFO_NOT_FOUND));
     }
 
+    /**
+     * Check if a user is the owner of a given JenkinsInfo entity.
+     *
+     * @param user   the user to check
+     * @param infoId the unique ID of the JenkinsInfo entity
+     * @return true if the user is the owner, false otherwise
+     */
     public boolean isOwner(Users user, UUID infoId) {
         JenkinsInfo info = getJenkinsInfo(infoId);
         UUID userId = user.getId();

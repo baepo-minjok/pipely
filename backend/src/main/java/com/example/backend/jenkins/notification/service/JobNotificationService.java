@@ -21,7 +21,10 @@ public class JobNotificationService {
     private final JobNotificationRepository notificationRepository;
 
     /**
-     * NotificationMap을 JobNotification 엔티티 리스트로 변환하고 저장한다.
+     * Converts the NotificationMap into a list of JobNotification entities and saves them.
+     *
+     * @param notificationMap key=channel name (slack/discord), value=NotificationDto
+     * @param pipelineVersion The pipeline version entity to which the notification will be linked.
      */
     @Transactional
     public void saveJobNotifications(Map<String, NotificationDto> notificationMap,
@@ -65,6 +68,12 @@ public class JobNotificationService {
         pipelineVersion.getJobNotificationList().addAll(saved);
     }
 
+    /**
+     * Delete existing notification information and update it by saving a new one.
+     *
+     * @param notificationMap: New notification settings
+     * @param pipelineVersion: The pipeline version entity to which the notification will be linked
+     */
     @Transactional
     public void updateJobNotifications(Map<String, NotificationDto> notificationMap,
                                        PipelineVersion pipelineVersion) {
@@ -74,7 +83,10 @@ public class JobNotificationService {
     }
 
     /**
-     * key(discord/slack)를 JobNotification.Channel Enum으로 변환
+     * Convert key(discord/slack) to JobNotification.Channel enum
+     *
+     * @param key: Channel key (slack/discord)
+     * @return JobNotification.Channel enum value
      */
     private JobNotification.Channel parseChannel(String key) {
         if (key == null) {

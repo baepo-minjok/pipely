@@ -27,39 +27,36 @@ public class PasswordResetService {
     private final EmailService emailService; // 이메일 발송 서비스
     private final PasswordEncoder passwordEncoder;
 
-    // 토큰 만료 기간: 예시 1시간
     private final long EXPIRATION_HOURS = 1L;
 
     /**
-     * 비밀번호 재설정 요청 처리: 토큰 생성 및 이메일 발송
+     * Processing password reset requests: Generating tokens and sending emails
      *
-     * @param email 요청한 이메일
+     * @param email Email address requesting issuance
      */
     @Transactional
     public void createPasswordResetTokenAndSendEmail(String email) {
-        // 사용자 존재 여부 조회
         Optional<Users> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            // 이메일 존재하지 않더라도, 응답 메시지는 동일하게 처리함 (보안상 존재 여부 노출 방지)
-            log.warn("[Password Reset] 존재하지 않는 이메일로 요청: {}", email);
             return;
         }
         Users user = userOpt.get();
 
-        // 새로운 토큰 생성
         String tokenStr = createPasswordResetToken(user);
 
-        // 이메일 전송
         emailService.sendPasswordResetEmailAsync(user, tokenStr);
-        log.info("[Password Reset] 이메일 전송 요청 완료: to={}", email);
     }
 
+    /**
+     * Generate a new password reset token
+     *
+     * @param user User who request
+     * @return new password token
+     */
     @Transactional
     public String createPasswordResetToken(Users user) {
-        // 기존 토큰 정리
         tokenRepository.deleteAllByUser(user);
 
-        // 새로운 토큰 생성
         String tokenStr = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now();
         PasswordResetToken prt = PasswordResetToken.builder()
@@ -69,10 +66,15 @@ public class PasswordResetService {
                 .expiresAt(now.plusHours(EXPIRATION_HOURS))
                 .build();
         tokenRepository.save(prt);
-        log.info("[Password Reset] 토큰 생성: userEmail={}, token={}", user.getEmail(), tokenStr);
         return tokenStr;
     }
 
+    /**
+     * Generate a new password reset token
+     *
+     * @param email email who request
+     * @return new password token
+     */
     @Transactional
     public String getToken(String email) {
         Users user = userRepository.findByEmail(email)
@@ -82,34 +84,28 @@ public class PasswordResetService {
     }
 
     /**
-     * 비밀번호 변경 처리: 토큰 검증 후 새로운 비밀번호 저장
+     * Password Change Processing: Store the new password after token verification
      *
-     * @param tokenStr    클라이언트가 제공한 토큰
-     * @param newPassword 평문 새 비밀번호
+     * @param tokenStr    The client-supplied token
+     * @param newPassword newPassword The plaintext new password
      */
     @Transactional
     public void resetPassword(String tokenStr, String newPassword) {
 
         Optional<PasswordResetToken> tokenOpt = tokenRepository.findByToken(tokenStr);
         if (tokenOpt.isEmpty()) {
-            log.warn("[Password Reset] resetPassword: 토큰 존재하지 않음: {}", tokenStr);
             throw new CustomException(ErrorCode.USER_PASSWORD_RESET_TOKEN_INVALID);
         }
         PasswordResetToken prt = tokenOpt.get();
 
         if (prt.getExpiresAt().isBefore(LocalDateTime.now())) {
-            log.warn("[Password Reset] resetPassword: 유효하지 않은 토큰: {}", tokenStr);
             throw new CustomException(ErrorCode.USER_PASSWORD_RESET_TOKEN_INVALID);
         }
         Users user = prt.getUser();
 
-        // 비밀번호 인코딩 후 저장
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        // 사용된 토큰은 삭제
         tokenRepository.deleteAllByUser(user);
-
-        log.info("[Password Reset] 비밀번호 변경 완료: userEmail={}", user.getEmail());
     }
 }

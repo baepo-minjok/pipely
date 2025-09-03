@@ -3,6 +3,7 @@ package com.example.backend.handler;
 import com.example.backend.exception.BaseResponse;
 import com.example.backend.exception.CustomException;
 import com.example.backend.exception.ErrorCode;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,6 +160,25 @@ public class GlobalExceptionHandler {
         String query = request.getQueryString();
 
         ErrorCode code = ErrorCode.METHOD_UNAUTHORIZED;
+
+        return ResponseEntity
+                .status(code.getHttpStatus().value())
+                .body(BaseResponse.error(code, path));
+    }
+
+    @ExceptionHandler(MessagingException.class)
+    public ResponseEntity<BaseResponse<String>> handleMessagingException(Exception ex, HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+        String query = request.getQueryString();
+
+        if (query != null) {
+            log.error("MessagingException [{} {}?{}]: {}", method, path, query, ex.getMessage(), ex);
+        } else {
+            log.error("MessagingException [{} {}]: {}", method, path, ex.getMessage(), ex);
+        }
+
+        ErrorCode code = ErrorCode.EMAIL_SEND_FAILED;
 
         return ResponseEntity
                 .status(code.getHttpStatus().value())
