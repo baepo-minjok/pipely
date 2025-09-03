@@ -32,16 +32,14 @@ public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
 
     /**
-     * Local 유저 회원가입
+     * Register a new local user (email/password). Sends verification email.
      *
-     * @param req
+     * @param req DTO containing local signup request data
      */
     @Transactional
     public void registerUser(SignupDto req) {
-        log.info("[Register] 로컬 회원가입 시도: email={}", req.getEmail());
 
         if (userRepository.existsByEmail(req.getEmail())) {
-            log.warn("[Register] 이메일 중복으로 회원가입 실패: email={}", req.getEmail());
             throw new CustomException(ErrorCode.USER_EMAIL_DUPLICATED);
         }
 
@@ -59,23 +57,24 @@ public class UserService {
                 .build();
 
         userRepository.save(user);
-        log.info("[Register] 로컬 회원가입 성공: email={}", req.getEmail());
 
         emailService.sendVerificationEmailAsync(user);
-        log.info("[Register] 이메일 인증 메일 발송 요청 완료: email={}", user.getEmail());
     }
 
+    /**
+     * Register a new user via OAuth2 (with claims from JWT cookie).
+     *
+     * @param oAuthCookie oAuth2Cookie issued when logging in with oAuth2
+     * @param dto         DTO containing OAuth2 signup request data
+     */
     public void oAuth2UserSignUp(String oAuthCookie, OAuth2SignupDto dto) {
 
         if (!jwtTokenProvider.validateToken(oAuthCookie)) {
-            // 예외
             throw new CustomException(ErrorCode.USER_OAUTH2_TOKEN_INVALID);
         }
         String registrationId = jwtTokenProvider.getRegistrationId(oAuthCookie);
         Map<String, Object> map = jwtTokenProvider.getClaims(oAuthCookie);
         String email = (String) map.get("email");
-
-        log.info("[Register-OAuth2] {} 회원가입 시도: email={}", registrationId, email);
 
         Users user = Users.builder()
                 .email(email)
@@ -91,14 +90,13 @@ public class UserService {
                 .build();
 
         userRepository.save(user);
-        log.info("[Register-OAuth2] {} 회원가입 성공: email={}", registrationId, email);
     }
 
 
     /**
-     * OAuth2 유저 회원가입
+     * Check if an OAuth2 user already exists. If yes, update lastLogin; else return false.
      *
-     * @param oauth2User
+     * @param oauth2User Logged in oauth2 user
      */
     @Transactional
     public boolean isExist(OAuth2User oauth2User) {
@@ -106,7 +104,6 @@ public class UserService {
         String email = attributes.get("email").toString();
 
         if (userRepository.existsByEmail(email)) {
-            log.info("[Register-OAuth2] 기존 사용자 로그인 처리: email={}", email);
             Users user = findByEmail(email);
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
@@ -117,9 +114,9 @@ public class UserService {
     }
 
     /**
-     * 마지막 로그인 시간 갱신
+     * Update user's last login timestamp. Throws exceptions if user is DORMANT, UNVERIFIED, or WITHDRAWN.
      *
-     * @param user
+     * @param user logged in user
      */
     public void setLastLogin(Users user) {
 
@@ -135,24 +132,13 @@ public class UserService {
 
         user.setLastLogin(LocalDateTime.now());
 
-        Users.UserStatus status = user.getStatus();
-
-        // 유저의 상태가 ACTIVE가 아닐 경우 예외처리
-        if (status == Users.UserStatus.DORMANT) {
-            throw new CustomException(ErrorCode.USER_DORMANT);
-        } else if (status == Users.UserStatus.WITHDRAWN) {
-            throw new CustomException(ErrorCode.USER_WITHDRAWN);
-        } else if (status == Users.UserStatus.UNVERIFIED) {
-            throw new CustomException(ErrorCode.USER_UNVERIFIED);
-        }
-
         userRepository.save(user);
     }
 
     /**
-     * 회원 탈퇴 처리
+     * Mark user as WITHDRAWN and set deletedAt timestamp.
      *
-     * @Param Users
+     * @param user User who request
      */
     @Transactional
     public void withdrawCurrentUser(Users user) {
@@ -163,22 +149,44 @@ public class UserService {
 
     }
 
+    /**
+     * Change user status to ACTIVE and save.
+     *
+     * @param user User who request
+     */
     public void setUserStatusActive(Users user) {
         user.setStatus(Users.UserStatus.ACTIVE);
         userRepository.save(user);
     }
 
+    /**
+     * Check if email already exists; throws exception if duplicated.
+     *
+     * @param email Email to check for duplicates
+     */
     public void checkDuplicate(String email) {
         if (userRepository.existsByEmail(email)) {
             throw new CustomException(ErrorCode.USER_EMAIL_DUPLICATED);
         }
     }
 
+    /**
+     * Find user by email or throw USER_NOT_FOUND.
+     *
+     * @param email Email who request
+     * @return User using this email
+     */
     public Users findByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
 
+    /**
+     * Retrieve user details along with linked Jenkins info list.
+     *
+     * @param email Email who request
+     * @return DTO containing detailed user information
+     */
     public ResponseDto.detailDto findDetail(String email) {
         Users user = findByEmail(email);
         boolean isVerified = user.getStatus().equals(Users.UserStatus.ACTIVE);
@@ -195,6 +203,11 @@ public class UserService {
                 .build();
     }
 
+    /**
+     * Reactivate a withdrawn user (set ACTIVE and clear deletedAt).
+     *
+     * @param email Email who request
+     */
     @Transactional
     public void reactivation(String email) {
         Users user = findByEmail(email);

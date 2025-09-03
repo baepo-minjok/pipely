@@ -33,6 +33,12 @@ public class EmailService {
     @Value("${user.dormancy.period.days}")
     private long dormancyPeriodDays;
 
+    /**
+     * Send verification email
+     *
+     * @param user  User to receive email
+     * @param token Unique token for authentication
+     */
     public void sendVerificationEmail(Users user, UUID token) {
         log.info("[EmailService] 이메일 인증 메일 발송 시작: email={}, token={}", user.getEmail(), token);
 
@@ -80,6 +86,11 @@ public class EmailService {
         log.info("[EmailService] 이메일 인증 메일 발송 완료: email={}", user.getEmail());
     }
 
+    /**
+     * Send verification email asynchronously
+     *
+     * @param user User to receive email
+     */
     @Async
     public void sendVerificationEmailAsync(Users user) {
 
@@ -89,9 +100,9 @@ public class EmailService {
     }
 
     /**
-     * 비밀번호 재설정 이메일 비동기 발송
+     * Send password reset email asynchronously
      *
-     * @param user 대상 사용자
+     * @param user User to receive email
      */
     @Async
     public void sendPasswordResetEmailAsync(Users user, String token) {
@@ -136,7 +147,9 @@ public class EmailService {
     }
 
     /**
-     * 이메일 인증 토큰 생성
+     * Generate email verification token
+     *
+     * @param user User to receive email
      */
     public VerificationToken createToken(Users user) {
 
@@ -149,7 +162,9 @@ public class EmailService {
     }
 
     /**
-     * 이메일 인증 토큰 검증
+     * Validate email verification token
+     *
+     * @param token Unique token for authentication
      */
     public Users validateToken(UUID token) {
         log.info("[TokenService] 인증 토큰 검증 요청: token={}", token);
@@ -172,6 +187,11 @@ public class EmailService {
         return vt.getUser();
     }
 
+    /**
+     * Send dormant notification email
+     *
+     * @param email User email to receive email
+     */
     public void sendDormantNotificationEmail(String email) {
         Users user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));

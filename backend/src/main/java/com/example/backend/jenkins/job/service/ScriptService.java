@@ -11,7 +11,6 @@ import com.example.backend.jenkins.job.repository.ScriptRepository;
 import com.example.backend.util.ScriptEditUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -24,6 +23,13 @@ public class ScriptService {
     private final ScriptRepository scriptRepository;
     private final JenkinsInfoService jenkinsInfoService;
 
+    /**
+     * Retrieves a Script entity by its ID.
+     *
+     * @param scriptId the unique ID of the Script
+     * @return the Script entity
+     * @throws CustomException if the script is not found
+     */
     public Script getScriptById(UUID scriptId) {
 
         return scriptRepository.findById(scriptId)
@@ -31,10 +37,10 @@ public class ScriptService {
     }
 
     /**
-     * Script 만들어서 LightScriptDto로 반환
+     * Generates a new Script or updates an existing one, then persists it.
      *
-     * @param requestDto SCriptBaseDto 타입
-     * @return
+     * @param requestDto the ScriptBaseDto containing the script data
+     * @return the persisted Script entity
      */
     public Script generateScript(RequestDto.ScriptBaseDto requestDto) {
         Script script = (requestDto.getScriptId() != null)
@@ -44,11 +50,12 @@ public class ScriptService {
         return scriptRepository.save(script);
     }
 
-    @Transactional
-    public void deleteScript(UUID scriptId) {
-        scriptRepository.deleteById(scriptId);
-    }
-
+    /**
+     * Validates the script content by checking it against Jenkins rules.
+     *
+     * @param requestDto the ScriptValidateDto containing the script and JenkinsInfo ID
+     * @throws CustomException if the script is invalid
+     */
     public void validateScript(RequestDto.ScriptValidateDto requestDto) {
         JenkinsInfo info = jenkinsInfoService.getJenkinsInfo(requestDto.getInfoId());
 
@@ -57,7 +64,12 @@ public class ScriptService {
         }
     }
 
-
+    /**
+     * Creates a new Script entity based on the request DTO.
+     *
+     * @param dto the ScriptBaseDto containing script data
+     * @return the new Script entity
+     */
     private Script createNewScript(RequestDto.ScriptBaseDto dto) {
         ScriptMode mode = dto.getMode() == null ? ScriptMode.GENERATED : dto.getMode();
         String content = switch (mode) {
@@ -69,6 +81,13 @@ public class ScriptService {
         return Script.toEntity(dto, content);
     }
 
+    /**
+     * Updates an existing Script entity based on the request DTO.
+     *
+     * @param dto the ScriptBaseDto containing updated script data
+     * @return the updated Script entity
+     * @throws CustomException if the script does not exist
+     */
     private Script updateExistingScript(RequestDto.ScriptBaseDto dto) {
         Script existing = getScriptById(dto.getScriptId());
         if (!scriptRepository.existsById(dto.getScriptId())) {
@@ -88,6 +107,13 @@ public class ScriptService {
         return existing;
     }
 
+    /**
+     * Applies the fields from the ScriptBaseDto to an existing Script entity.
+     *
+     * @param script         the existing Script entity to update
+     * @param dto            the ScriptBaseDto containing updated data
+     * @param injectedScript the final script content after parameter injection
+     */
     private void applyDtoToScript(Script script, RequestDto.ScriptBaseDto dto, String injectedScript) {
         // 기본 필드
         script.setMode(dto.getMode());

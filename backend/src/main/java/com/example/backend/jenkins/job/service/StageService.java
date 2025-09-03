@@ -23,6 +23,13 @@ public class StageService {
     private final VersionStageRepository versionStageRepository;
     private final ScriptEditUtil scriptEditUtil;
 
+    /**
+     * Creates Stage entities and VersionStage associations for a given PipelineVersion and Script.
+     * Extracts stage names from the script, ensures Stage entities exist, and links them to the PipelineVersion.
+     *
+     * @param pipelineVersion the PipelineVersion to associate stages with
+     * @param script          the Script containing stage definitions
+     */
     @Transactional
     public void createStages(PipelineVersion pipelineVersion, Script script) {
         List<String> names = extractStageNames(script);
@@ -49,6 +56,13 @@ public class StageService {
         }
     }
 
+    /**
+     * Updates stages of an existing PipelineVersion.
+     * Clears previous stage associations and recreates them based on the new Script.
+     *
+     * @param pipelineVersion the PipelineVersion to update
+     * @param script          the Script containing the updated stage definitions
+     */
     @Transactional
     public void updateStages(PipelineVersion pipelineVersion, Script script) {
         pipelineVersion.getStageList().clear();
@@ -56,6 +70,13 @@ public class StageService {
         createStages(pipelineVersion, script);
     }
 
+    /**
+     * Extracts stage names from the script content.
+     * Converts names to uppercase and replaces non-word characters with underscores for consistency.
+     *
+     * @param script the Script entity
+     * @return a list of normalized stage names
+     */
     private List<String> extractStageNames(Script script) {
         if (script == null) return Collections.emptyList();
         return scriptEditUtil.extractStageNames(script.getScript())

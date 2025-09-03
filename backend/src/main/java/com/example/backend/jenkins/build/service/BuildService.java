@@ -14,9 +14,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -43,7 +40,10 @@ public class BuildService {
     // ────────────────────────────────────────────────────────────────
 
     /**
-     * Jenkins 파이프라인의 특정 스테이지 실행을 트리거한다.
+     * Triggers the execution of a specific stage in a Jenkins pipeline.
+     *
+     * @param dto DTO containing the job ID and stages to trigger
+     * @return next build number assigned by Jenkins
      */
     public int triggerStages(BuildRequestDto.BuildStageRequestDto dto) {
         Pipeline pipeline = getPipeline(dto.getJobId());
@@ -61,6 +61,12 @@ public class BuildService {
         return getBuildNumber(pipeline, info);
     }
 
+    /**
+     * Create a request body to pass parameters to Jenkins.
+     *
+     * @param dto DTO containing stage build information
+     * @return MultiValueMap of build parameters
+     */
     private MultiValueMap<String, String> buildStageTriggerParams(BuildRequestDto.BuildStageRequestDto dto) {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         dto.getStageBuilds().forEach(stage ->
@@ -75,7 +81,10 @@ public class BuildService {
     // ────────────────────────────────────────────────────────────────
 
     /**
-     * 전체 빌드 이력을 조회한다.
+     * View the entire build history of a specific pipeline.
+     *
+     * @param pipelineId unique identifier of the pipeline
+     * @return list of build information DTOs
      */
     public List<BuildResponseDto.BuildInfo> getBuildHistory(UUID pipelineId) {
         String response = getJenkinsJobJson(pipelineId);
@@ -83,41 +92,36 @@ public class BuildService {
     }
 
     /**
-     * 최신 빌드 정보 1건을 반환한다.
+     * Retrieves the latest build information for a specific pipeline.
+     *
+     * @param pipelineId unique identifier of the pipeline
+     * @return latest build information DTO
      */
     public BuildResponseDto.BuildInfo getLastBuildStatus(UUID pipelineId) {
         String response = getJenkinsJobJson(pipelineId);
         return parseLatestBuildInfo(response, pipelineId);
     }
 
-    /**
-     * 빌드 번호 기준으로 Jenkins 콘솔 전체 로그를 조회한다.
-     */
-    public BuildResponseDto.BuildLogDto getBuildLog(BuildRequestDto.GetLogRequestDto dto) {
-        Pipeline pipeline = getPipeline(dto.getJobId());
-        JenkinsInfo info = pipeline.getJenkinsInfo();
-        String url = info.getUri() + "/job/" + pipeline.getName() + "/" + dto.getBuildNumber() + "/console";
-        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_FORM_URLENCODED);
-
-        try {
-            String response = httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
-            Document doc = Jsoup.parse(response);
-            Element pre = doc.selectFirst("pre.console-output");
-            return BuildResponseDto.BuildLogDto.getLog(pre);
-        } catch (Exception e) {
-            log.error("콘솔 로그 조회 실패 - jobName: {}", pipeline.getName(), e);
-            throw new CustomException(ErrorCode.JENKINS_CONSOLE_LOG_PARSE_ERROR);
-        }
-    }
-
     // ────────────────────────────────────────────────────────────────
     // 3. 내부 API & 변환 유틸
     // ────────────────────────────────────────────────────────────────
 
+    /**
+     * Retrieve Pipeline entities based on their pipeline ID.
+     *
+     * @param pipelineId unique identifier of the pipeline
+     * @return pipeline entity
+     */
     private Pipeline getPipeline(UUID pipelineId) {
         return pipelineService.getPipelineById(pipelineId);
     }
 
+    /**
+     * Call the Jenkins API to get the Job JSON data for a specific pipeline.
+     *
+     * @param pipelineId unique identifier of the pipeline
+     * @return Jenkins job JSON as string
+     */
     private String getJenkinsJobJson(UUID pipelineId) {
         Pipeline pipeline = getPipeline(pipelineId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
@@ -127,6 +131,13 @@ public class BuildService {
         return httpClientService.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
+    /**
+     * Parses the Jenkins response (JSON) and returns a list of build history.
+     *
+     * @param response   raw JSON response from Jenkins
+     * @param pipelineId unique identifier of the pipeline
+     * @return list of build information DTOs
+     */
     private List<BuildResponseDto.BuildInfo> parseBuildInfoList(String response, UUID pipelineId) {
         try {
             Map<String, Object> body = objectMapper.readValue(response, Map.class);
@@ -137,6 +148,13 @@ public class BuildService {
         }
     }
 
+    /**
+     * Parses the Jenkins response (JSON) and returns the latest build information.
+     *
+     * @param response   raw JSON response from Jenkins
+     * @param pipelineId unique identifier of the pipeline
+     * @return latest build information DTO
+     */
     private BuildResponseDto.BuildInfo parseLatestBuildInfo(String response, UUID pipelineId) {
         try {
             Map<String, Object> body = objectMapper.readValue(response, Map.class);
@@ -147,6 +165,13 @@ public class BuildService {
         }
     }
 
+    /**
+     * Retrieves the last build number of a specific pipeline.
+     *
+     * @param info    Jenkins connection info
+     * @param jobName name of the job
+     * @return last build number
+     */
     private int fetchLastBuildNumber(JenkinsInfo info, String jobName) {
         String lastBuildUri = info.getUri() + "/job/" + jobName + "/lastBuild/buildNumber";
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
@@ -158,19 +183,13 @@ public class BuildService {
     // 4. 스테이지/진행률/상태 처리
     // ────────────────────────────────────────────────────────────────
 
-    public String getJobPipelineStage(UUID jobId) {
-        Pipeline pipeline = getPipeline(jobId);
-        JenkinsInfo info = pipeline.getJenkinsInfo();
-        HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_XML);
-        String xmlBody = """
-                <jenkins>
-                    <install plugin="pipeline-rest-api@latest"/>
-                </jenkins>
-                """;
-        String url = info.getUri() + "/pluginManager/installNecessaryPlugins";
-        return httpClientService.exchange(url, HttpMethod.POST, new HttpEntity<>(xmlBody, headers), String.class);
-    }
-
+    /**
+     * Get the next build number from the Jenkins API.
+     *
+     * @param pipeline pipeline entity
+     * @param info     Jenkins connection info
+     * @return next build number
+     */
     public int getBuildNumber(Pipeline pipeline, JenkinsInfo info) {
         HttpHeaders headers = httpClientService.buildHeaders(info, MediaType.APPLICATION_JSON);
 
@@ -183,12 +202,25 @@ public class BuildService {
         return (int) json.get("nextBuildNumber");
     }
 
+    /**
+     * Returns the currently running build number.
+     *
+     * @param jobId unique identifier of the pipeline
+     * @return current build number
+     */
     public Integer getCurrentBuildNumber(UUID jobId) {
         Pipeline pipeline = getPipeline(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
         return getBuildNumber(pipeline, info) - 1;
     }
 
+    /**
+     * Check the status or progress (%) of a specific build.
+     *
+     * @param jobId       unique identifier of the pipeline
+     * @param buildNumber build number
+     * @return "SUCCESS", "FAILURE", "ABORTED" or progress percentage as string
+     */
     @Transactional(readOnly = true)
     public String getDuration(UUID jobId, int buildNumber) {
         Pipeline pipeline = getPipeline(jobId);
@@ -226,6 +258,11 @@ public class BuildService {
     // 5. 빌드 상태, 중단 및 실시간 로그 전송
     // ────────────────────────────────────────────────────────────────
 
+    /**
+     * Stops the currently running build.
+     *
+     * @param jobId unique identifier of the pipeline
+     */
     public void stopBuild(UUID jobId) {
         Pipeline pipeline = getPipeline(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
@@ -242,6 +279,13 @@ public class BuildService {
         pipelineService.setState(pipeline, "ABORTED");
     }
 
+    /**
+     * View the status, logs, and stage progress of a specific build.
+     *
+     * @param jobId       unique identifier of the pipeline
+     * @param buildNumber build number
+     * @return build status DTO
+     */
     public BuildResponseDto.BuildStatusDto viewBuild(UUID jobId, int buildNumber) {
         Pipeline pipeline = getPipeline(jobId);
         JenkinsInfo info = pipeline.getJenkinsInfo();
@@ -277,6 +321,14 @@ public class BuildService {
                 .build();
     }
 
+    /**
+     * Parse the Jenkins wfapi response (JSON).
+     *
+     * @param json        wfapi/describe JSON string
+     * @param jobId       unique identifier of the pipeline
+     * @param buildNumber build number
+     * @return parsed JSON node
+     */
     private JsonNode parseJson(String json, UUID jobId, int buildNumber) {
         try {
             return objectMapper.readTree(json);
@@ -286,6 +338,12 @@ public class BuildService {
         }
     }
 
+    /**
+     * Extract the stage list from the wfapi JSON.
+     *
+     * @param root JSON root node
+     * @return list of stage information maps (name, status)
+     */
     private List<Map<String, String>> extractStages(JsonNode root) {
         List<Map<String, String>> stageList = new ArrayList<>();
         JsonNode stagesNode = root.get("stages");
@@ -300,6 +358,12 @@ public class BuildService {
         return stageList;
     }
 
+    /**
+     * Converts a Jenkins build status string to an internal status value.
+     *
+     * @param jenkinsStatus raw status from Jenkins
+     * @return standardized build status string
+     */
     private String convertJenkinsStatus(String jenkinsStatus) {
         return switch (jenkinsStatus) {
             case "FAILED", "NOT_EXECUTED" -> "BUILD_FAILURE";
@@ -310,7 +374,11 @@ public class BuildService {
     }
 
     /**
-     * 빌드 상태를 주기적으로 프론트로 전송 (실시간 진행률).
+     * Periodically sends build status/logs to the frontend.
+     *
+     * @param jobId:       unique identifier of the pipeline
+     * @param buildNumber: build number
+     * @param email        recipient: user email
      */
     public void sendLog(UUID jobId, int buildNumber, String email) {
         pollingManager.sendLog(

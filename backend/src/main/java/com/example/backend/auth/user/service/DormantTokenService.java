@@ -24,14 +24,14 @@ public class DormantTokenService {
     @Value("${user.dormancy.token.expiration.hours:24}")
     private long tokenExpirationHours;
 
-
     /**
-     * 휴면 재활성화를 위한 토큰 생성.
-     * - 기존에 남아있는 토큰들은 삭제
-     * - 새 토큰 발급, 저장하여 반환
+     * Generate a token for dormant account reactivation.
+     * - Deletes all existing tokens for the user (safety cleanup).
+     * - Creates a new UUID-based token and stores it in the DB.
+     * - Expiration time is calculated using {@code tokenExpirationHours}.
      *
-     * @param user 휴면 대상 사용자 엔티티 (Users)
-     * @return 생성된 토큰 문자열
+     * @param user Dormant user entity (must exist in DB)
+     * @return Generated token string
      */
     @Transactional
     public String createDormantReactivationToken(Users user) {
@@ -62,11 +62,12 @@ public class DormantTokenService {
     }
 
     /**
-     * 토큰을 검증하고, 유효하면 관련된 Users 엔티티를 반환.
-     * - 토큰이 없거나 만료되었거나 이미 사용되었으면 예외 발생
+     * Validate a dormant reactivation token and return the associated user.
+     * - If token is not found, expired, or invalid → throw exception.
+     * - If valid, mark user status as ACTIVE and update lastLogin timestamp.
      *
-     * @param tokenStr 클라이언트로부터 전달된 토큰 문자열
-     * @return 토큰이 유효한 경우 해당 사용자 엔티티
+     * @param tokenStr Token string from the client
+     * @return User entity linked to the valid token
      */
     @Transactional(readOnly = true)
     public Users validateAndGetUserByToken(String tokenStr) {
@@ -92,19 +93,9 @@ public class DormantTokenService {
     }
 
     /**
-     * 재활성화 완료 후 토큰 삭제.
+     * Delete all tokens for a specific user (safety cleanup).
      *
-     * @param tokenStr 사용이 끝난 토큰 문자열
-     */
-    @Transactional
-    public void deleteToken(String tokenStr) {
-        tokenRepository.findByToken(tokenStr).ifPresent(tokenRepository::delete);
-    }
-
-    /**
-     * 사용자 기준으로 토큰 모두 삭제 (안전용).
-     *
-     * @param user
+     * @param user User entity whose tokens should be deleted
      */
     @Transactional
     public void deleteTokensByUser(Users user) {
